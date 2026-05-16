@@ -4,3 +4,5 @@ dist/
 .env
 .DS_Store
 coverage/
+connectwise-manage-mcp-security-review.md
+cw-mcp-sentinel-plan.md
