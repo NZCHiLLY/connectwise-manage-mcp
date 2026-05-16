@@ -15,8 +15,6 @@
  *
  * Handler tests supply valid args and call `handler(validArgs, {})` directly,
  * then assert on the auditLog and client.patch mocks.
- *
- * NOTE: npm test cannot be run locally (Node.js not on PATH in this environment).
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
