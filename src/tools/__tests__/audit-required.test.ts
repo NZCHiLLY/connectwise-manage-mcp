@@ -42,7 +42,7 @@ import { auditLog } from "../../audit/log.js";
 // ---------------------------------------------------------------------------
 
 const mockClient = {
-  patch: vi.fn().mockResolvedValue({ id: 1, summary: "Test" }),
+  patch: vi.fn(),
 } as unknown as CwManageClient;
 
 // ---------------------------------------------------------------------------
@@ -88,7 +88,8 @@ describe("cw_update_ticket", () => {
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
+    vi.mocked(mockClient.patch).mockResolvedValue({ id: 1, summary: "Test" });
     server = new McpServer({ name: "test", version: "0.0.0" });
     registerTicketTools(server, mockClient);
   });
@@ -119,7 +120,7 @@ describe("cw_update_ticket", () => {
 
   it("calls auditLog with correct shape on a valid call", async () => {
     const { handler } = getTool(server, "cw_update_ticket");
-    await handler(VALID, {});
+    const result = await handler(VALID, {});
 
     expect(auditLog).toHaveBeenCalledOnce();
     expect(auditLog).toHaveBeenCalledWith({
@@ -130,9 +131,10 @@ describe("cw_update_ticket", () => {
       userQuote: VALID.user_quote,
       operations: VALID.operations,
     });
+    expect(result).toMatchObject({ content: [{ type: "text" }] });
   });
 
-  it("calls client.patch with correct endpoint and operations on a valid call", async () => {
+  it("calls client.patch with correct endpoint and operations, after auditLog", async () => {
     const { handler } = getTool(server, "cw_update_ticket");
     await handler(VALID, {});
 
@@ -141,6 +143,9 @@ describe("cw_update_ticket", () => {
       `/service/tickets/${VALID.id}`,
       VALID.operations,
     );
+    const auditOrder = vi.mocked(auditLog).mock.invocationCallOrder[0];
+    const patchOrder = vi.mocked(mockClient.patch).mock.invocationCallOrder[0];
+    expect(auditOrder).toBeLessThan(patchOrder);
   });
 });
 
@@ -159,7 +164,8 @@ describe("cw_update_company", () => {
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
+    vi.mocked(mockClient.patch).mockResolvedValue({ id: 10, name: "Acme" });
     server = new McpServer({ name: "test", version: "0.0.0" });
     registerCompanyTools(server, mockClient);
   });
@@ -190,7 +196,7 @@ describe("cw_update_company", () => {
 
   it("calls auditLog with correct shape on a valid call", async () => {
     const { handler } = getTool(server, "cw_update_company");
-    await handler(VALID, {});
+    const result = await handler(VALID, {});
 
     expect(auditLog).toHaveBeenCalledOnce();
     expect(auditLog).toHaveBeenCalledWith({
@@ -201,9 +207,10 @@ describe("cw_update_company", () => {
       userQuote: VALID.user_quote,
       operations: VALID.operations,
     });
+    expect(result).toMatchObject({ content: [{ type: "text" }] });
   });
 
-  it("calls client.patch with correct endpoint and operations on a valid call", async () => {
+  it("calls client.patch with correct endpoint and operations, after auditLog", async () => {
     const { handler } = getTool(server, "cw_update_company");
     await handler(VALID, {});
 
@@ -212,6 +219,9 @@ describe("cw_update_company", () => {
       `/company/companies/${VALID.id}`,
       VALID.operations,
     );
+    const auditOrder = vi.mocked(auditLog).mock.invocationCallOrder[0];
+    const patchOrder = vi.mocked(mockClient.patch).mock.invocationCallOrder[0];
+    expect(auditOrder).toBeLessThan(patchOrder);
   });
 });
 
@@ -230,7 +240,8 @@ describe("cw_update_catalog_item", () => {
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
+    vi.mocked(mockClient.patch).mockResolvedValue({ id: 99, identifier: "SKU-99" });
     server = new McpServer({ name: "test", version: "0.0.0" });
     registerCatalogTools(server, mockClient);
   });
@@ -261,7 +272,7 @@ describe("cw_update_catalog_item", () => {
 
   it("calls auditLog with correct shape on a valid call", async () => {
     const { handler } = getTool(server, "cw_update_catalog_item");
-    await handler(VALID, {});
+    const result = await handler(VALID, {});
 
     expect(auditLog).toHaveBeenCalledOnce();
     expect(auditLog).toHaveBeenCalledWith({
@@ -272,9 +283,10 @@ describe("cw_update_catalog_item", () => {
       userQuote: VALID.user_quote,
       operations: VALID.operations,
     });
+    expect(result).toMatchObject({ content: [{ type: "text" }] });
   });
 
-  it("calls client.patch with correct endpoint and operations on a valid call", async () => {
+  it("calls client.patch with correct endpoint and operations, after auditLog", async () => {
     const { handler } = getTool(server, "cw_update_catalog_item");
     await handler(VALID, {});
 
@@ -283,5 +295,8 @@ describe("cw_update_catalog_item", () => {
       `/procurement/catalog/${VALID.id}`,
       VALID.operations,
     );
+    const auditOrder = vi.mocked(auditLog).mock.invocationCallOrder[0];
+    const patchOrder = vi.mocked(mockClient.patch).mock.invocationCallOrder[0];
+    expect(auditOrder).toBeLessThan(patchOrder);
   });
 });
