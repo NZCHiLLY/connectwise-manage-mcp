@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
+import { auditLog } from "../audit/log.js";
 
 export function registerTicketTools(server: McpServer, client: CwManageClient) {
   server.tool(
@@ -76,9 +77,28 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_update_ticket",
-    "Update an existing service ticket using JSON Patch operations.",
+    "Update an existing service ticket using JSON Patch operations. " +
+      "REQUIRED: you must include 'user_intent' (plain-English description of what " +
+      "the user asked for) and 'user_quote' (verbatim text from the user that " +
+      "motivated this change). These are logged for audit. If you cannot quote " +
+      "the user or articulate their intent, do not call this tool — ask the user first.",
     {
       id: z.number().describe("Ticket ID"),
+      user_intent: z
+        .string()
+        .min(20)
+        .describe(
+          "Plain-English description of what the user asked for. " +
+            "Must be at least 20 characters. Example: " +
+            "'User asked to close ticket 12345 because they have billed it.'",
+        ),
+      user_quote: z
+        .string()
+        .min(5)
+        .describe(
+          "Verbatim quote of the user's actual words that motivated this update. " +
+            "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+        ),
       operations: z
         .array(
           z.object({
@@ -89,7 +109,15 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
         )
         .describe("Array of JSON Patch operations"),
     },
-    async ({ id, operations }) => {
+    async ({ id, user_intent, user_quote, operations }) => {
+      await auditLog({
+        tool: "cw_update_ticket",
+        entityType: "ticket",
+        entityId: id,
+        userIntent: user_intent,
+        userQuote: user_quote,
+        operations,
+      });
       const result = await client.patch(`/service/tickets/${id}`, operations);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
