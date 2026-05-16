@@ -175,4 +175,17 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
+
+  server.tool(
+    "cw_add_ticket_member",
+    "Add a member (resource) to a service ticket.",
+    {
+      id: z.number().describe("Ticket ID"),
+      memberId: z.number().describe("Member ID to add as a resource on the ticket"),
+    },
+    async ({ id, memberId }) => {
+      const result = await client.post(`/service/tickets/${id}/members`, { member: { id: memberId } });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
 }
