@@ -125,7 +125,7 @@ export function registerCatalogTools(server: McpServer, client: CwManageClient) 
         ),
       user_quote: z
         .string()
-        .min(5)
+        .min(20)
         .describe(
           "Verbatim quote of the user's actual words that motivated this update. " +
             "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
