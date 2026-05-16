@@ -1,14 +1,13 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
-interface AuditEntry {
+export interface AuditEntry {
   tool: string;
   entityType: "ticket" | "company" | "catalog_item";
   entityId: number;
   userIntent: string;
   userQuote: string;
   operations: unknown;
-  timestamp: string;
 }
 
 const AUDIT_PATH = process.env.CW_SENTINEL_AUDIT_PATH
@@ -25,7 +24,7 @@ async function ensureDir() {
 export async function auditLog(entry: AuditEntry): Promise<void> {
   try {
     await ensureDir();
-    const line = JSON.stringify(entry) + "\n";
+    const line = JSON.stringify({ ...entry, timestamp: new Date().toISOString() }) + "\n";
     await fs.appendFile(AUDIT_PATH, line, { encoding: "utf-8" });
   } catch (err) {
     // Never let an audit failure block a CW write. Surface to stderr so

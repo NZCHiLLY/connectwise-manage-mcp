@@ -33,7 +33,6 @@ const baseEntry = {
   userIntent: "Close the ticket",
   userQuote: "Please close ticket 42",
   operations: [{ op: "replace", path: "/status/name", value: "Closed" }],
-  timestamp: new Date().toISOString(),
 };
 
 // ---------------------------------------------------------------------------
@@ -101,6 +100,7 @@ describe("auditLog", () => {
 
     expect(stderrSpy).toHaveBeenCalledOnce();
     expect(stderrSpy.mock.calls[0][0]).toContain("EPERM");
+    expect(fsMock.appendFile).not.toHaveBeenCalled();
 
     stderrSpy.mockRestore();
   });
