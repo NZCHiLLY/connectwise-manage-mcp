@@ -178,13 +178,17 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_add_ticket_member",
-    "Add a member (resource) to a service ticket.",
+    "Add a member (resource) to a service ticket by creating a schedule entry assignment.",
     {
       id: z.number().describe("Ticket ID"),
-      memberId: z.number().describe("Member ID to add as a resource on the ticket"),
+      memberIdentifier: z.string().describe("Member username/identifier to assign (e.g. 'jsmith')"),
     },
-    async ({ id, memberId }) => {
-      const result = await client.post(`/service/tickets/${id}/members`, { member: { id: memberId } });
+    async ({ id, memberIdentifier }) => {
+      const result = await client.post(`/schedule/entries`, {
+        type: { id: 4 },
+        objectId: id,
+        member: { identifier: memberIdentifier },
+      });
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
