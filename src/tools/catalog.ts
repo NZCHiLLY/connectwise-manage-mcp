@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
+import { auditLog } from "../audit/log.js";
 
 /**
  * Product Catalog tools (ConnectWise Procurement API).
@@ -107,9 +108,28 @@ export function registerCatalogTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_catalog_item",
-    "Update an existing catalog item using JSON Patch operations.",
+    "Update an existing catalog item using JSON Patch operations. " +
+      "REQUIRED: you must include 'user_intent' (plain-English description of what " +
+      "the user asked for) and 'user_quote' (verbatim text from the user that " +
+      "motivated this change). These are logged for audit. If you cannot quote " +
+      "the user or articulate their intent, do not call this tool — ask the user first.",
     {
       id: z.number().describe("Catalog item ID"),
+      user_intent: z
+        .string()
+        .min(20)
+        .describe(
+          "Plain-English description of what the user asked for. " +
+            "Must be at least 20 characters. Example: " +
+            "'User asked to update the price of catalog item 99 to reflect new supplier cost.'",
+        ),
+      user_quote: z
+        .string()
+        .min(20)
+        .describe(
+          "Verbatim quote of the user's actual words that motivated this update. " +
+            "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+        ),
       operations: z
         .array(
           z.object({
@@ -120,7 +140,15 @@ export function registerCatalogTools(server: McpServer, client: CwManageClient) 
         )
         .describe("Array of JSON Patch operations"),
     },
-    async ({ id, operations }) => {
+    async ({ id, user_intent, user_quote, operations }) => {
+      await auditLog({
+        tool: "cw_update_catalog_item",
+        entityType: "catalog_item",
+        entityId: id,
+        userIntent: user_intent,
+        userQuote: user_quote,
+        operations,
+      });
       const result = await client.patch(`/procurement/catalog/${id}`, operations);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
