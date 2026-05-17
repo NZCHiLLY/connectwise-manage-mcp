@@ -10,19 +10,19 @@ const patchOp = z.object({
 });
 
 export function registerCompanyTools(server: McpServer, client: CwManageClient) {
-  // ===== Companies =====
+  // ── Companies ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_search_companies",
     "Search companies. Use 'conditions' for CW query syntax (e.g. \"name like 'Acme%'\").",
     {
-      conditions: z.string().optional(),
-      childConditions: z.string().optional(),
-      customFieldConditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
-      orderBy: z.string().optional(),
-      fields: z.string().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      childConditions: z.string().optional().describe("Child object conditions query string"),
+      customFieldConditions: z.string().optional().describe("Custom field conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      orderBy: z.string().optional().describe("Field to order by"),
+      fields: z.string().optional().describe("Comma-separated list of fields to return"),
     },
     async ({ conditions, childConditions, customFieldConditions, page, pageSize, orderBy, fields }) => {
       const result = await client.get("/company/companies", {
@@ -43,7 +43,7 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
     "Get a single company by ID.",
     {
       id: z.number().describe("Company ID"),
-      fields: z.string().optional(),
+      fields: z.string().optional().describe("Comma-separated list of fields to return"),
     },
     async ({ id, fields }) => {
       const result = await client.get(`/company/companies/${id}`, { fields });
@@ -55,9 +55,9 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
     "cw_count_companies",
     "Count companies matching a conditions query.",
     {
-      conditions: z.string().optional(),
-      childConditions: z.string().optional(),
-      customFieldConditions: z.string().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      childConditions: z.string().optional().describe("Child object conditions query string"),
+      customFieldConditions: z.string().optional().describe("Custom field conditions query string"),
     },
     async (args) => {
       const result = await client.get("/company/companies/count", args);
@@ -73,31 +73,31 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
       name: z.string().describe("Company display name"),
       typeId: z.number().optional().describe("Company type ID"),
       statusId: z.number().optional().describe("Company status ID"),
-      addressLine1: z.string().optional(),
-      addressLine2: z.string().optional(),
-      city: z.string().optional(),
-      state: z.string().optional(),
-      zip: z.string().optional(),
-      countryId: z.number().optional(),
-      phoneNumber: z.string().optional(),
-      faxNumber: z.string().optional(),
-      website: z.string().optional(),
-      marketId: z.number().optional(),
-      territoryId: z.number().optional(),
-      accountNumber: z.string().optional(),
-      defaultContactId: z.number().optional(),
-      annualRevenue: z.number().optional(),
-      numberOfEmployees: z.number().optional(),
-      yearEstablished: z.number().optional(),
-      leadFlag: z.boolean().optional(),
-      vendorIdentifier: z.string().optional(),
-      taxIdentifier: z.string().optional(),
-      taxCodeId: z.number().optional(),
-      billToCompanyId: z.number().optional(),
-      parentCompanyId: z.number().optional(),
-      defaultDepartmentId: z.number().optional(),
-      defaultLocationId: z.number().optional(),
-      customFields: z.array(z.object({ id: z.number(), value: z.unknown() })).optional(),
+      addressLine1: z.string().optional().describe("Address line 1"),
+      addressLine2: z.string().optional().describe("Address line 2"),
+      city: z.string().optional().describe("City"),
+      state: z.string().optional().describe("State/province"),
+      zip: z.string().optional().describe("Postal/ZIP code"),
+      countryId: z.number().optional().describe("Country ID"),
+      phoneNumber: z.string().optional().describe("Phone number"),
+      faxNumber: z.string().optional().describe("Fax number"),
+      website: z.string().optional().describe("Website URL"),
+      marketId: z.number().optional().describe("Market segment ID"),
+      territoryId: z.number().optional().describe("Territory ID"),
+      accountNumber: z.string().optional().describe("Account number"),
+      defaultContactId: z.number().optional().describe("Default contact ID"),
+      annualRevenue: z.number().optional().describe("Annual revenue"),
+      numberOfEmployees: z.number().optional().describe("Number of employees"),
+      yearEstablished: z.number().optional().describe("Year established"),
+      leadFlag: z.boolean().optional().describe("Mark as a lead"),
+      vendorIdentifier: z.string().optional().describe("Vendor identifier"),
+      taxIdentifier: z.string().optional().describe("Tax identifier"),
+      taxCodeId: z.number().optional().describe("Tax code ID"),
+      billToCompanyId: z.number().optional().describe("Bill-to company ID"),
+      parentCompanyId: z.number().optional().describe("Parent company ID"),
+      defaultDepartmentId: z.number().optional().describe("Default department ID"),
+      defaultLocationId: z.number().optional().describe("Default location ID"),
+      customFields: z.array(z.object({ id: z.number(), value: z.unknown() })).optional().describe("Custom field values"),
     },
     async (args) => {
       const body: Record<string, unknown> = {
@@ -207,17 +207,17 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Company sites =====
+  // ── Company sites ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_company_sites",
     "List sites for a company.",
     {
       companyId: z.number().describe("Company ID"),
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
-      orderBy: z.string().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      orderBy: z.string().optional().describe("Field to order by"),
     },
     async ({ companyId, conditions, page, pageSize, orderBy }) => {
       const result = await client.get(`/company/companies/${companyId}/sites`, {
@@ -249,20 +249,20 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
     {
       companyId: z.number().describe("Company ID"),
       name: z.string().describe("Site name"),
-      addressLine1: z.string().optional(),
-      addressLine2: z.string().optional(),
-      city: z.string().optional(),
-      state: z.string().optional(),
-      zip: z.string().optional(),
-      countryId: z.number().optional(),
-      phoneNumber: z.string().optional(),
-      faxNumber: z.string().optional(),
-      timeZoneId: z.number().optional(),
-      taxCodeId: z.number().optional(),
-      primaryAddressFlag: z.boolean().optional(),
-      defaultMailingFlag: z.boolean().optional(),
-      defaultShippingFlag: z.boolean().optional(),
-      defaultBillingFlag: z.boolean().optional(),
+      addressLine1: z.string().optional().describe("Address line 1"),
+      addressLine2: z.string().optional().describe("Address line 2"),
+      city: z.string().optional().describe("City"),
+      state: z.string().optional().describe("State/province"),
+      zip: z.string().optional().describe("Postal/ZIP code"),
+      countryId: z.number().optional().describe("Country ID"),
+      phoneNumber: z.string().optional().describe("Phone number"),
+      faxNumber: z.string().optional().describe("Fax number"),
+      timeZoneId: z.number().optional().describe("Time zone ID"),
+      taxCodeId: z.number().optional().describe("Tax code ID"),
+      primaryAddressFlag: z.boolean().optional().describe("Mark as primary address"),
+      defaultMailingFlag: z.boolean().optional().describe("Mark as default mailing address"),
+      defaultShippingFlag: z.boolean().optional().describe("Mark as default shipping address"),
+      defaultBillingFlag: z.boolean().optional().describe("Mark as default billing address"),
     },
     async (args) => {
       const body: Record<string, unknown> = { name: args.name };
@@ -291,7 +291,7 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
     {
       companyId: z.number().describe("Company ID"),
       siteId: z.number().describe("Site ID"),
-      patch: z.array(patchOp),
+      patch: z.array(patchOp).describe("JSON Patch operations to apply"),
     },
     async ({ companyId, siteId, patch }) => {
       const result = await client.patch(`/company/companies/${companyId}/sites/${siteId}`, patch);
@@ -312,16 +312,16 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Company notes =====
+  // ── Company notes ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_company_notes",
     "List notes on a company.",
     {
       companyId: z.number().describe("Company ID"),
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ companyId, conditions, page, pageSize }) => {
       const result = await client.get(`/company/companies/${companyId}/notes`, {
@@ -354,7 +354,7 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
       text: z.string().describe("Note text"),
       typeId: z.number().optional().describe("Note type ID"),
       enteredBy: z.string().optional().describe("Member identifier of author"),
-      flagged: z.boolean().optional(),
+      flagged: z.boolean().optional().describe("Mark note as flagged"),
     },
     async (args) => {
       const body: Record<string, unknown> = { text: args.text };
@@ -372,7 +372,7 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
     {
       companyId: z.number().describe("Company ID"),
       noteId: z.number().describe("Note ID"),
-      patch: z.array(patchOp),
+      patch: z.array(patchOp).describe("JSON Patch operations to apply"),
     },
     async ({ companyId, noteId, patch }) => {
       const result = await client.patch(`/company/companies/${companyId}/notes/${noteId}`, patch);
@@ -393,16 +393,16 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Company teams =====
+  // ── Company teams ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_company_teams",
     "List account-team rows on a company (who internally owns / supports this account).",
     {
       companyId: z.number().describe("Company ID"),
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ companyId, conditions, page, pageSize }) => {
       const result = await client.get(`/company/companies/${companyId}/teams`, {
@@ -435,9 +435,9 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
       teamRoleId: z.number().describe("Team role ID"),
       memberId: z.number().optional().describe("Internal member ID"),
       contactId: z.number().optional().describe("Contact ID (for client-side team members)"),
-      locationId: z.number().optional(),
-      businessUnitId: z.number().optional(),
-      accountManagerFlag: z.boolean().optional(),
+      locationId: z.number().optional().describe("Location ID"),
+      businessUnitId: z.number().optional().describe("Business unit ID"),
+      accountManagerFlag: z.boolean().optional().describe("Mark as account manager"),
     },
     async (args) => {
       const body: Record<string, unknown> = { teamRole: { id: args.teamRoleId } };
@@ -457,7 +457,7 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
     {
       companyId: z.number().describe("Company ID"),
       teamId: z.number().describe("Team-row ID"),
-      patch: z.array(patchOp),
+      patch: z.array(patchOp).describe("JSON Patch operations to apply"),
     },
     async ({ companyId, teamId, patch }) => {
       const result = await client.patch(`/company/companies/${companyId}/teams/${teamId}`, patch);
@@ -478,15 +478,15 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Company custom fields =====
+  // ── Company custom fields ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_company_custom_fields",
     "List custom-field definitions visible to companies via /company/companies/customFields.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async (args) => {
       const result = await client.get("/company/companies/customFields", {
@@ -498,16 +498,16 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Related listings on a company =====
+  // ── Related listings on a company ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_company_management_summary",
     "List management-summary-report rows for a company via /company/companies/{id}/managementSummaryReports.",
     {
       companyId: z.number().describe("Company ID"),
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ companyId, conditions, page, pageSize }) => {
       const result = await client.get(`/company/companies/${companyId}/managementSummaryReports`, {
@@ -519,15 +519,15 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Company statuses =====
+  // ── Company statuses ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_company_statuses",
     "List company statuses.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/company/companies/statuses", {
@@ -556,13 +556,13 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
     "Create a company status.",
     {
       name: z.string().describe("Status name"),
-      defaultFlag: z.boolean().optional(),
-      inactiveFlag: z.boolean().optional(),
-      noticeFlag: z.boolean().optional(),
-      notifyFlag: z.boolean().optional(),
-      notificationMessage: z.string().optional(),
-      cancelOpenTracksFlag: z.boolean().optional(),
-      trackId: z.number().optional(),
+      defaultFlag: z.boolean().optional().describe("Mark as default status"),
+      inactiveFlag: z.boolean().optional().describe("Mark as inactive"),
+      noticeFlag: z.boolean().optional().describe("Show notice when status is applied"),
+      notifyFlag: z.boolean().optional().describe("Send notification when status is applied"),
+      notificationMessage: z.string().optional().describe("Notification message text"),
+      cancelOpenTracksFlag: z.boolean().optional().describe("Cancel open tracks when status is applied"),
+      trackId: z.number().optional().describe("Track ID to apply on status change"),
     },
     async (args) => {
       const body: Record<string, unknown> = { name: args.name };
@@ -583,7 +583,7 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
     "Update a company status via JSON Patch.",
     {
       id: z.number().describe("Status ID"),
-      patch: z.array(patchOp),
+      patch: z.array(patchOp).describe("JSON Patch operations to apply"),
     },
     async ({ id, patch }) => {
       const result = await client.patch(`/company/companies/statuses/${id}`, patch);
@@ -603,15 +603,15 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Company types =====
+  // ── Company types ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_company_types",
     "List company types.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/company/companies/types", {
@@ -639,11 +639,11 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
     "cw_create_company_type",
     "Create a company type.",
     {
-      name: z.string(),
-      defaultFlag: z.boolean().optional(),
-      vendorFlag: z.boolean().optional(),
-      serviceAlertFlag: z.boolean().optional(),
-      serviceAlertMessage: z.string().optional(),
+      name: z.string().describe("Company type name"),
+      defaultFlag: z.boolean().optional().describe("Mark as default type"),
+      vendorFlag: z.boolean().optional().describe("Mark as vendor type"),
+      serviceAlertFlag: z.boolean().optional().describe("Enable service alert for this type"),
+      serviceAlertMessage: z.string().optional().describe("Service alert message text"),
     },
     async (args) => {
       const body: Record<string, unknown> = { name: args.name };
@@ -661,7 +661,7 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
     "Update a company type via JSON Patch.",
     {
       id: z.number().describe("Type ID"),
-      patch: z.array(patchOp),
+      patch: z.array(patchOp).describe("JSON Patch operations to apply"),
     },
     async ({ id, patch }) => {
       const result = await client.patch(`/company/companies/types/${id}`, patch);
@@ -681,15 +681,15 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Team roles =====
+  // ── Team roles ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_team_roles",
     "List company team-role definitions.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/company/teamRoles", {
@@ -713,15 +713,15 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Markets / territories =====
+  // ── Markets / territories ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_company_markets",
     "List market descriptions.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/company/marketDescriptions", {
@@ -737,9 +737,9 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
     "cw_list_company_ownership_types",
     "List ownership types.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/company/ownershipTypes", {

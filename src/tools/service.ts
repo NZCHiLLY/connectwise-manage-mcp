@@ -9,16 +9,16 @@ const patchOp = z.object({
 });
 
 export function registerServiceTools(server: McpServer, client: CwManageClient) {
-  // ===== Service boards =====
+  // ── Service Boards ───────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_service_boards",
     "List service boards.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
-      orderBy: z.string().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      orderBy: z.string().optional().describe("Field to order by"),
     },
     async ({ conditions, page, pageSize, orderBy }) => {
       const result = await client.get("/service/boards", {
@@ -35,7 +35,7 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_get_service_board",
     "Get a single service board.",
     {
-      id: z.number().describe("Board ID"),
+      id: z.number().describe("Service board ID"),
     },
     async ({ id }) => {
       const result = await client.get(`/service/boards/${id}`);
@@ -47,11 +47,11 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_create_service_board",
     "Create a service board. name and locationId are required.",
     {
-      name: z.string(),
-      locationId: z.number(),
-      businessUnitId: z.number().optional(),
-      departmentId: z.number().optional(),
-      inactiveFlag: z.boolean().optional(),
+      name: z.string().describe("Board name"),
+      locationId: z.number().describe("Location ID the board belongs to"),
+      businessUnitId: z.number().optional().describe("Business unit ID"),
+      departmentId: z.number().optional().describe("Department ID"),
+      inactiveFlag: z.boolean().optional().describe("Mark the board inactive"),
     },
     async (args) => {
       const body: Record<string, unknown> = {
@@ -70,8 +70,8 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_update_service_board",
     "Update a service board via JSON Patch.",
     {
-      id: z.number(),
-      patch: z.array(patchOp),
+      id: z.number().describe("Service board ID"),
+      patch: z.array(patchOp).describe("JSON Patch operations to apply"),
     },
     async ({ id, patch }) => {
       const result = await client.patch(`/service/boards/${id}`, patch);
@@ -83,7 +83,7 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_delete_service_board",
     "Delete a service board.",
     {
-      id: z.number(),
+      id: z.number().describe("Service board ID"),
     },
     async ({ id }) => {
       const result = await client.request("DELETE", `/service/boards/${id}`);
@@ -91,16 +91,16 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Board statuses =====
+  // ── Board Statuses ───────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_board_statuses",
     "List statuses on a board.",
     {
-      boardId: z.number(),
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      boardId: z.number().describe("Service board ID"),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ boardId, conditions, page, pageSize }) => {
       const result = await client.get(`/service/boards/${boardId}/statuses`, {
@@ -116,8 +116,8 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_get_board_status",
     "Get a single board status.",
     {
-      boardId: z.number(),
-      statusId: z.number(),
+      boardId: z.number().describe("Service board ID"),
+      statusId: z.number().describe("Board status ID"),
     },
     async ({ boardId, statusId }) => {
       const result = await client.get(`/service/boards/${boardId}/statuses/${statusId}`);
@@ -129,19 +129,19 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_create_board_status",
     "Create a board status.",
     {
-      boardId: z.number(),
-      name: z.string(),
-      sortOrder: z.number().optional(),
-      defaultFlag: z.boolean().optional(),
-      inactiveFlag: z.boolean().optional(),
-      closedFlag: z.boolean().optional(),
+      boardId: z.number().describe("Service board ID"),
+      name: z.string().describe("Status name"),
+      sortOrder: z.number().optional().describe("Display sort order"),
+      defaultFlag: z.boolean().optional().describe("Use as the board default status"),
+      inactiveFlag: z.boolean().optional().describe("Mark the status inactive"),
+      closedFlag: z.boolean().optional().describe("Treat the status as closed"),
       escalationStatus: z.string().optional().describe("NotResponded | Responded | ResolutionPlan | NoEscalation"),
-      timeEntryNotAllowedFlag: z.boolean().optional(),
-      displayOnBoard: z.boolean().optional(),
-      customerPortalFlag: z.boolean().optional(),
-      customerPortalDescription: z.string().optional(),
-      roundRobinFlag: z.boolean().optional(),
-      ownedByMemberFlag: z.boolean().optional(),
+      timeEntryNotAllowedFlag: z.boolean().optional().describe("Disallow time entries while in this status"),
+      displayOnBoard: z.boolean().optional().describe("Show this status on the service board view"),
+      customerPortalFlag: z.boolean().optional().describe("Expose status in the customer portal"),
+      customerPortalDescription: z.string().optional().describe("Customer-facing portal description"),
+      roundRobinFlag: z.boolean().optional().describe("Assign tickets via round-robin when entering this status"),
+      ownedByMemberFlag: z.boolean().optional().describe("Restrict edits to the owning member"),
     },
     async (args) => {
       const body: Record<string, unknown> = { name: args.name };
@@ -165,9 +165,9 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_update_board_status",
     "Update a board status via JSON Patch.",
     {
-      boardId: z.number(),
-      statusId: z.number(),
-      patch: z.array(patchOp),
+      boardId: z.number().describe("Service board ID"),
+      statusId: z.number().describe("Board status ID"),
+      patch: z.array(patchOp).describe("JSON Patch operations to apply"),
     },
     async ({ boardId, statusId, patch }) => {
       const result = await client.patch(`/service/boards/${boardId}/statuses/${statusId}`, patch);
@@ -179,8 +179,8 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_delete_board_status",
     "Delete a board status.",
     {
-      boardId: z.number(),
-      statusId: z.number(),
+      boardId: z.number().describe("Service board ID"),
+      statusId: z.number().describe("Board status ID"),
     },
     async ({ boardId, statusId }) => {
       const result = await client.request("DELETE", `/service/boards/${boardId}/statuses/${statusId}`);
@@ -188,16 +188,16 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Board types =====
+  // ── Board Types ──────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_board_types",
     "List ticket types under a board.",
     {
-      boardId: z.number(),
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      boardId: z.number().describe("Service board ID"),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ boardId, conditions, page, pageSize }) => {
       const result = await client.get(`/service/boards/${boardId}/types`, {
@@ -213,8 +213,8 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_get_board_type",
     "Get a single board type.",
     {
-      boardId: z.number(),
-      typeId: z.number(),
+      boardId: z.number().describe("Service board ID"),
+      typeId: z.number().describe("Board type ID"),
     },
     async ({ boardId, typeId }) => {
       const result = await client.get(`/service/boards/${boardId}/types/${typeId}`);
@@ -226,12 +226,12 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_create_board_type",
     "Create a board type.",
     {
-      boardId: z.number(),
-      name: z.string(),
-      defaultFlag: z.boolean().optional(),
-      inactiveFlag: z.boolean().optional(),
-      requestForChangeFlag: z.boolean().optional(),
-      categoryId: z.number().optional(),
+      boardId: z.number().describe("Service board ID"),
+      name: z.string().describe("Type name"),
+      defaultFlag: z.boolean().optional().describe("Use as the default type for the board"),
+      inactiveFlag: z.boolean().optional().describe("Mark the type inactive"),
+      requestForChangeFlag: z.boolean().optional().describe("Flag the type as a request-for-change"),
+      categoryId: z.number().optional().describe("Service category ID"),
     },
     async (args) => {
       const body: Record<string, unknown> = { name: args.name };
@@ -248,9 +248,9 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_update_board_type",
     "Update a board type via JSON Patch.",
     {
-      boardId: z.number(),
-      typeId: z.number(),
-      patch: z.array(patchOp),
+      boardId: z.number().describe("Service board ID"),
+      typeId: z.number().describe("Board type ID"),
+      patch: z.array(patchOp).describe("JSON Patch operations to apply"),
     },
     async ({ boardId, typeId, patch }) => {
       const result = await client.patch(`/service/boards/${boardId}/types/${typeId}`, patch);
@@ -262,8 +262,8 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_delete_board_type",
     "Delete a board type.",
     {
-      boardId: z.number(),
-      typeId: z.number(),
+      boardId: z.number().describe("Service board ID"),
+      typeId: z.number().describe("Board type ID"),
     },
     async ({ boardId, typeId }) => {
       const result = await client.request("DELETE", `/service/boards/${boardId}/types/${typeId}`);
@@ -271,16 +271,16 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Board subtypes =====
+  // ── Board Subtypes ───────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_board_subtypes",
     "List subtypes on a board.",
     {
-      boardId: z.number(),
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      boardId: z.number().describe("Service board ID"),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ boardId, conditions, page, pageSize }) => {
       const result = await client.get(`/service/boards/${boardId}/subtypes`, {
@@ -296,8 +296,8 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_get_board_subtype",
     "Get a single board subtype.",
     {
-      boardId: z.number(),
-      subTypeId: z.number(),
+      boardId: z.number().describe("Service board ID"),
+      subTypeId: z.number().describe("Board subtype ID"),
     },
     async ({ boardId, subTypeId }) => {
       const result = await client.get(`/service/boards/${boardId}/subtypes/${subTypeId}`);
@@ -309,11 +309,11 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_create_board_subtype",
     "Create a board subtype.",
     {
-      boardId: z.number(),
-      name: z.string(),
-      inactiveFlag: z.boolean().optional(),
-      addAllTypesFlag: z.boolean().optional(),
-      removeAllTypesFlag: z.boolean().optional(),
+      boardId: z.number().describe("Service board ID"),
+      name: z.string().describe("Subtype name"),
+      inactiveFlag: z.boolean().optional().describe("Mark the subtype inactive"),
+      addAllTypesFlag: z.boolean().optional().describe("Associate the subtype with all existing types"),
+      removeAllTypesFlag: z.boolean().optional().describe("Detach the subtype from all existing types"),
     },
     async (args) => {
       const body: Record<string, unknown> = { name: args.name };
@@ -329,9 +329,9 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_update_board_subtype",
     "Update a board subtype via JSON Patch.",
     {
-      boardId: z.number(),
-      subTypeId: z.number(),
-      patch: z.array(patchOp),
+      boardId: z.number().describe("Service board ID"),
+      subTypeId: z.number().describe("Board subtype ID"),
+      patch: z.array(patchOp).describe("JSON Patch operations to apply"),
     },
     async ({ boardId, subTypeId, patch }) => {
       const result = await client.patch(`/service/boards/${boardId}/subtypes/${subTypeId}`, patch);
@@ -343,8 +343,8 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_delete_board_subtype",
     "Delete a board subtype.",
     {
-      boardId: z.number(),
-      subTypeId: z.number(),
+      boardId: z.number().describe("Service board ID"),
+      subTypeId: z.number().describe("Board subtype ID"),
     },
     async ({ boardId, subTypeId }) => {
       const result = await client.request("DELETE", `/service/boards/${boardId}/subtypes/${subTypeId}`);
@@ -352,16 +352,16 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Board items =====
+  // ── Board Items ──────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_board_items",
     "List items on a board.",
     {
-      boardId: z.number(),
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      boardId: z.number().describe("Service board ID"),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ boardId, conditions, page, pageSize }) => {
       const result = await client.get(`/service/boards/${boardId}/items`, {
@@ -377,8 +377,8 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_get_board_item",
     "Get a single board item.",
     {
-      boardId: z.number(),
-      itemId: z.number(),
+      boardId: z.number().describe("Service board ID"),
+      itemId: z.number().describe("Board item ID"),
     },
     async ({ boardId, itemId }) => {
       const result = await client.get(`/service/boards/${boardId}/items/${itemId}`);
@@ -390,11 +390,11 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_create_board_item",
     "Create a board item.",
     {
-      boardId: z.number(),
-      name: z.string(),
-      inactiveFlag: z.boolean().optional(),
-      categoryId: z.number().optional(),
-      subCategoryId: z.number().optional(),
+      boardId: z.number().describe("Service board ID"),
+      name: z.string().describe("Item name"),
+      inactiveFlag: z.boolean().optional().describe("Mark the item inactive"),
+      categoryId: z.number().optional().describe("Service category ID"),
+      subCategoryId: z.number().optional().describe("Service subcategory ID"),
     },
     async (args) => {
       const body: Record<string, unknown> = { name: args.name };
@@ -410,9 +410,9 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_update_board_item",
     "Update a board item via JSON Patch.",
     {
-      boardId: z.number(),
-      itemId: z.number(),
-      patch: z.array(patchOp),
+      boardId: z.number().describe("Service board ID"),
+      itemId: z.number().describe("Board item ID"),
+      patch: z.array(patchOp).describe("JSON Patch operations to apply"),
     },
     async ({ boardId, itemId, patch }) => {
       const result = await client.patch(`/service/boards/${boardId}/items/${itemId}`, patch);
@@ -424,8 +424,8 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_delete_board_item",
     "Delete a board item.",
     {
-      boardId: z.number(),
-      itemId: z.number(),
+      boardId: z.number().describe("Service board ID"),
+      itemId: z.number().describe("Board item ID"),
     },
     async ({ boardId, itemId }) => {
       const result = await client.request("DELETE", `/service/boards/${boardId}/items/${itemId}`);
@@ -433,16 +433,16 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Board teams =====
+  // ── Board Teams ──────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_board_teams",
     "List teams on a board.",
     {
-      boardId: z.number(),
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      boardId: z.number().describe("Service board ID"),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ boardId, conditions, page, pageSize }) => {
       const result = await client.get(`/service/boards/${boardId}/teams`, {
@@ -458,8 +458,8 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_get_board_team",
     "Get a single board team.",
     {
-      boardId: z.number(),
-      teamId: z.number(),
+      boardId: z.number().describe("Service board ID"),
+      teamId: z.number().describe("Board team ID"),
     },
     async ({ boardId, teamId }) => {
       const result = await client.get(`/service/boards/${boardId}/teams/${teamId}`);
@@ -471,13 +471,13 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_create_board_team",
     "Create a board team.",
     {
-      boardId: z.number(),
-      name: z.string(),
-      defaultFlag: z.boolean().optional(),
-      notifyOnTicketDelete: z.boolean().optional(),
-      teamLeaderId: z.number().optional(),
-      businessUnitId: z.number().optional(),
-      locationId: z.number().optional(),
+      boardId: z.number().describe("Service board ID"),
+      name: z.string().describe("Team name"),
+      defaultFlag: z.boolean().optional().describe("Use as the default team for the board"),
+      notifyOnTicketDelete: z.boolean().optional().describe("Notify the team when a ticket is deleted"),
+      teamLeaderId: z.number().optional().describe("Member ID of the team leader"),
+      businessUnitId: z.number().optional().describe("Business unit ID"),
+      locationId: z.number().optional().describe("Location ID"),
     },
     async (args) => {
       const body: Record<string, unknown> = { name: args.name };
@@ -495,9 +495,9 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_update_board_team",
     "Update a board team via JSON Patch.",
     {
-      boardId: z.number(),
-      teamId: z.number(),
-      patch: z.array(patchOp),
+      boardId: z.number().describe("Service board ID"),
+      teamId: z.number().describe("Board team ID"),
+      patch: z.array(patchOp).describe("JSON Patch operations to apply"),
     },
     async ({ boardId, teamId, patch }) => {
       const result = await client.patch(`/service/boards/${boardId}/teams/${teamId}`, patch);
@@ -509,8 +509,8 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_delete_board_team",
     "Delete a board team.",
     {
-      boardId: z.number(),
-      teamId: z.number(),
+      boardId: z.number().describe("Service board ID"),
+      teamId: z.number().describe("Board team ID"),
     },
     async ({ boardId, teamId }) => {
       const result = await client.request("DELETE", `/service/boards/${boardId}/teams/${teamId}`);
@@ -518,15 +518,15 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Priorities =====
+  // ── Priorities ───────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_service_priorities",
     "List service priorities.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/service/priorities", {
@@ -542,7 +542,7 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_get_service_priority",
     "Get a single priority.",
     {
-      id: z.number(),
+      id: z.number().describe("Service priority ID"),
     },
     async ({ id }) => {
       const result = await client.get(`/service/priorities/${id}`);
@@ -550,15 +550,15 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Sources =====
+  // ── Sources ──────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_service_sources",
     "List ticket sources.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/service/sources", {
@@ -574,7 +574,7 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_get_service_source",
     "Get a single ticket source.",
     {
-      id: z.number(),
+      id: z.number().describe("Ticket source ID"),
     },
     async ({ id }) => {
       const result = await client.get(`/service/sources/${id}`);
@@ -582,15 +582,15 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== SLAs =====
+  // ── SLAs ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_slas",
     "List SLAs.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/service/SLAs", {
@@ -606,7 +606,7 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_get_sla",
     "Get a single SLA.",
     {
-      id: z.number(),
+      id: z.number().describe("SLA ID"),
     },
     async ({ id }) => {
       const result = await client.get(`/service/SLAs/${id}`);
@@ -618,10 +618,10 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_list_sla_priorities",
     "List per-priority SLA settings under an SLA.",
     {
-      slaId: z.number(),
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      slaId: z.number().describe("SLA ID"),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ slaId, conditions, page, pageSize }) => {
       const result = await client.get(`/service/SLAs/${slaId}/priorities`, {
@@ -633,15 +633,15 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Impacts & severities =====
+  // ── Impacts & Severities ─────────────────────────────────────────────────
 
   server.tool(
     "cw_list_impacts",
     "List impact values (Low / Medium / High).",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/service/impacts", {
@@ -657,9 +657,9 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_list_severities",
     "List severity values.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/service/severities", {
@@ -671,15 +671,15 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Ticket templates =====
+  // ── Ticket Templates ─────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_ticket_templates",
     "List ticket templates.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/service/ticketTemplates", {
@@ -695,7 +695,7 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_get_ticket_template",
     "Get a ticket template.",
     {
-      id: z.number(),
+      id: z.number().describe("Ticket template ID"),
     },
     async ({ id }) => {
       const result = await client.get(`/service/ticketTemplates/${id}`);
@@ -703,15 +703,15 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Surveys =====
+  // ── Surveys ──────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_surveys",
     "List service surveys.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/service/surveys", {
@@ -727,7 +727,7 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_get_survey",
     "Get a single survey definition.",
     {
-      id: z.number(),
+      id: z.number().describe("Survey ID"),
     },
     async ({ id }) => {
       const result = await client.get(`/service/surveys/${id}`);
@@ -739,10 +739,10 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_list_survey_results",
     "List survey results for a survey.",
     {
-      surveyId: z.number(),
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      surveyId: z.number().describe("Survey ID"),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ surveyId, conditions, page, pageSize }) => {
       const result = await client.get(`/service/surveys/${surveyId}/results`, {
@@ -754,15 +754,15 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Knowledgebase =====
+  // ── Knowledgebase ────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_kb_articles",
     "List knowledgebase articles.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/service/knowledgeBaseArticles", {
@@ -778,7 +778,7 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_get_kb_article",
     "Get a knowledgebase article.",
     {
-      id: z.number(),
+      id: z.number().describe("Knowledgebase article ID"),
     },
     async ({ id }) => {
       const result = await client.get(`/service/knowledgeBaseArticles/${id}`);
@@ -786,15 +786,15 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Code bases & categories =====
+  // ── Categories & Codes ───────────────────────────────────────────────────
 
   server.tool(
     "cw_list_service_categories",
     "List service categories.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/service/categories", {
@@ -810,7 +810,7 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_get_service_category",
     "Get a service category.",
     {
-      id: z.number(),
+      id: z.number().describe("Service category ID"),
     },
     async ({ id }) => {
       const result = await client.get(`/service/categories/${id}`);
@@ -822,9 +822,9 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     "cw_list_service_codes",
     "List service codes.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/service/codes", {
