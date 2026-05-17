@@ -3,31 +3,36 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
 import { auditLog } from "../audit/log.js";
 
+const patchOp = z.object({
+  op: z.enum(["replace", "add", "remove"]),
+  path: z.string(),
+  value: z.unknown().optional(),
+});
+
 export function registerTicketTools(server: McpServer, client: CwManageClient) {
+  // ===== Service tickets =====
+
   server.tool(
     "cw_search_tickets",
-    "Search service tickets in ConnectWise Manage. Use 'conditions' for CW query syntax (e.g. \"status/name != 'Closed'\" or \"company/name = 'Acme'\").",
+    "Search service tickets. Use 'conditions' for CW query syntax (e.g. \"status/name='New' and board/name='Service'\").",
     {
-      conditions: z
-        .string()
-        .optional()
-        .describe("ConnectWise conditions query string"),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      childConditions: z.string().optional().describe("Filter on child collections"),
+      customFieldConditions: z.string().optional().describe("Filter on custom fields"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z
-        .number()
-        .optional()
-        .describe("Results per page (default: 25, max: 1000)"),
-      orderBy: z
-        .string()
-        .optional()
-        .describe("Field to order by (e.g. 'id desc')"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      orderBy: z.string().optional().describe("Field to order by"),
+      fields: z.string().optional().describe("Comma-separated fields to return"),
     },
-    async ({ conditions, page, pageSize, orderBy }) => {
+    async ({ conditions, childConditions, customFieldConditions, page, pageSize, orderBy, fields }) => {
       const result = await client.get("/service/tickets", {
         conditions,
+        childConditions,
+        customFieldConditions,
         page: page ?? 1,
         pageSize: pageSize ?? 25,
         orderBy,
+        fields,
       });
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -35,41 +40,98 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_get_ticket",
-    "Get a specific service ticket by ID.",
+    "Get a single service ticket by ID.",
     {
       id: z.number().describe("Ticket ID"),
+      fields: z.string().optional().describe("Comma-separated fields to return"),
+    },
+    async ({ id, fields }) => {
+      const result = await client.get(`/service/tickets/${id}`, { fields });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_get_ticket_by_id_search",
+    "Lookup a ticket by ID via the /service/tickets/search endpoint (POST with id payload). Useful when you have only a ticket number and want the search-endpoint shape.",
+    {
+      id: z.number().describe("Ticket ID to look up"),
     },
     async ({ id }) => {
-      const result = await client.get(`/service/tickets/${id}`);
+      const result = await client.post("/service/tickets/search", { id });
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
 
   server.tool(
     "cw_create_ticket",
-    "Create a new service ticket.",
+    "Create a new service ticket. summary is required; either company or contact is normally required.",
     {
-      summary: z.string().describe("Ticket summary/title"),
+      summary: z.string().describe("Ticket summary / title (required)"),
       boardId: z.number().optional().describe("Service board ID"),
-      companyId: z.number().optional().describe("Company ID to associate"),
-      contactId: z.number().optional().describe("Contact ID to associate"),
       statusId: z.number().optional().describe("Status ID"),
+      companyId: z.number().optional().describe("Company ID"),
+      contactId: z.number().optional().describe("Contact ID"),
+      siteId: z.number().optional().describe("Site ID"),
+      typeId: z.number().optional().describe("Ticket type ID"),
+      subTypeId: z.number().optional().describe("Ticket subtype ID"),
+      itemId: z.number().optional().describe("Ticket item ID"),
       priorityId: z.number().optional().describe("Priority ID"),
-      typeId: z.number().optional().describe("Type ID"),
-      subTypeId: z.number().optional().describe("SubType ID"),
-      initialDescription: z.string().optional().describe("Initial ticket description"),
+      severityId: z.number().optional().describe("Severity ID (Low/Medium/High)"),
+      impactId: z.number().optional().describe("Impact ID (Low/Medium/High)"),
+      sourceId: z.number().optional().describe("Source ID"),
+      agreementId: z.number().optional().describe("Agreement ID"),
+      ownerId: z.number().optional().describe("Owner (member) ID"),
+      teamId: z.number().optional().describe("Team ID"),
+      slaId: z.number().optional().describe("SLA ID"),
+      locationId: z.number().optional().describe("Location ID"),
+      departmentId: z.number().optional().describe("Department ID"),
+      initialDescription: z.string().optional().describe("Initial description (private note will not be created)"),
+      initialInternalAnalysis: z.string().optional().describe("Initial internal analysis note"),
+      initialResolution: z.string().optional().describe("Initial resolution note"),
+      initialDescriptionFrom: z.string().optional().describe("Sender of initial description"),
+      billTime: z.string().optional().describe("Bill time setting: NoDefault, Billable, DoNotBill, NoCharge"),
+      billExpenses: z.string().optional().describe("Bill expenses setting"),
+      billProducts: z.string().optional().describe("Bill products setting"),
+      automaticEmailContactFlag: z.boolean().optional(),
+      automaticEmailResourceFlag: z.boolean().optional(),
+      automaticEmailCcFlag: z.boolean().optional(),
+      automaticEmailCc: z.string().optional().describe("Email addresses to CC automatically"),
+      customFields: z.array(z.object({ id: z.number(), value: z.unknown() })).optional()
+        .describe("Custom field values: [{id, value}]"),
     },
-    async ({ summary, boardId, companyId, contactId, statusId, priorityId, typeId, subTypeId, initialDescription }) => {
-      const body: Record<string, unknown> = { summary };
-      if (boardId) body.board = { id: boardId };
-      if (companyId) body.company = { id: companyId };
-      if (contactId) body.contact = { id: contactId };
-      if (statusId) body.status = { id: statusId };
-      if (priorityId) body.priority = { id: priorityId };
-      if (typeId) body.type = { id: typeId };
-      if (subTypeId) body.subType = { id: subTypeId };
-      if (initialDescription) body.initialDescription = initialDescription;
-
+    async (args) => {
+      const body: Record<string, unknown> = { summary: args.summary };
+      if (args.boardId !== undefined) body.board = { id: args.boardId };
+      if (args.statusId !== undefined) body.status = { id: args.statusId };
+      if (args.companyId !== undefined) body.company = { id: args.companyId };
+      if (args.contactId !== undefined) body.contact = { id: args.contactId };
+      if (args.siteId !== undefined) body.site = { id: args.siteId };
+      if (args.typeId !== undefined) body.type = { id: args.typeId };
+      if (args.subTypeId !== undefined) body.subType = { id: args.subTypeId };
+      if (args.itemId !== undefined) body.item = { id: args.itemId };
+      if (args.priorityId !== undefined) body.priority = { id: args.priorityId };
+      if (args.severityId !== undefined) body.severity = { id: args.severityId };
+      if (args.impactId !== undefined) body.impact = { id: args.impactId };
+      if (args.sourceId !== undefined) body.source = { id: args.sourceId };
+      if (args.agreementId !== undefined) body.agreement = { id: args.agreementId };
+      if (args.ownerId !== undefined) body.owner = { id: args.ownerId };
+      if (args.teamId !== undefined) body.team = { id: args.teamId };
+      if (args.slaId !== undefined) body.sla = { id: args.slaId };
+      if (args.locationId !== undefined) body.location = { id: args.locationId };
+      if (args.departmentId !== undefined) body.department = { id: args.departmentId };
+      if (args.initialDescription) body.initialDescription = args.initialDescription;
+      if (args.initialInternalAnalysis) body.initialInternalAnalysis = args.initialInternalAnalysis;
+      if (args.initialResolution) body.initialResolution = args.initialResolution;
+      if (args.initialDescriptionFrom) body.initialDescriptionFrom = args.initialDescriptionFrom;
+      if (args.billTime) body.billTime = args.billTime;
+      if (args.billExpenses) body.billExpenses = args.billExpenses;
+      if (args.billProducts) body.billProducts = args.billProducts;
+      if (args.automaticEmailContactFlag !== undefined) body.automaticEmailContactFlag = args.automaticEmailContactFlag;
+      if (args.automaticEmailResourceFlag !== undefined) body.automaticEmailResourceFlag = args.automaticEmailResourceFlag;
+      if (args.automaticEmailCcFlag !== undefined) body.automaticEmailCcFlag = args.automaticEmailCcFlag;
+      if (args.automaticEmailCc) body.automaticEmailCc = args.automaticEmailCc;
+      if (args.customFields) body.customFields = args.customFields;
       const result = await client.post("/service/tickets", body);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -84,44 +146,132 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       "the user or articulate their intent, do not call this tool — ask the user first.",
     {
       id: z.number().describe("Ticket ID"),
-      user_intent: z
-        .string()
-        .min(20)
-        .describe(
-          "Plain-English description of what the user asked for. " +
-            "Must be at least 20 characters. Example: " +
-            "'User asked to close ticket 12345 because they have billed it.'",
-        ),
-      user_quote: z
-        .string()
-        .min(20)
-        .describe(
-          "Verbatim quote of the user's actual words that motivated this update. " +
-            "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
-        ),
-      operations: z
-        .array(
-          z.object({
-            op: z.enum(["replace", "add", "remove"]).describe("Patch operation"),
-            path: z.string().describe("JSON path (e.g. 'status/id', 'summary')"),
-            value: z.unknown().optional().describe("New value"),
-          }),
-        )
-        .describe("Array of JSON Patch operations"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this update. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
+      operations: z.array(z.object({
+        op: z.enum(["replace", "add", "remove"]).describe("Patch operation"),
+        path: z.string().describe("JSON path (e.g. 'status/id', 'summary')"),
+        value: z.unknown().optional().describe("New value"),
+      })).describe("Array of JSON Patch operations"),
     },
     async ({ id, user_intent, user_quote, operations }) => {
-      await auditLog({
-        tool: "cw_update_ticket",
-        entityType: "ticket",
-        entityId: id,
-        userIntent: user_intent,
-        userQuote: user_quote,
-        operations,
-      });
+      await auditLog({ tool: "cw_update_ticket", entityType: "ticket", entityId: id, userIntent: user_intent, userQuote: user_quote, operations });
       const result = await client.patch(`/service/tickets/${id}`, operations);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
+
+  server.tool(
+    "cw_replace_ticket",
+    "Replace a service ticket via PUT. Sends the full ticket body — use cw_update_ticket for partial changes.",
+    {
+      id: z.number().describe("Ticket ID"),
+      body: z.record(z.string(), z.unknown()).describe("Full ticket body for PUT replacement"),
+    },
+    async ({ id, body }) => {
+      const result = await client.request("PUT", `/service/tickets/${id}`, body);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_delete_ticket",
+    "Delete a service ticket. Destructive — ticket history may be retained but the ticket record is removed.",
+    {
+      id: z.number().describe("Ticket ID"),
+    },
+    async ({ id }) => {
+      const result = await client.request("DELETE", `/service/tickets/${id}`);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_count_tickets",
+    "Count service tickets matching a conditions query (returns {count}).",
+    {
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      childConditions: z.string().optional(),
+      customFieldConditions: z.string().optional(),
+    },
+    async (args) => {
+      const result = await client.get("/service/tickets/count", args);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_copy_ticket",
+    "Copy an existing ticket to a new ticket. Returns the new ticket.",
+    {
+      id: z.number().describe("Source ticket ID"),
+      summary: z.string().optional().describe("Override summary on the copy"),
+      boardId: z.number().optional().describe("Override board on the copy"),
+      statusId: z.number().optional().describe("Override status on the copy"),
+      includeNotesFlag: z.boolean().optional(),
+      includeTasksFlag: z.boolean().optional(),
+      includeDocumentsFlag: z.boolean().optional(),
+      includeProductsFlag: z.boolean().optional(),
+      includeAllNotesFlag: z.boolean().optional(),
+    },
+    async (args) => {
+      const body: Record<string, unknown> = {};
+      if (args.summary) body.summary = args.summary;
+      if (args.boardId !== undefined) body.board = { id: args.boardId };
+      if (args.statusId !== undefined) body.status = { id: args.statusId };
+      if (args.includeNotesFlag !== undefined) body.includeNotesFlag = args.includeNotesFlag;
+      if (args.includeTasksFlag !== undefined) body.includeTasksFlag = args.includeTasksFlag;
+      if (args.includeDocumentsFlag !== undefined) body.includeDocumentsFlag = args.includeDocumentsFlag;
+      if (args.includeProductsFlag !== undefined) body.includeProductsFlag = args.includeProductsFlag;
+      if (args.includeAllNotesFlag !== undefined) body.includeAllNotesFlag = args.includeAllNotesFlag;
+      const result = await client.post(`/service/tickets/${args.id}/copy`, body);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_merge_tickets",
+    "Merge one or more source tickets into a target ticket. Source tickets are closed and their notes/time/products move to the target.",
+    {
+      targetTicketId: z.number().describe("Surviving ticket ID"),
+      mergeTicketIds: z.array(z.number()).describe("IDs of tickets to merge into the target"),
+      statusId: z.number().optional().describe("Status to apply to closed source tickets"),
+    },
+    async ({ targetTicketId, mergeTicketIds, statusId }) => {
+      const body: Record<string, unknown> = {
+        mergeTicketIds: mergeTicketIds.map((id) => ({ id })),
+      };
+      if (statusId !== undefined) body.status = { id: statusId };
+      const result = await client.post(`/service/tickets/${targetTicketId}/merge`, body);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_convert_ticket_from_survey",
+    "Convert a survey response into a service ticket via /service/tickets/{id}/convertFromSurvey.",
+    {
+      id: z.number().describe("Source survey ticket ID"),
+      boardId: z.number().optional().describe("Destination board"),
+      statusId: z.number().optional().describe("Destination status"),
+    },
+    async ({ id, boardId, statusId }) => {
+      const body: Record<string, unknown> = {};
+      if (boardId !== undefined) body.board = { id: boardId };
+      if (statusId !== undefined) body.status = { id: statusId };
+      const result = await client.post(`/service/tickets/${id}/convertFromSurvey`, body);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  // ===== Ticket notes =====
 
   server.tool(
     "cw_get_ticket_notes",
@@ -154,6 +304,40 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
   );
 
   server.tool(
+    "cw_list_ticket_notes",
+    "List notes on a ticket.",
+    {
+      ticketId: z.number().describe("Ticket ID"),
+      conditions: z.string().optional(),
+      page: z.number().optional(),
+      pageSize: z.number().optional(),
+      orderBy: z.string().optional(),
+    },
+    async ({ ticketId, conditions, page, pageSize, orderBy }) => {
+      const result = await client.get(`/service/tickets/${ticketId}/notes`, {
+        conditions,
+        page: page ?? 1,
+        pageSize: pageSize ?? 25,
+        orderBy,
+      });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_get_ticket_note",
+    "Get a single ticket note.",
+    {
+      ticketId: z.number().describe("Ticket ID"),
+      noteId: z.number().describe("Note ID"),
+    },
+    async ({ ticketId, noteId }) => {
+      const result = await client.get(`/service/tickets/${ticketId}/notes/${noteId}`);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
     "cw_add_ticket_note",
     "Add a note to a service ticket. Use detailDescriptionFlag for a description note, internalAnalysisFlag for an internal-only note, or resolutionFlag for a resolution note. Defaults to a plain discussion note visible to the customer.",
     {
@@ -170,11 +354,375 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       if (internalAnalysisFlag !== undefined) body.internalAnalysisFlag = internalAnalysisFlag;
       if (resolutionFlag !== undefined) body.resolutionFlag = resolutionFlag;
       if (customerUpdatedFlag !== undefined) body.customerUpdatedFlag = customerUpdatedFlag;
-
       const result = await client.post(`/service/tickets/${id}/notes`, body);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
+
+  server.tool(
+    "cw_create_ticket_note",
+    "Add a note to a ticket. At least one of detailDescriptionFlag / internalAnalysisFlag / resolutionFlag should be true.",
+    {
+      ticketId: z.number().describe("Ticket ID"),
+      text: z.string().describe("Note text"),
+      detailDescriptionFlag: z.boolean().optional().describe("Show on Description tab"),
+      internalAnalysisFlag: z.boolean().optional().describe("Internal-only analysis note"),
+      resolutionFlag: z.boolean().optional().describe("Show on Resolution tab"),
+      customerUpdatedFlag: z.boolean().optional(),
+      processNotifications: z.boolean().optional().describe("Trigger workflow / email notifications"),
+      memberId: z.number().optional().describe("Member who authored the note"),
+      contactId: z.number().optional().describe("Contact who authored the note (if not a member)"),
+    },
+    async (args) => {
+      const body: Record<string, unknown> = { text: args.text };
+      if (args.detailDescriptionFlag !== undefined) body.detailDescriptionFlag = args.detailDescriptionFlag;
+      if (args.internalAnalysisFlag !== undefined) body.internalAnalysisFlag = args.internalAnalysisFlag;
+      if (args.resolutionFlag !== undefined) body.resolutionFlag = args.resolutionFlag;
+      if (args.customerUpdatedFlag !== undefined) body.customerUpdatedFlag = args.customerUpdatedFlag;
+      if (args.processNotifications !== undefined) body.processNotifications = args.processNotifications;
+      if (args.memberId !== undefined) body.member = { id: args.memberId };
+      if (args.contactId !== undefined) body.contact = { id: args.contactId };
+      const result = await client.post(`/service/tickets/${args.ticketId}/notes`, body);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_update_ticket_note",
+    "Update a ticket note via JSON Patch.",
+    {
+      ticketId: z.number().describe("Ticket ID"),
+      noteId: z.number().describe("Note ID"),
+      patch: z.array(patchOp),
+    },
+    async ({ ticketId, noteId, patch }) => {
+      const result = await client.patch(`/service/tickets/${ticketId}/notes/${noteId}`, patch);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_delete_ticket_note",
+    "Delete a ticket note.",
+    {
+      ticketId: z.number().describe("Ticket ID"),
+      noteId: z.number().describe("Note ID"),
+    },
+    async ({ ticketId, noteId }) => {
+      const result = await client.request("DELETE", `/service/tickets/${ticketId}/notes/${noteId}`);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  // ===== Ticket tasks =====
+
+  server.tool(
+    "cw_list_ticket_tasks",
+    "List tasks (checklist items) on a ticket.",
+    {
+      ticketId: z.number().describe("Ticket ID"),
+      conditions: z.string().optional(),
+      page: z.number().optional(),
+      pageSize: z.number().optional(),
+      orderBy: z.string().optional(),
+    },
+    async ({ ticketId, conditions, page, pageSize, orderBy }) => {
+      const result = await client.get(`/service/tickets/${ticketId}/tasks`, {
+        conditions,
+        page: page ?? 1,
+        pageSize: pageSize ?? 25,
+        orderBy,
+      });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_get_ticket_task",
+    "Get a single ticket task by ID.",
+    {
+      ticketId: z.number().describe("Ticket ID"),
+      taskId: z.number().describe("Task ID"),
+    },
+    async ({ ticketId, taskId }) => {
+      const result = await client.get(`/service/tickets/${ticketId}/tasks/${taskId}`);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_create_ticket_task",
+    "Create a task / checklist item on a ticket.",
+    {
+      ticketId: z.number().describe("Ticket ID"),
+      notes: z.string().describe("Task notes / description"),
+      closedFlag: z.boolean().optional().describe("Already completed?"),
+      priority: z.number().optional().describe("Display priority / ordering"),
+      scheduleId: z.number().optional().describe("Linked schedule entry"),
+      resolution: z.string().optional(),
+    },
+    async (args) => {
+      const body: Record<string, unknown> = { notes: args.notes };
+      if (args.closedFlag !== undefined) body.closedFlag = args.closedFlag;
+      if (args.priority !== undefined) body.priority = args.priority;
+      if (args.scheduleId !== undefined) body.schedule = { id: args.scheduleId };
+      if (args.resolution) body.resolution = args.resolution;
+      const result = await client.post(`/service/tickets/${args.ticketId}/tasks`, body);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_update_ticket_task",
+    "Update a ticket task via JSON Patch (typical use: /closedFlag = true to tick a checkbox).",
+    {
+      ticketId: z.number().describe("Ticket ID"),
+      taskId: z.number().describe("Task ID"),
+      patch: z.array(patchOp),
+    },
+    async ({ ticketId, taskId, patch }) => {
+      const result = await client.patch(`/service/tickets/${ticketId}/tasks/${taskId}`, patch);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_delete_ticket_task",
+    "Delete a ticket task.",
+    {
+      ticketId: z.number().describe("Ticket ID"),
+      taskId: z.number().describe("Task ID"),
+    },
+    async ({ ticketId, taskId }) => {
+      const result = await client.request("DELETE", `/service/tickets/${ticketId}/tasks/${taskId}`);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  // ===== Ticket team members =====
+
+  server.tool(
+    "cw_list_ticket_team",
+    "List team members assigned to a ticket via /service/tickets/{id}/allTeamMembers (returns owner + sub-team).",
+    {
+      ticketId: z.number().describe("Ticket ID"),
+      conditions: z.string().optional(),
+      page: z.number().optional(),
+      pageSize: z.number().optional(),
+    },
+    async ({ ticketId, conditions, page, pageSize }) => {
+      const result = await client.get(`/service/tickets/${ticketId}/allTeamMembers`, {
+        conditions,
+        page: page ?? 1,
+        pageSize: pageSize ?? 25,
+      });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_get_ticket_team_member",
+    "Get a single team-member assignment on a ticket.",
+    {
+      ticketId: z.number().describe("Ticket ID"),
+      teamMemberId: z.number().describe("Team-member assignment ID (NOT the member ID)"),
+    },
+    async ({ ticketId, teamMemberId }) => {
+      const result = await client.get(`/service/tickets/${ticketId}/allTeamMembers/${teamMemberId}`);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_add_ticket_team_member",
+    "Add a member to a ticket's sub-team.",
+    {
+      ticketId: z.number().describe("Ticket ID"),
+      memberId: z.number().describe("Member ID to add"),
+      teamRoleId: z.number().optional().describe("Team role ID"),
+    },
+    async ({ ticketId, memberId, teamRoleId }) => {
+      const body: Record<string, unknown> = { member: { id: memberId } };
+      if (teamRoleId !== undefined) body.teamRole = { id: teamRoleId };
+      const result = await client.post(`/service/tickets/${ticketId}/allTeamMembers`, body);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_update_ticket_team_member",
+    "Update a team-member assignment (e.g. change team role) via JSON Patch.",
+    {
+      ticketId: z.number().describe("Ticket ID"),
+      teamMemberId: z.number().describe("Team-member assignment ID"),
+      patch: z.array(patchOp),
+    },
+    async ({ ticketId, teamMemberId, patch }) => {
+      const result = await client.patch(`/service/tickets/${ticketId}/allTeamMembers/${teamMemberId}`, patch);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_remove_ticket_team_member",
+    "Remove a member from a ticket's sub-team.",
+    {
+      ticketId: z.number().describe("Ticket ID"),
+      teamMemberId: z.number().describe("Team-member assignment ID"),
+    },
+    async ({ ticketId, teamMemberId }) => {
+      const result = await client.request("DELETE", `/service/tickets/${ticketId}/allTeamMembers/${teamMemberId}`);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  // ===== Ticket products / configurations / documents =====
+
+  server.tool(
+    "cw_list_ticket_products",
+    "List products attached to a ticket.",
+    {
+      ticketId: z.number().describe("Ticket ID"),
+      conditions: z.string().optional(),
+      page: z.number().optional(),
+      pageSize: z.number().optional(),
+    },
+    async ({ ticketId, conditions, page, pageSize }) => {
+      const result = await client.get(`/service/tickets/${ticketId}/products`, {
+        conditions,
+        page: page ?? 1,
+        pageSize: pageSize ?? 25,
+      });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_list_ticket_configurations",
+    "List configurations (assets) attached to a ticket.",
+    {
+      ticketId: z.number().describe("Ticket ID"),
+      conditions: z.string().optional(),
+      page: z.number().optional(),
+      pageSize: z.number().optional(),
+    },
+    async ({ ticketId, conditions, page, pageSize }) => {
+      const result = await client.get(`/service/tickets/${ticketId}/configurations`, {
+        conditions,
+        page: page ?? 1,
+        pageSize: pageSize ?? 25,
+      });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_attach_configuration_to_ticket",
+    "Attach a configuration (asset) to a ticket.",
+    {
+      ticketId: z.number().describe("Ticket ID"),
+      configurationId: z.number().describe("Configuration ID to attach"),
+    },
+    async ({ ticketId, configurationId }) => {
+      const result = await client.post(`/service/tickets/${ticketId}/configurations`, {
+        id: configurationId,
+      });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_detach_configuration_from_ticket",
+    "Detach a configuration from a ticket.",
+    {
+      ticketId: z.number().describe("Ticket ID"),
+      configurationId: z.number().describe("Configuration ID to detach"),
+    },
+    async ({ ticketId, configurationId }) => {
+      const result = await client.request("DELETE", `/service/tickets/${ticketId}/configurations/${configurationId}`);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_list_ticket_documents",
+    "List documents attached to a ticket via /service/tickets/{id}/documents.",
+    {
+      ticketId: z.number().describe("Ticket ID"),
+      page: z.number().optional(),
+      pageSize: z.number().optional(),
+    },
+    async ({ ticketId, page, pageSize }) => {
+      const result = await client.get(`/service/tickets/${ticketId}/documents`, {
+        page: page ?? 1,
+        pageSize: pageSize ?? 25,
+      });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  // ===== Per-ticket time / schedule / activities =====
+
+  server.tool(
+    "cw_list_ticket_time_entries",
+    "List time entries against a ticket via /service/tickets/{id}/timeentries.",
+    {
+      ticketId: z.number().describe("Ticket ID"),
+      conditions: z.string().optional(),
+      page: z.number().optional(),
+      pageSize: z.number().optional(),
+      orderBy: z.string().optional(),
+    },
+    async ({ ticketId, conditions, page, pageSize, orderBy }) => {
+      const result = await client.get(`/service/tickets/${ticketId}/timeentries`, {
+        conditions,
+        page: page ?? 1,
+        pageSize: pageSize ?? 25,
+        orderBy,
+      });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_list_ticket_schedule_entries",
+    "List schedule entries (appointments) linked to a ticket via /service/tickets/{id}/scheduleentries.",
+    {
+      ticketId: z.number().describe("Ticket ID"),
+      conditions: z.string().optional(),
+      page: z.number().optional(),
+      pageSize: z.number().optional(),
+    },
+    async ({ ticketId, conditions, page, pageSize }) => {
+      const result = await client.get(`/service/tickets/${ticketId}/scheduleentries`, {
+        conditions,
+        page: page ?? 1,
+        pageSize: pageSize ?? 25,
+      });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_list_ticket_activities",
+    "List CRM activities linked to a ticket via /service/tickets/{id}/activities.",
+    {
+      ticketId: z.number().describe("Ticket ID"),
+      conditions: z.string().optional(),
+      page: z.number().optional(),
+      pageSize: z.number().optional(),
+    },
+    async ({ ticketId, conditions, page, pageSize }) => {
+      const result = await client.get(`/service/tickets/${ticketId}/activities`, {
+        conditions,
+        page: page ?? 1,
+        pageSize: pageSize ?? 25,
+      });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  // ===== Sentinel L1: schedule-entry member assignment =====
 
   server.tool(
     "cw_add_ticket_member",

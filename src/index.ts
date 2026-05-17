@@ -52,19 +52,24 @@ import {
   handleToken,
 } from "./auth/routes.js";
 import { AuthError } from "./auth/types.js";
-import { registerTicketTools } from "./tools/tickets.js";
-import { registerCompanyTools } from "./tools/companies.js";
-import { registerContactTools } from "./tools/contacts.js";
-import { registerProjectTools } from "./tools/projects.js";
-import { registerTimeEntryTools } from "./tools/time-entries.js";
-import { registerMemberTools } from "./tools/members.js";
+import { registerActivityTools }      from "./tools/activities.js";
+import { registerCatalogTools }       from "./tools/catalog.js";
+import { registerCompanyTools }       from "./tools/companies.js";
 import { registerConfigurationTools } from "./tools/configurations.js";
-import { registerServiceTools } from "./tools/service.js";
-import { registerActivityTools } from "./tools/activities.js";
-import { registerCatalogTools } from "./tools/catalog.js";
-import { registerHealthTools } from "./tools/health.js";
-import { registerAgreementTools } from "./tools/agreements.js";
-import { registerOpportunityTools } from "./tools/opportunities.js";
+import { registerContactTools }       from "./tools/contacts.js";
+import { registerExpenseTools }       from "./tools/expenses.js";
+import { registerFinanceTools }       from "./tools/finance.js";
+import { registerHealthTools }        from "./tools/health.js";
+import { registerMarketingTools }     from "./tools/marketing.js";
+import { registerOpportunityTools }   from "./tools/opportunities.js";
+import { registerProcurementTools }   from "./tools/procurement.js";
+import { registerProjectTools }       from "./tools/projects.js";
+import { registerSalesTools }         from "./tools/sales.js";
+import { registerScheduleTools }      from "./tools/schedule.js";
+import { registerServiceTools }       from "./tools/service.js";
+import { registerSystemTools }        from "./tools/system.js";
+import { registerTicketTools }        from "./tools/tickets.js";
+import { registerTimeEntryTools }     from "./tools/time-entries.js";
 
 // ---------------------------------------------------------------------------
 // Server factory
@@ -115,19 +120,24 @@ function createMcpServer(): McpServer {
 
   const client = new CwManageClient(config);
 
-  registerTicketTools(server, client);
-  registerCompanyTools(server, client);
-  registerContactTools(server, client);
-  registerProjectTools(server, client);
-  registerTimeEntryTools(server, client);
-  registerMemberTools(server, client);
-  registerConfigurationTools(server, client);
-  registerServiceTools(server, client);
   registerActivityTools(server, client);
   registerCatalogTools(server, client);
+  registerCompanyTools(server, client);
+  registerConfigurationTools(server, client);
+  registerContactTools(server, client);
+  registerExpenseTools(server, client);
+  registerFinanceTools(server, client);
   registerHealthTools(server, client);
-  registerAgreementTools(server, client);
+  registerMarketingTools(server, client);
   registerOpportunityTools(server, client);
+  registerProcurementTools(server, client);
+  registerProjectTools(server, client);
+  registerSalesTools(server, client);
+  registerScheduleTools(server, client);
+  registerServiceTools(server, client);
+  registerSystemTools(server, client);
+  registerTicketTools(server, client);
+  registerTimeEntryTools(server, client);
 
   return server;
 }
