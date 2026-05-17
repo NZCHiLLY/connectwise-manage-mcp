@@ -10,7 +10,7 @@ const patchOp = z.object({
 });
 
 export function registerTicketTools(server: McpServer, client: CwManageClient) {
-  // ===== Service tickets =====
+  // ── Core Ticket CRUD ─────────────────────────────────────────────────────
 
   server.tool(
     "cw_search_tickets",
@@ -93,9 +93,9 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       billTime: z.string().optional().describe("Bill time setting: NoDefault, Billable, DoNotBill, NoCharge"),
       billExpenses: z.string().optional().describe("Bill expenses setting"),
       billProducts: z.string().optional().describe("Bill products setting"),
-      automaticEmailContactFlag: z.boolean().optional(),
-      automaticEmailResourceFlag: z.boolean().optional(),
-      automaticEmailCcFlag: z.boolean().optional(),
+      automaticEmailContactFlag: z.boolean().optional().describe("Send automatic email to the contact"),
+      automaticEmailResourceFlag: z.boolean().optional().describe("Send automatic email to assigned resources"),
+      automaticEmailCcFlag: z.boolean().optional().describe("Send automatic email to CC addresses"),
       automaticEmailCc: z.string().optional().describe("Email addresses to CC automatically"),
       customFields: z.array(z.object({ id: z.number(), value: z.unknown() })).optional()
         .describe("Custom field values: [{id, value}]"),
@@ -198,8 +198,8 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     "Count service tickets matching a conditions query (returns {count}).",
     {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
-      childConditions: z.string().optional(),
-      customFieldConditions: z.string().optional(),
+      childConditions: z.string().optional().describe("Filter on child collections"),
+      customFieldConditions: z.string().optional().describe("Filter on custom fields"),
     },
     async (args) => {
       const result = await client.get("/service/tickets/count", args);
@@ -215,11 +215,11 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       summary: z.string().optional().describe("Override summary on the copy"),
       boardId: z.number().optional().describe("Override board on the copy"),
       statusId: z.number().optional().describe("Override status on the copy"),
-      includeNotesFlag: z.boolean().optional(),
-      includeTasksFlag: z.boolean().optional(),
-      includeDocumentsFlag: z.boolean().optional(),
-      includeProductsFlag: z.boolean().optional(),
-      includeAllNotesFlag: z.boolean().optional(),
+      includeNotesFlag: z.boolean().optional().describe("Copy notes to the new ticket"),
+      includeTasksFlag: z.boolean().optional().describe("Copy tasks to the new ticket"),
+      includeDocumentsFlag: z.boolean().optional().describe("Copy documents to the new ticket"),
+      includeProductsFlag: z.boolean().optional().describe("Copy products to the new ticket"),
+      includeAllNotesFlag: z.boolean().optional().describe("Copy all notes (including internal) to the new ticket"),
     },
     async (args) => {
       const body: Record<string, unknown> = {};
@@ -271,7 +271,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     },
   );
 
-  // ===== Ticket notes =====
+  // ── Ticket Notes ─────────────────────────────────────────────────────────
 
   server.tool(
     "cw_get_ticket_notes",
@@ -308,10 +308,10 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     "List notes on a ticket.",
     {
       ticketId: z.number().describe("Ticket ID"),
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
-      orderBy: z.string().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      orderBy: z.string().optional().describe("Field to order by"),
     },
     async ({ ticketId, conditions, page, pageSize, orderBy }) => {
       const result = await client.get(`/service/tickets/${ticketId}/notes`, {
@@ -368,7 +368,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       detailDescriptionFlag: z.boolean().optional().describe("Show on Description tab"),
       internalAnalysisFlag: z.boolean().optional().describe("Internal-only analysis note"),
       resolutionFlag: z.boolean().optional().describe("Show on Resolution tab"),
-      customerUpdatedFlag: z.boolean().optional(),
+      customerUpdatedFlag: z.boolean().optional().describe("Flag that the customer was updated"),
       processNotifications: z.boolean().optional().describe("Trigger workflow / email notifications"),
       memberId: z.number().optional().describe("Member who authored the note"),
       contactId: z.number().optional().describe("Contact who authored the note (if not a member)"),
@@ -393,7 +393,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     {
       ticketId: z.number().describe("Ticket ID"),
       noteId: z.number().describe("Note ID"),
-      patch: z.array(patchOp),
+      patch: z.array(patchOp).describe("Array of JSON Patch operations"),
     },
     async ({ ticketId, noteId, patch }) => {
       const result = await client.patch(`/service/tickets/${ticketId}/notes/${noteId}`, patch);
@@ -414,17 +414,17 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     },
   );
 
-  // ===== Ticket tasks =====
+  // ── Ticket Tasks ─────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_ticket_tasks",
     "List tasks (checklist items) on a ticket.",
     {
       ticketId: z.number().describe("Ticket ID"),
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
-      orderBy: z.string().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      orderBy: z.string().optional().describe("Field to order by"),
     },
     async ({ ticketId, conditions, page, pageSize, orderBy }) => {
       const result = await client.get(`/service/tickets/${ticketId}/tasks`, {
@@ -459,7 +459,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       closedFlag: z.boolean().optional().describe("Already completed?"),
       priority: z.number().optional().describe("Display priority / ordering"),
       scheduleId: z.number().optional().describe("Linked schedule entry"),
-      resolution: z.string().optional(),
+      resolution: z.string().optional().describe("Resolution text for the task"),
     },
     async (args) => {
       const body: Record<string, unknown> = { notes: args.notes };
@@ -478,7 +478,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     {
       ticketId: z.number().describe("Ticket ID"),
       taskId: z.number().describe("Task ID"),
-      patch: z.array(patchOp),
+      patch: z.array(patchOp).describe("Array of JSON Patch operations"),
     },
     async ({ ticketId, taskId, patch }) => {
       const result = await client.patch(`/service/tickets/${ticketId}/tasks/${taskId}`, patch);
@@ -499,16 +499,16 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     },
   );
 
-  // ===== Ticket team members =====
+  // ── Ticket Team Members ──────────────────────────────────────────────────
 
   server.tool(
     "cw_list_ticket_team",
     "List team members assigned to a ticket via /service/tickets/{id}/allTeamMembers (returns owner + sub-team).",
     {
       ticketId: z.number().describe("Ticket ID"),
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ ticketId, conditions, page, pageSize }) => {
       const result = await client.get(`/service/tickets/${ticketId}/allTeamMembers`, {
@@ -555,7 +555,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     {
       ticketId: z.number().describe("Ticket ID"),
       teamMemberId: z.number().describe("Team-member assignment ID"),
-      patch: z.array(patchOp),
+      patch: z.array(patchOp).describe("Array of JSON Patch operations"),
     },
     async ({ ticketId, teamMemberId, patch }) => {
       const result = await client.patch(`/service/tickets/${ticketId}/allTeamMembers/${teamMemberId}`, patch);
@@ -576,16 +576,16 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     },
   );
 
-  // ===== Ticket products / configurations / documents =====
+  // ── Ticket Products ──────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_ticket_products",
     "List products attached to a ticket.",
     {
       ticketId: z.number().describe("Ticket ID"),
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ ticketId, conditions, page, pageSize }) => {
       const result = await client.get(`/service/tickets/${ticketId}/products`, {
@@ -597,14 +597,16 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     },
   );
 
+  // ── Ticket Configurations ────────────────────────────────────────────────
+
   server.tool(
     "cw_list_ticket_configurations",
     "List configurations (assets) attached to a ticket.",
     {
       ticketId: z.number().describe("Ticket ID"),
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ ticketId, conditions, page, pageSize }) => {
       const result = await client.get(`/service/tickets/${ticketId}/configurations`, {
@@ -644,13 +646,15 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     },
   );
 
+  // ── Ticket Documents ─────────────────────────────────────────────────────
+
   server.tool(
     "cw_list_ticket_documents",
     "List documents attached to a ticket via /service/tickets/{id}/documents.",
     {
       ticketId: z.number().describe("Ticket ID"),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ ticketId, page, pageSize }) => {
       const result = await client.get(`/service/tickets/${ticketId}/documents`, {

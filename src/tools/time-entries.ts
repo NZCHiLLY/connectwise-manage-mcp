@@ -1,4 +1,4 @@
-import { z } from "zod";
+﻿import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
 
@@ -9,19 +9,19 @@ const patchOp = z.object({
 });
 
 export function registerTimeEntryTools(server: McpServer, client: CwManageClient) {
-  // ===== Time entries =====
+  // ── Time entries ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_search_time_entries",
     "Search time entries. Use 'conditions' for CW query syntax.",
     {
-      conditions: z.string().optional(),
-      childConditions: z.string().optional(),
-      customFieldConditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
-      orderBy: z.string().optional(),
-      fields: z.string().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      childConditions: z.string().optional().describe("Child object conditions query string"),
+      customFieldConditions: z.string().optional().describe("Custom field conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      orderBy: z.string().optional().describe("Field to order by"),
+      fields: z.string().optional().describe("Comma-separated list of fields to return"),
     },
     async ({ conditions, childConditions, customFieldConditions, page, pageSize, orderBy, fields }) => {
       const result = await client.get("/time/entries", {
@@ -42,7 +42,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     "Get a single time entry.",
     {
       id: z.number().describe("Time entry ID"),
-      fields: z.string().optional(),
+      fields: z.string().optional().describe("Comma-separated list of fields to return"),
     },
     async ({ id, fields }) => {
       const result = await client.get(`/time/entries/${id}`, { fields });
@@ -54,9 +54,9 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     "cw_count_time_entries",
     "Count time entries matching a conditions query.",
     {
-      conditions: z.string().optional(),
-      childConditions: z.string().optional(),
-      customFieldConditions: z.string().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      childConditions: z.string().optional().describe("Child object conditions query string"),
+      customFieldConditions: z.string().optional().describe("Custom field conditions query string"),
     },
     async (args) => {
       const result = await client.get("/time/entries/count", args);
@@ -72,38 +72,38 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
       chargeToId: z.number().describe("Ticket / project ticket / charge code / activity ID"),
       chargeToType: z.enum(["ServiceTicket", "ProjectTicket", "ChargeCode", "Activity"]),
       memberId: z.number().optional().describe("Member ID (defaults to current API member)"),
-      workTypeId: z.number().optional(),
-      workRoleId: z.number().optional(),
-      agreementId: z.number().optional(),
+      workTypeId: z.number().optional().describe("Work type ID"),
+      workRoleId: z.number().optional().describe("Work role ID"),
+      agreementId: z.number().optional().describe("Agreement ID to charge against"),
       timeStart: z.string().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
       timeEnd: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
-      hoursDeduct: z.number().optional(),
+      hoursDeduct: z.number().optional().describe("Hours to deduct from the agreement"),
       actualHours: z.number().optional().describe("Hours actually worked"),
       billableOption: z.enum(["Billable", "DoNotBill", "NoCharge", "NoDefault"]).optional(),
       notes: z.string().optional().describe("Public time-entry notes"),
       internalNotes: z.string().optional().describe("Internal-only notes"),
-      addToDetailDescriptionFlag: z.boolean().optional(),
-      addToInternalAnalysisFlag: z.boolean().optional(),
-      addToResolutionFlag: z.boolean().optional(),
-      emailResourceFlag: z.boolean().optional(),
-      emailContactFlag: z.boolean().optional(),
-      emailCcFlag: z.boolean().optional(),
-      emailCc: z.string().optional(),
-      hoursBilled: z.number().optional(),
-      enteredBy: z.string().optional(),
-      dateEntered: z.string().optional(),
-      invoiceId: z.number().optional(),
-      mobileGuid: z.string().optional(),
-      hourlyRate: z.number().optional(),
-      overageRate: z.number().optional(),
-      agreementHours: z.number().optional(),
-      agreementAmount: z.number().optional(),
-      timeSheetId: z.number().optional(),
-      locationId: z.number().optional(),
-      businessUnitId: z.number().optional(),
+      addToDetailDescriptionFlag: z.boolean().optional().describe("Append notes to ticket detail description"),
+      addToInternalAnalysisFlag: z.boolean().optional().describe("Append notes to internal analysis"),
+      addToResolutionFlag: z.boolean().optional().describe("Append notes to resolution field"),
+      emailResourceFlag: z.boolean().optional().describe("Email the assigned resource when saving"),
+      emailContactFlag: z.boolean().optional().describe("Email the contact when saving"),
+      emailCcFlag: z.boolean().optional().describe("Email the CC address when saving"),
+      emailCc: z.string().optional().describe("CC email address"),
+      hoursBilled: z.number().optional().describe("Hours billed (override)"),
+      enteredBy: z.string().optional().describe("Member identifier who entered the time"),
+      dateEntered: z.string().optional().describe("Date the time was entered (ISO 8601)"),
+      invoiceId: z.number().optional().describe("Invoice ID if already invoiced"),
+      mobileGuid: z.string().optional().describe("Mobile GUID"),
+      hourlyRate: z.number().optional().describe("Hourly rate override"),
+      overageRate: z.number().optional().describe("Overage rate"),
+      agreementHours: z.number().optional().describe("Agreement hours"),
+      agreementAmount: z.number().optional().describe("Agreement amount"),
+      timeSheetId: z.number().optional().describe("Time sheet ID"),
+      locationId: z.number().optional().describe("Location ID"),
+      businessUnitId: z.number().optional().describe("Business unit ID"),
       status: z.enum(["Open", "Billed", "Closed"]).optional(),
-      ticketBoardId: z.number().optional(),
-      ticketStatusId: z.number().optional(),
+      ticketBoardId: z.number().optional().describe("Service board ID for the associated ticket"),
+      ticketStatusId: z.number().optional().describe("Status ID to set on the ticket after saving"),
       customFields: z.array(z.object({ id: z.number(), value: z.unknown() })).optional(),
     },
     async (args) => {
@@ -154,8 +154,8 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     "cw_update_time_entry",
     "Update a time entry via JSON Patch.",
     {
-      id: z.number(),
-      patch: z.array(patchOp),
+      id: z.number().describe("Time entry ID"),
+      patch: z.array(patchOp).describe("JSON Patch operations to apply"),
     },
     async ({ id, patch }) => {
       const result = await client.patch(`/time/entries/${id}`, patch);
@@ -167,8 +167,8 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     "cw_replace_time_entry",
     "Replace a time entry via PUT.",
     {
-      id: z.number(),
-      body: z.record(z.string(), z.unknown()),
+      id: z.number().describe("Time entry ID"),
+      body: z.record(z.string(), z.unknown()).describe("Full replacement body for PUT"),
     },
     async ({ id, body }) => {
       const result = await client.request("PUT", `/time/entries/${id}`, body);
@@ -180,7 +180,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     "cw_delete_time_entry",
     "Delete a time entry. Destructive.",
     {
-      id: z.number(),
+      id: z.number().describe("Time entry ID"),
     },
     async ({ id }) => {
       const result = await client.request("DELETE", `/time/entries/${id}`);
@@ -192,10 +192,10 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     "cw_copy_time_entry",
     "Copy a time entry to a new entry via /time/entries/{id}/copy.",
     {
-      id: z.number(),
+      id: z.number().describe("Time entry ID to copy"),
       memberId: z.number().optional().describe("Override member on the copy"),
-      timeStart: z.string().optional(),
-      timeEnd: z.string().optional(),
+      timeStart: z.string().optional().describe("Start date/time (ISO 8601, e.g. 2024-01-15T09:00:00Z)"),
+      timeEnd: z.string().optional().describe("End date/time (ISO 8601, e.g. 2024-01-15T17:00:00Z)"),
     },
     async (args) => {
       const body: Record<string, unknown> = {};
@@ -207,16 +207,16 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     },
   );
 
-  // ===== Charge codes =====
+  // ── Charge codes ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_charge_codes",
     "List time-entry charge codes (non-ticket time buckets).",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
-      orderBy: z.string().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      orderBy: z.string().optional().describe("Field to order by"),
     },
     async ({ conditions, page, pageSize, orderBy }) => {
       const result = await client.get("/time/chargeCodes", {
@@ -233,7 +233,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     "cw_get_charge_code",
     "Get a charge code.",
     {
-      id: z.number(),
+      id: z.number().describe("Charge code ID"),
     },
     async ({ id }) => {
       const result = await client.get(`/time/chargeCodes/${id}`);
@@ -245,19 +245,19 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     "cw_create_charge_code",
     "Create a charge code.",
     {
-      name: z.string(),
-      typeId: z.number().optional(),
+      name: z.string().describe("Charge code name"),
+      typeId: z.number().optional().describe("Charge code type ID"),
       classification: z.string().optional().describe("B (Billable) | NB (Non-billable) | NC (No-charge)"),
-      integrationXref: z.string().optional(),
-      allowAllExpenseFlag: z.boolean().optional(),
-      expenseEntryFlag: z.boolean().optional(),
-      timeEntryFlag: z.boolean().optional(),
-      activityTypeId: z.number().optional(),
-      defaultStatusId: z.number().optional(),
-      businessUnitId: z.number().optional(),
-      locationId: z.number().optional(),
-      departmentId: z.number().optional(),
-      payrollItemId: z.number().optional(),
+      integrationXref: z.string().optional().describe("External system cross-reference identifier"),
+      allowAllExpenseFlag: z.boolean().optional().describe("Allow all expense types on this charge code"),
+      expenseEntryFlag: z.boolean().optional().describe("Allow expense entries"),
+      timeEntryFlag: z.boolean().optional().describe("Allow time entries"),
+      activityTypeId: z.number().optional().describe("Activity type ID"),
+      defaultStatusId: z.number().optional().describe("Default status ID"),
+      businessUnitId: z.number().optional().describe("Business unit ID"),
+      locationId: z.number().optional().describe("Location ID"),
+      departmentId: z.number().optional().describe("Department ID"),
+      payrollItemId: z.number().optional().describe("Payroll item ID"),
     },
     async (args) => {
       const body: Record<string, unknown> = { name: args.name };
@@ -282,8 +282,8 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     "cw_update_charge_code",
     "Update a charge code via JSON Patch.",
     {
-      id: z.number(),
-      patch: z.array(patchOp),
+      id: z.number().describe("Charge code ID"),
+      patch: z.array(patchOp).describe("JSON Patch operations to apply"),
     },
     async ({ id, patch }) => {
       const result = await client.patch(`/time/chargeCodes/${id}`, patch);
@@ -295,7 +295,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     "cw_delete_charge_code",
     "Delete a charge code.",
     {
-      id: z.number(),
+      id: z.number().describe("Charge code ID"),
     },
     async ({ id }) => {
       const result = await client.request("DELETE", `/time/chargeCodes/${id}`);
@@ -303,16 +303,16 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     },
   );
 
-  // ===== Charge code expense types =====
+  // ── Charge code expense types ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_charge_code_expense_types",
     "List expense types allowed under a charge code.",
     {
-      chargeCodeId: z.number(),
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      chargeCodeId: z.number().describe("Charge code ID"),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ chargeCodeId, conditions, page, pageSize }) => {
       const result = await client.get(`/time/chargeCodes/${chargeCodeId}/expenseTypes`, {
@@ -324,16 +324,16 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     },
   );
 
-  // ===== Work types =====
+  // ── Work types ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_work_types",
     "List work types (e.g. Remote, Onsite).",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
-      orderBy: z.string().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      orderBy: z.string().optional().describe("Field to order by"),
     },
     async ({ conditions, page, pageSize, orderBy }) => {
       const result = await client.get("/time/workTypes", {
@@ -350,7 +350,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     "cw_get_work_type",
     "Get a work type.",
     {
-      id: z.number(),
+      id: z.number().describe("Work type ID"),
     },
     async ({ id }) => {
       const result = await client.get(`/time/workTypes/${id}`);
@@ -362,17 +362,17 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     "cw_create_work_type",
     "Create a work type.",
     {
-      name: z.string(),
+      name: z.string().describe("Work type name"),
       billTime: z.string().optional().describe("Billable | DoNotBill | NoCharge | NoDefault"),
       rateType: z.string().optional().describe("AdjustedByMultiplier | Multiplier | Flat"),
-      hoursMultiplier: z.number().optional(),
-      overallDefaultFlag: z.boolean().optional(),
-      activityDefaultFlag: z.boolean().optional(),
-      utilizationFlag: z.boolean().optional(),
-      costMultiplier: z.number().optional(),
-      addToHoursWorkedFlag: z.boolean().optional(),
-      inactiveFlag: z.boolean().optional(),
-      integrationXref: z.string().optional(),
+      hoursMultiplier: z.number().optional().describe("Billing hours multiplier"),
+      overallDefaultFlag: z.boolean().optional().describe("Use as the overall default work type"),
+      activityDefaultFlag: z.boolean().optional().describe("Use as default for activity time entries"),
+      utilizationFlag: z.boolean().optional().describe("Count toward utilisation calculations"),
+      costMultiplier: z.number().optional().describe("Cost multiplier"),
+      addToHoursWorkedFlag: z.boolean().optional().describe("Add hours to member worked hours"),
+      inactiveFlag: z.boolean().optional().describe("Mark the work type inactive"),
+      integrationXref: z.string().optional().describe("External system cross-reference identifier"),
     },
     async (args) => {
       const body: Record<string, unknown> = { name: args.name };
@@ -395,8 +395,8 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     "cw_update_work_type",
     "Update a work type via JSON Patch.",
     {
-      id: z.number(),
-      patch: z.array(patchOp),
+      id: z.number().describe("Work type ID"),
+      patch: z.array(patchOp).describe("JSON Patch operations to apply"),
     },
     async ({ id, patch }) => {
       const result = await client.patch(`/time/workTypes/${id}`, patch);
@@ -408,7 +408,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     "cw_delete_work_type",
     "Delete a work type.",
     {
-      id: z.number(),
+      id: z.number().describe("Work type ID"),
     },
     async ({ id }) => {
       const result = await client.request("DELETE", `/time/workTypes/${id}`);
@@ -416,16 +416,16 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     },
   );
 
-  // ===== Work roles =====
+  // ── Work roles ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_work_roles",
     "List work roles (e.g. Engineer, Project Manager).",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
-      orderBy: z.string().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      orderBy: z.string().optional().describe("Field to order by"),
     },
     async ({ conditions, page, pageSize, orderBy }) => {
       const result = await client.get("/time/workRoles", {
@@ -442,7 +442,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     "cw_get_work_role",
     "Get a work role.",
     {
-      id: z.number(),
+      id: z.number().describe("Work role ID"),
     },
     async ({ id }) => {
       const result = await client.get(`/time/workRoles/${id}`);
@@ -454,12 +454,12 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     "cw_create_work_role",
     "Create a work role.",
     {
-      name: z.string(),
-      hourlyRate: z.number().optional(),
-      inactiveFlag: z.boolean().optional(),
-      addAllWorkTypesFlag: z.boolean().optional(),
-      removeAllWorkTypesFlag: z.boolean().optional(),
-      integrationXref: z.string().optional(),
+      name: z.string().describe("Work role name"),
+      hourlyRate: z.number().optional().describe("Hourly rate override"),
+      inactiveFlag: z.boolean().optional().describe("Mark as inactive"),
+      addAllWorkTypesFlag: z.boolean().optional().describe("Add all work types to this role"),
+      removeAllWorkTypesFlag: z.boolean().optional().describe("Remove all work types from this role"),
+      integrationXref: z.string().optional().describe("Integration cross-reference identifier"),
     },
     async (args) => {
       const body: Record<string, unknown> = { name: args.name };
@@ -477,8 +477,8 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     "cw_update_work_role",
     "Update a work role via JSON Patch.",
     {
-      id: z.number(),
-      patch: z.array(patchOp),
+      id: z.number().describe("Work role ID"),
+      patch: z.array(patchOp).describe("JSON Patch operations to apply"),
     },
     async ({ id, patch }) => {
       const result = await client.patch(`/time/workRoles/${id}`, patch);
@@ -490,7 +490,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     "cw_delete_work_role",
     "Delete a work role.",
     {
-      id: z.number(),
+      id: z.number().describe("Work role ID"),
     },
     async ({ id }) => {
       const result = await client.request("DELETE", `/time/workRoles/${id}`);
@@ -498,16 +498,16 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     },
   );
 
-  // ===== Time sheets =====
+  // ── Time sheets ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_time_sheets",
     "List time sheets.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
-      orderBy: z.string().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      orderBy: z.string().optional().describe("Field to order by"),
     },
     async ({ conditions, page, pageSize, orderBy }) => {
       const result = await client.get("/time/sheets", {
@@ -524,7 +524,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     "cw_get_time_sheet",
     "Get a time sheet.",
     {
-      id: z.number(),
+      id: z.number().describe("Time sheet ID"),
     },
     async ({ id }) => {
       const result = await client.get(`/time/sheets/${id}`);
@@ -536,7 +536,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     "cw_submit_time_sheet",
     "Submit a time sheet for approval via /time/sheets/{id}/submit.",
     {
-      id: z.number(),
+      id: z.number().describe("Time sheet ID"),
     },
     async ({ id }) => {
       const result = await client.post(`/time/sheets/${id}/submit`, {});
@@ -548,7 +548,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     "cw_approve_time_sheet",
     "Approve a time sheet via /time/sheets/{id}/approve.",
     {
-      id: z.number(),
+      id: z.number().describe("Time sheet ID"),
     },
     async ({ id }) => {
       const result = await client.post(`/time/sheets/${id}/approve`, {});
@@ -560,7 +560,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     "cw_reject_time_sheet",
     "Reject a time sheet via /time/sheets/{id}/reject.",
     {
-      id: z.number(),
+      id: z.number().describe("Time sheet ID"),
       reason: z.string().optional().describe("Rejection reason"),
     },
     async ({ id, reason }) => {
@@ -575,7 +575,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     "cw_reverse_time_sheet",
     "Reverse an approved time sheet via /time/sheets/{id}/reverse.",
     {
-      id: z.number(),
+      id: z.number().describe("Time sheet ID"),
     },
     async ({ id }) => {
       const result = await client.post(`/time/sheets/${id}/reverse`, {});
@@ -587,10 +587,10 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     "cw_list_time_sheet_audits",
     "List audit-trail entries for a time sheet.",
     {
-      sheetId: z.number(),
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      sheetId: z.number().describe("Time sheet ID"),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ sheetId, conditions, page, pageSize }) => {
       const result = await client.get(`/time/sheets/${sheetId}/audits`, {
@@ -602,15 +602,15 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     },
   );
 
-  // ===== Time accruals =====
+  // ── Time accruals ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_time_accruals",
     "List time accruals (PTO / vacation banks).",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/time/accruals", {
@@ -626,7 +626,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     "cw_get_time_accrual",
     "Get a time accrual.",
     {
-      id: z.number(),
+      id: z.number().describe("Time accrual ID"),
     },
     async ({ id }) => {
       const result = await client.get(`/time/accruals/${id}`);
@@ -634,15 +634,15 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     },
   );
 
-  // ===== Time periods & periodSetups =====
+  // ── Time periods & periodSetups ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_time_periods",
     "List time periods (the rolling buckets sheets attach to).",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/time/periods", {
@@ -658,7 +658,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     "cw_get_time_period",
     "Get a time period.",
     {
-      id: z.number(),
+      id: z.number().describe("Time period ID"),
     },
     async ({ id }) => {
       const result = await client.get(`/time/periods/${id}`);
@@ -670,9 +670,9 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     "cw_list_time_period_setups",
     "List time-period setup definitions.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/time/periodSetups", {
@@ -684,15 +684,15 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     },
   );
 
-  // ===== Stop watches =====
+  // ── Stop watches ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_stopwatches",
     "List stop watches.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/time/stopwatches", {
@@ -708,7 +708,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     "cw_get_stopwatch",
     "Get a stop watch.",
     {
-      id: z.number(),
+      id: z.number().describe("Stop watch ID"),
     },
     async ({ id }) => {
       const result = await client.get(`/time/stopwatches/${id}`);

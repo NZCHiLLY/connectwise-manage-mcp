@@ -9,19 +9,19 @@ const patchOp = z.object({
 });
 
 export function registerActivityTools(server: McpServer, client: CwManageClient) {
-  // ===== Activities =====
+  // ── Core Activities ──────────────────────────────────────────────────────
 
   server.tool(
     "cw_search_activities",
     "Search CRM activities. Use 'conditions' for CW query syntax.",
     {
-      conditions: z.string().optional(),
-      childConditions: z.string().optional(),
-      customFieldConditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
-      orderBy: z.string().optional(),
-      fields: z.string().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      childConditions: z.string().optional().describe("Conditions applied to child collections"),
+      customFieldConditions: z.string().optional().describe("Conditions applied to custom fields"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      orderBy: z.string().optional().describe("Field to order by"),
+      fields: z.string().optional().describe("Comma-separated list of fields to return"),
     },
     async ({ conditions, childConditions, customFieldConditions, page, pageSize, orderBy, fields }) => {
       const result = await client.get("/sales/activities", {
@@ -41,8 +41,8 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
     "cw_get_activity",
     "Get a single activity by ID.",
     {
-      id: z.number(),
-      fields: z.string().optional(),
+      id: z.number().describe("Activity ID"),
+      fields: z.string().optional().describe("Comma-separated list of fields to return"),
     },
     async ({ id, fields }) => {
       const result = await client.get(`/sales/activities/${id}`, { fields });
@@ -54,9 +54,9 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
     "cw_count_activities",
     "Count activities matching a conditions query.",
     {
-      conditions: z.string().optional(),
-      childConditions: z.string().optional(),
-      customFieldConditions: z.string().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      childConditions: z.string().optional().describe("Conditions applied to child collections"),
+      customFieldConditions: z.string().optional().describe("Conditions applied to custom fields"),
     },
     async (args) => {
       const result = await client.get("/sales/activities/count", args);
@@ -68,25 +68,25 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
     "cw_create_activity",
     "Create a CRM activity. name and assignToId are required.",
     {
-      name: z.string(),
+      name: z.string().describe("Activity name (required)"),
       assignToId: z.number().describe("Member ID activity is assigned to"),
-      typeId: z.number().optional(),
-      statusId: z.number().optional(),
-      companyId: z.number().optional(),
-      contactId: z.number().optional(),
-      opportunityId: z.number().optional(),
-      ticketId: z.number().optional(),
-      campaignId: z.number().optional(),
-      agreementId: z.number().optional(),
+      typeId: z.number().optional().describe("Activity type ID"),
+      statusId: z.number().optional().describe("Activity status ID"),
+      companyId: z.number().optional().describe("Company ID"),
+      contactId: z.number().optional().describe("Contact ID"),
+      opportunityId: z.number().optional().describe("Opportunity ID"),
+      ticketId: z.number().optional().describe("Ticket ID"),
+      campaignId: z.number().optional().describe("Campaign ID"),
+      agreementId: z.number().optional().describe("Agreement ID"),
       notes: z.string().optional().describe("Activity notes / detail"),
       dateStart: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
-      dateEnd: z.string().optional(),
-      allDayFlag: z.boolean().optional(),
-      mobileGuid: z.string().optional(),
+      dateEnd: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      allDayFlag: z.boolean().optional().describe("True if the activity spans the full day"),
+      mobileGuid: z.string().optional().describe("Mobile GUID for client-generated activities"),
       where: z.string().optional().describe("Location"),
-      reminderId: z.number().optional(),
-      priorityId: z.number().optional(),
-      customFields: z.array(z.object({ id: z.number(), value: z.unknown() })).optional(),
+      reminderId: z.number().optional().describe("Reminder ID"),
+      priorityId: z.number().optional().describe("Priority ID"),
+      customFields: z.array(z.object({ id: z.number(), value: z.unknown() })).optional().describe("Custom field values"),
     },
     async (args) => {
       const body: Record<string, unknown> = {
@@ -119,8 +119,8 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
     "cw_update_activity",
     "Update an activity via JSON Patch.",
     {
-      id: z.number(),
-      patch: z.array(patchOp),
+      id: z.number().describe("Activity ID"),
+      patch: z.array(patchOp).describe("JSON Patch operations"),
     },
     async ({ id, patch }) => {
       const result = await client.patch(`/sales/activities/${id}`, patch);
@@ -132,8 +132,8 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
     "cw_replace_activity",
     "Replace an activity via PUT.",
     {
-      id: z.number(),
-      body: z.record(z.string(), z.unknown()),
+      id: z.number().describe("Activity ID"),
+      body: z.record(z.string(), z.unknown()).describe("Full replacement body for PUT"),
     },
     async ({ id, body }) => {
       const result = await client.request("PUT", `/sales/activities/${id}`, body);
@@ -145,7 +145,7 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
     "cw_delete_activity",
     "Delete an activity.",
     {
-      id: z.number(),
+      id: z.number().describe("Activity ID"),
     },
     async ({ id }) => {
       const result = await client.request("DELETE", `/sales/activities/${id}`);
@@ -153,16 +153,17 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
     },
   );
 
-  // ===== Activity notes (some CW versions expose /sales/activities/{id}/notes) =====
+  // ── Activity Notes ───────────────────────────────────────────────────────
+  // Some CW versions expose /sales/activities/{id}/notes.
 
   server.tool(
     "cw_list_activity_notes",
     "List notes on an activity.",
     {
-      activityId: z.number(),
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      activityId: z.number().describe("Activity ID"),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ activityId, conditions, page, pageSize }) => {
       const result = await client.get(`/sales/activities/${activityId}/notes`, {
@@ -178,9 +179,9 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
     "cw_create_activity_note",
     "Add a note to an activity.",
     {
-      activityId: z.number(),
-      text: z.string(),
-      flagged: z.boolean().optional(),
+      activityId: z.number().describe("Activity ID"),
+      text: z.string().describe("Note text"),
+      flagged: z.boolean().optional().describe("Flag the note as important"),
     },
     async (args) => {
       const body: Record<string, unknown> = { text: args.text };
@@ -190,16 +191,16 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
     },
   );
 
-  // ===== Activity stop watches =====
+  // ── Stopwatches ──────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_activity_stopwatches",
     "List stop-watches recorded against an activity.",
     {
-      activityId: z.number(),
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      activityId: z.number().describe("Activity ID"),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ activityId, conditions, page, pageSize }) => {
       const result = await client.get(`/sales/activities/${activityId}/stopwatches`, {
@@ -211,15 +212,15 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
     },
   );
 
-  // ===== Activity types =====
+  // ── Activity Types ───────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_activity_types",
     "List activity types.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/sales/activities/types", {
@@ -235,7 +236,7 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
     "cw_get_activity_type",
     "Get an activity type.",
     {
-      id: z.number(),
+      id: z.number().describe("Activity type ID"),
     },
     async ({ id }) => {
       const result = await client.get(`/sales/activities/types/${id}`);
@@ -247,13 +248,13 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
     "cw_create_activity_type",
     "Create an activity type.",
     {
-      name: z.string(),
-      points: z.number().optional(),
-      defaultFlag: z.boolean().optional(),
-      emailFlag: z.boolean().optional(),
-      memoFlag: z.boolean().optional(),
-      historyFlag: z.boolean().optional(),
-      inactiveFlag: z.boolean().optional(),
+      name: z.string().describe("Activity type name"),
+      points: z.number().optional().describe("Sales-points value for activities of this type"),
+      defaultFlag: z.boolean().optional().describe("Mark as default activity type"),
+      emailFlag: z.boolean().optional().describe("Enable email integration for this type"),
+      memoFlag: z.boolean().optional().describe("Enable memo behaviour for this type"),
+      historyFlag: z.boolean().optional().describe("Record this type in activity history"),
+      inactiveFlag: z.boolean().optional().describe("Mark the type as inactive"),
     },
     async (args) => {
       const body: Record<string, unknown> = { name: args.name };
@@ -272,8 +273,8 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
     "cw_update_activity_type",
     "Update an activity type via JSON Patch.",
     {
-      id: z.number(),
-      patch: z.array(patchOp),
+      id: z.number().describe("Activity type ID"),
+      patch: z.array(patchOp).describe("JSON Patch operations"),
     },
     async ({ id, patch }) => {
       const result = await client.patch(`/sales/activities/types/${id}`, patch);
