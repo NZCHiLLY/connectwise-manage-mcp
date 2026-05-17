@@ -1,4 +1,4 @@
-import { z } from "zod";
+﻿import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
 
@@ -9,19 +9,19 @@ const patchOp = z.object({
 });
 
 export function registerOpportunityTools(server: McpServer, client: CwManageClient) {
-  // ===== Opportunities =====
+  // ── Opportunities ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_search_opportunities",
     "Search sales opportunities. Use 'conditions' for CW query syntax.",
     {
-      conditions: z.string().optional(),
-      childConditions: z.string().optional(),
-      customFieldConditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
-      orderBy: z.string().optional(),
-      fields: z.string().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      childConditions: z.string().optional().describe("Child object conditions query string"),
+      customFieldConditions: z.string().optional().describe("Custom field conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      orderBy: z.string().optional().describe("Field to order by"),
+      fields: z.string().optional().describe("Comma-separated list of fields to return"),
     },
     async ({ conditions, childConditions, customFieldConditions, page, pageSize, orderBy, fields }) => {
       const result = await client.get("/sales/opportunities", {
@@ -42,7 +42,7 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     "Get a single opportunity by ID.",
     {
       id: z.number().describe("Opportunity ID"),
-      fields: z.string().optional(),
+      fields: z.string().optional().describe("Comma-separated list of fields to return"),
     },
     async ({ id, fields }) => {
       const result = await client.get(`/sales/opportunities/${id}`, { fields });
@@ -54,9 +54,9 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     "cw_count_opportunities",
     "Count opportunities matching a conditions query.",
     {
-      conditions: z.string().optional(),
-      childConditions: z.string().optional(),
-      customFieldConditions: z.string().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      childConditions: z.string().optional().describe("Child object conditions query string"),
+      customFieldConditions: z.string().optional().describe("Custom field conditions query string"),
     },
     async (args) => {
       const result = await client.get("/sales/opportunities/count", args);
@@ -73,27 +73,27 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
       typeId: z.number().describe("Opportunity type ID (required)"),
       primarySalesRepId: z.number().describe("Primary sales rep member ID (required)"),
       stageId: z.number().describe("Sales stage ID (required)"),
-      statusId: z.number().optional(),
-      ratingId: z.number().optional(),
-      priorityId: z.number().optional(),
-      probability: z.number().optional(),
-      source: z.string().optional(),
-      contactId: z.number().optional(),
-      siteId: z.number().optional(),
-      campaignId: z.number().optional(),
+      statusId: z.number().optional().describe("Opportunity status ID"),
+      ratingId: z.number().optional().describe("Rating ID"),
+      priorityId: z.number().optional().describe("Priority ID"),
+      probability: z.number().optional().describe("Win probability (0–100)"),
+      source: z.string().optional().describe("Lead source"),
+      contactId: z.number().optional().describe("Contact ID"),
+      siteId: z.number().optional().describe("Site ID"),
+      campaignId: z.number().optional().describe("Campaign ID"),
       expectedCloseDate: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
-      dateBecameLead: z.string().optional(),
-      pipelineChangeDate: z.string().optional(),
-      lastStageChangeDate: z.string().optional(),
-      closedDate: z.string().optional(),
-      notes: z.string().optional(),
-      businessUnitId: z.number().optional(),
-      locationId: z.number().optional(),
-      departmentId: z.number().optional(),
-      territoryId: z.number().optional(),
-      secondarySalesRepId: z.number().optional(),
-      customerPO: z.string().optional(),
-      customFields: z.array(z.object({ id: z.number(), value: z.unknown() })).optional(),
+      dateBecameLead: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      pipelineChangeDate: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      lastStageChangeDate: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      closedDate: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      notes: z.string().optional().describe("Opportunity notes"),
+      businessUnitId: z.number().optional().describe("Business unit ID"),
+      locationId: z.number().optional().describe("Location ID"),
+      departmentId: z.number().optional().describe("Department ID"),
+      territoryId: z.number().optional().describe("Territory ID"),
+      secondarySalesRepId: z.number().optional().describe("Secondary sales rep member ID"),
+      customerPO: z.string().optional().describe("Customer purchase order number"),
+      customFields: z.array(z.object({ id: z.number(), value: z.unknown() })).optional().describe("Custom field values"),
     },
     async (args) => {
       const body: Record<string, unknown> = {
@@ -133,8 +133,8 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     "cw_update_opportunity",
     "Update an opportunity via JSON Patch.",
     {
-      id: z.number(),
-      patch: z.array(patchOp),
+      id: z.number().describe("Opportunity ID"),
+      patch: z.array(patchOp).describe("JSON Patch operations to apply"),
     },
     async ({ id, patch }) => {
       const result = await client.patch(`/sales/opportunities/${id}`, patch);
@@ -146,8 +146,8 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     "cw_replace_opportunity",
     "Replace an opportunity via PUT.",
     {
-      id: z.number(),
-      body: z.record(z.string(), z.unknown()),
+      id: z.number().describe("Opportunity ID"),
+      body: z.record(z.string(), z.unknown()).describe("Full replacement body for PUT"),
     },
     async ({ id, body }) => {
       const result = await client.request("PUT", `/sales/opportunities/${id}`, body);
@@ -159,7 +159,7 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     "cw_delete_opportunity",
     "Delete an opportunity.",
     {
-      id: z.number(),
+      id: z.number().describe("Opportunity ID"),
     },
     async ({ id }) => {
       const result = await client.request("DELETE", `/sales/opportunities/${id}`);
@@ -186,7 +186,7 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     "cw_win_opportunity",
     "Mark an opportunity as won. Provide a closed status with wonFlag=true via JSON Patch.",
     {
-      id: z.number(),
+      id: z.number().describe("Opportunity ID"),
       statusId: z.number().describe("Status ID where wonFlag=true and closedFlag=true"),
       closedDate: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
     },
@@ -206,7 +206,7 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     "cw_lose_opportunity",
     "Mark an opportunity as lost. Provide a closed status with lostFlag=true via JSON Patch.",
     {
-      id: z.number(),
+      id: z.number().describe("Opportunity ID"),
       statusId: z.number().describe("Status ID where lostFlag=true and closedFlag=true"),
       closedDate: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
     },
@@ -226,7 +226,7 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     "cw_reopen_opportunity",
     "Reopen a closed opportunity. Provide an open status (closedFlag=false) via JSON Patch.",
     {
-      id: z.number(),
+      id: z.number().describe("Opportunity ID"),
       statusId: z.number().describe("Open status ID (closedFlag=false)"),
     },
     async ({ id, statusId }) => {
@@ -243,14 +243,14 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     "cw_convert_opportunity_to_project",
     "Convert an opportunity to a project via /sales/opportunities/{id}/convertToProject.",
     {
-      id: z.number(),
+      id: z.number().describe("Opportunity ID"),
       name: z.string().optional().describe("Project name (defaults to opportunity name)"),
       boardId: z.number().describe("Destination service board ID"),
-      statusId: z.number().optional(),
-      typeId: z.number().optional(),
-      managerId: z.number().optional(),
-      estimatedStart: z.string().optional(),
-      estimatedEnd: z.string().optional(),
+      statusId: z.number().optional().describe("Project status ID"),
+      typeId: z.number().optional().describe("Project type ID"),
+      managerId: z.number().optional().describe("Project manager member ID"),
+      estimatedStart: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      estimatedEnd: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
     },
     async (args) => {
       const body: Record<string, unknown> = {
@@ -271,11 +271,11 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     "cw_convert_opportunity_to_ticket",
     "Convert an opportunity to a ticket via /sales/opportunities/{id}/convertToServiceTicket.",
     {
-      id: z.number(),
+      id: z.number().describe("Opportunity ID"),
       summary: z.string().optional().describe("Ticket summary (defaults to opportunity name)"),
       boardId: z.number().describe("Destination board ID"),
-      statusId: z.number().optional(),
-      priorityId: z.number().optional(),
+      statusId: z.number().optional().describe("Ticket status ID"),
+      priorityId: z.number().optional().describe("Ticket priority ID"),
     },
     async (args) => {
       const body: Record<string, unknown> = {
@@ -293,7 +293,7 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     "cw_recalculate_opportunity_prices",
     "Recalculate prices on an opportunity (refreshes from current catalog and agreement pricing).",
     {
-      id: z.number(),
+      id: z.number().describe("Opportunity ID"),
     },
     async ({ id }) => {
       const result = await client.post(`/sales/opportunities/${id}/recalculatePrices`, {});
@@ -301,16 +301,16 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     },
   );
 
-  // ===== Opportunity products =====
+  // ── Opportunity products ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_opportunity_products",
     "List products on an opportunity.",
     {
-      opportunityId: z.number(),
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      opportunityId: z.number().describe("Opportunity ID"),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ opportunityId, conditions, page, pageSize }) => {
       const result = await client.get(`/sales/opportunities/${opportunityId}/products`, {
@@ -326,8 +326,8 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     "cw_get_opportunity_product",
     "Get a single product on an opportunity.",
     {
-      opportunityId: z.number(),
-      productId: z.number(),
+      opportunityId: z.number().describe("Opportunity ID"),
+      productId: z.number().describe("Opportunity product ID"),
     },
     async ({ opportunityId, productId }) => {
       const result = await client.get(`/sales/opportunities/${opportunityId}/products/${productId}`);
@@ -342,16 +342,16 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
       opportunityId: z.number().describe("Opportunity ID"),
       catalogItemId: z.number().describe("Catalog item ID"),
       quantity: z.number().describe("Quantity"),
-      price: z.number().optional(),
-      cost: z.number().optional(),
+      price: z.number().optional().describe("Override unit price"),
+      cost: z.number().optional().describe("Override unit cost"),
       priceMethod: z.string().optional().describe("MarkupCost | MarginCost | MarkupCostPercent | MarginCostPercent | OverridePrice"),
-      sequenceNumber: z.number().optional(),
-      description: z.string().optional(),
+      sequenceNumber: z.number().optional().describe("Display order sequence number"),
+      description: z.string().optional().describe("Product line description"),
       billableOption: z.string().optional().describe("Billable | DoNotBill | NoCharge"),
-      taxableFlag: z.boolean().optional(),
-      dropshipFlag: z.boolean().optional(),
-      specialOrderFlag: z.boolean().optional(),
-      forecastDetailId: z.number().optional(),
+      taxableFlag: z.boolean().optional().describe("Whether the product is taxable"),
+      dropshipFlag: z.boolean().optional().describe("Whether to dropship this product"),
+      specialOrderFlag: z.boolean().optional().describe("Whether this is a special order"),
+      forecastDetailId: z.number().optional().describe("Forecast detail ID"),
     },
     async (args) => {
       const body: Record<string, unknown> = {
@@ -377,9 +377,9 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     "cw_update_opportunity_product",
     "Update an opportunity product via JSON Patch.",
     {
-      opportunityId: z.number(),
-      productId: z.number(),
-      patch: z.array(patchOp),
+      opportunityId: z.number().describe("Opportunity ID"),
+      productId: z.number().describe("Opportunity product ID"),
+      patch: z.array(patchOp).describe("JSON Patch operations to apply"),
     },
     async ({ opportunityId, productId, patch }) => {
       const result = await client.patch(`/sales/opportunities/${opportunityId}/products/${productId}`, patch);
@@ -391,8 +391,8 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     "cw_delete_opportunity_product",
     "Remove a product from an opportunity.",
     {
-      opportunityId: z.number(),
-      productId: z.number(),
+      opportunityId: z.number().describe("Opportunity ID"),
+      productId: z.number().describe("Opportunity product ID"),
     },
     async ({ opportunityId, productId }) => {
       const result = await client.request("DELETE", `/sales/opportunities/${opportunityId}/products/${productId}`);
@@ -400,16 +400,16 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     },
   );
 
-  // ===== Opportunity contacts =====
+  // ── Opportunity contacts ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_opportunity_contacts",
     "List contacts on an opportunity.",
     {
-      opportunityId: z.number(),
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      opportunityId: z.number().describe("Opportunity ID"),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ opportunityId, conditions, page, pageSize }) => {
       const result = await client.get(`/sales/opportunities/${opportunityId}/contacts`, {
@@ -425,8 +425,8 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     "cw_add_opportunity_contact",
     "Attach a contact to an opportunity.",
     {
-      opportunityId: z.number(),
-      contactId: z.number(),
+      opportunityId: z.number().describe("Opportunity ID"),
+      contactId: z.number().describe("Contact ID"),
     },
     async ({ opportunityId, contactId }) => {
       const result = await client.post(`/sales/opportunities/${opportunityId}/contacts`, {
@@ -440,8 +440,8 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     "cw_remove_opportunity_contact",
     "Remove a contact from an opportunity.",
     {
-      opportunityId: z.number(),
-      contactId: z.number(),
+      opportunityId: z.number().describe("Opportunity ID"),
+      contactId: z.number().describe("Contact ID"),
     },
     async ({ opportunityId, contactId }) => {
       const result = await client.request("DELETE", `/sales/opportunities/${opportunityId}/contacts/${contactId}`);
@@ -449,16 +449,16 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     },
   );
 
-  // ===== Opportunity notes =====
+  // ── Opportunity notes ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_opportunity_notes",
     "List notes on an opportunity.",
     {
-      opportunityId: z.number(),
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      opportunityId: z.number().describe("Opportunity ID"),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ opportunityId, conditions, page, pageSize }) => {
       const result = await client.get(`/sales/opportunities/${opportunityId}/notes`, {
@@ -474,8 +474,8 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     "cw_get_opportunity_note",
     "Get a single opportunity note.",
     {
-      opportunityId: z.number(),
-      noteId: z.number(),
+      opportunityId: z.number().describe("Opportunity ID"),
+      noteId: z.number().describe("Opportunity note ID"),
     },
     async ({ opportunityId, noteId }) => {
       const result = await client.get(`/sales/opportunities/${opportunityId}/notes/${noteId}`);
@@ -487,10 +487,10 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     "cw_create_opportunity_note",
     "Add a note to an opportunity.",
     {
-      opportunityId: z.number(),
-      text: z.string(),
-      typeId: z.number().optional(),
-      flagged: z.boolean().optional(),
+      opportunityId: z.number().describe("Opportunity ID"),
+      text: z.string().describe("Note text"),
+      typeId: z.number().optional().describe("Note type ID"),
+      flagged: z.boolean().optional().describe("Flag the note as important"),
     },
     async (args) => {
       const body: Record<string, unknown> = { text: args.text };
@@ -505,9 +505,9 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     "cw_update_opportunity_note",
     "Update an opportunity note via JSON Patch.",
     {
-      opportunityId: z.number(),
-      noteId: z.number(),
-      patch: z.array(patchOp),
+      opportunityId: z.number().describe("Opportunity ID"),
+      noteId: z.number().describe("Opportunity note ID"),
+      patch: z.array(patchOp).describe("JSON Patch operations to apply"),
     },
     async ({ opportunityId, noteId, patch }) => {
       const result = await client.patch(`/sales/opportunities/${opportunityId}/notes/${noteId}`, patch);
@@ -519,8 +519,8 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     "cw_delete_opportunity_note",
     "Delete an opportunity note.",
     {
-      opportunityId: z.number(),
-      noteId: z.number(),
+      opportunityId: z.number().describe("Opportunity ID"),
+      noteId: z.number().describe("Opportunity note ID"),
     },
     async ({ opportunityId, noteId }) => {
       const result = await client.request("DELETE", `/sales/opportunities/${opportunityId}/notes/${noteId}`);
@@ -528,15 +528,15 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     },
   );
 
-  // ===== Opportunity catalog: ratings, types, statuses, note types =====
+  // ── Opportunity catalog: ratings, types, statuses, note types ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_opportunity_ratings",
     "List opportunity ratings.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/sales/opportunities/ratings", {
@@ -552,7 +552,7 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     "cw_get_opportunity_rating",
     "Get an opportunity rating.",
     {
-      id: z.number(),
+      id: z.number().describe("Rating ID"),
     },
     async ({ id }) => {
       const result = await client.get(`/sales/opportunities/ratings/${id}`);
@@ -564,9 +564,9 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     "cw_list_opportunity_types",
     "List opportunity types.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/sales/opportunities/types", {
@@ -582,7 +582,7 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     "cw_get_opportunity_type",
     "Get an opportunity type.",
     {
-      id: z.number(),
+      id: z.number().describe("Opportunity type ID"),
     },
     async ({ id }) => {
       const result = await client.get(`/sales/opportunities/types/${id}`);
@@ -594,9 +594,9 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     "cw_list_opportunity_statuses",
     "List opportunity statuses.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/sales/opportunities/statuses", {
@@ -612,7 +612,7 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     "cw_get_opportunity_status",
     "Get an opportunity status.",
     {
-      id: z.number(),
+      id: z.number().describe("Opportunity status ID"),
     },
     async ({ id }) => {
       const result = await client.get(`/sales/opportunities/statuses/${id}`);
@@ -624,9 +624,9 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     "cw_list_opportunity_note_types",
     "List opportunity note types.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/sales/opportunities/notes/types", {

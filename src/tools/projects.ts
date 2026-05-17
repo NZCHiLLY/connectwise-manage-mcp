@@ -1,4 +1,4 @@
-import { z } from "zod";
+﻿import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
 
@@ -9,19 +9,19 @@ const patchOp = z.object({
 });
 
 export function registerProjectTools(server: McpServer, client: CwManageClient) {
-  // ===== Projects =====
+  // ── Projects ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_search_projects",
     "Search projects. Use 'conditions' for CW query syntax.",
     {
-      conditions: z.string().optional(),
-      childConditions: z.string().optional(),
-      customFieldConditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
-      orderBy: z.string().optional(),
-      fields: z.string().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      childConditions: z.string().optional().describe("Child object conditions query string"),
+      customFieldConditions: z.string().optional().describe("Custom field conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      orderBy: z.string().optional().describe("Field to order by"),
+      fields: z.string().optional().describe("Comma-separated list of fields to return"),
     },
     async ({ conditions, childConditions, customFieldConditions, page, pageSize, orderBy, fields }) => {
       const result = await client.get("/project/projects", {
@@ -42,7 +42,7 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
     "Get a single project by ID.",
     {
       id: z.number().describe("Project ID"),
-      fields: z.string().optional(),
+      fields: z.string().optional().describe("Comma-separated list of fields to return"),
     },
     async ({ id, fields }) => {
       const result = await client.get(`/project/projects/${id}`, { fields });
@@ -54,9 +54,9 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
     "cw_count_projects",
     "Count projects matching a conditions query.",
     {
-      conditions: z.string().optional(),
-      childConditions: z.string().optional(),
-      customFieldConditions: z.string().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      childConditions: z.string().optional().describe("Child object conditions query string"),
+      customFieldConditions: z.string().optional().describe("Custom field conditions query string"),
     },
     async (args) => {
       const result = await client.get("/project/projects/count", args);
@@ -71,29 +71,29 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
       name: z.string().describe("Project name (required)"),
       companyId: z.number().describe("Customer company ID (required)"),
       boardId: z.number().describe("Service board ID (required)"),
-      statusId: z.number().optional(),
-      typeId: z.number().optional(),
-      managerId: z.number().optional().describe("Project manager (member) ID"),
-      contactId: z.number().optional(),
-      siteId: z.number().optional(),
+      statusId: z.number().optional().describe("Project status ID"),
+      typeId: z.number().optional().describe("Project type ID"),
+      managerId: z.number().optional().describe("Project manager member ID"),
+      contactId: z.number().optional().describe("Contact ID"),
+      siteId: z.number().optional().describe("Site ID"),
       estimatedStart: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
       estimatedEnd: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
-      actualStart: z.string().optional(),
-      actualEnd: z.string().optional(),
-      estimatedHours: z.number().optional(),
-      estimatedExpenseRevenue: z.number().optional(),
-      estimatedProductRevenue: z.number().optional(),
-      estimatedTimeRevenue: z.number().optional(),
+      actualStart: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      actualEnd: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      estimatedHours: z.number().optional().describe("Estimated hours for the project"),
+      estimatedExpenseRevenue: z.number().optional().describe("Estimated expense revenue"),
+      estimatedProductRevenue: z.number().optional().describe("Estimated product revenue"),
+      estimatedTimeRevenue: z.number().optional().describe("Estimated time revenue"),
       billingMethod: z.string().optional().describe("ActualRates | FixedFee | NotToExceed | OverrideRate"),
-      billingAmount: z.number().optional(),
-      downpayment: z.number().optional(),
-      billingAttention: z.string().optional(),
-      restrictDownPaymentFlag: z.boolean().optional(),
-      restrictInvoiceFlag: z.boolean().optional(),
-      agreementId: z.number().optional(),
-      opportunityId: z.number().optional(),
-      description: z.string().optional(),
-      customFields: z.array(z.object({ id: z.number(), value: z.unknown() })).optional(),
+      billingAmount: z.number().optional().describe("Billing amount"),
+      downpayment: z.number().optional().describe("Downpayment amount"),
+      billingAttention: z.string().optional().describe("Billing attention contact name"),
+      restrictDownPaymentFlag: z.boolean().optional().describe("Restrict down payment"),
+      restrictInvoiceFlag: z.boolean().optional().describe("Restrict invoice"),
+      agreementId: z.number().optional().describe("Agreement ID"),
+      opportunityId: z.number().optional().describe("Opportunity ID"),
+      description: z.string().optional().describe("Project description"),
+      customFields: z.array(z.object({ id: z.number(), value: z.unknown() })).optional().describe("Custom field values"),
     },
     async (args) => {
       const body: Record<string, unknown> = {
@@ -133,8 +133,8 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
     "cw_update_project",
     "Update a project via JSON Patch.",
     {
-      id: z.number(),
-      patch: z.array(patchOp),
+      id: z.number().describe("Project ID"),
+      patch: z.array(patchOp).describe("JSON Patch operations to apply"),
     },
     async ({ id, patch }) => {
       const result = await client.patch(`/project/projects/${id}`, patch);
@@ -146,8 +146,8 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
     "cw_replace_project",
     "Replace a project via PUT.",
     {
-      id: z.number(),
-      body: z.record(z.string(), z.unknown()),
+      id: z.number().describe("Project ID"),
+      body: z.record(z.string(), z.unknown()).describe("Full replacement body for PUT"),
     },
     async ({ id, body }) => {
       const result = await client.request("PUT", `/project/projects/${id}`, body);
@@ -159,7 +159,7 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
     "cw_delete_project",
     "Delete a project. Destructive.",
     {
-      id: z.number(),
+      id: z.number().describe("Project ID"),
     },
     async ({ id }) => {
       const result = await client.request("DELETE", `/project/projects/${id}`);
@@ -173,10 +173,10 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
     {
       id: z.number().describe("Source project ID"),
       name: z.string().describe("Template name"),
-      copyNotesFlag: z.boolean().optional(),
-      copyTeamMembersFlag: z.boolean().optional(),
-      copyTimeEntriesFlag: z.boolean().optional(),
-      copyDocumentsFlag: z.boolean().optional(),
+      copyNotesFlag: z.boolean().optional().describe("Copy notes to template"),
+      copyTeamMembersFlag: z.boolean().optional().describe("Copy team members to template"),
+      copyTimeEntriesFlag: z.boolean().optional().describe("Copy time entries to template"),
+      copyDocumentsFlag: z.boolean().optional().describe("Copy documents to template"),
     },
     async (args) => {
       const body: Record<string, unknown> = { name: args.name };
@@ -189,17 +189,17 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Project phases =====
+  // ── Project phases ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_project_phases",
     "List phases under a project.",
     {
       projectId: z.number().describe("Project ID"),
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
-      orderBy: z.string().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      orderBy: z.string().optional().describe("Field to order by"),
     },
     async ({ projectId, conditions, page, pageSize, orderBy }) => {
       const result = await client.get(`/project/projects/${projectId}/phases`, {
@@ -232,20 +232,20 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
       projectId: z.number().describe("Project ID"),
       description: z.string().describe("Phase description / name"),
       parentPhaseId: z.number().optional().describe("Parent phase ID for sub-phases"),
-      wbsCode: z.string().optional(),
-      billingMethod: z.string().optional(),
-      billPhaseSeparatelyFlag: z.boolean().optional(),
-      billProjectAfterClosedFlag: z.boolean().optional(),
-      billingAmount: z.number().optional(),
-      budgetHours: z.number().optional(),
-      scheduledStart: z.string().optional(),
-      scheduledEnd: z.string().optional(),
-      scheduledHours: z.number().optional(),
-      actualStart: z.string().optional(),
-      actualEnd: z.string().optional(),
-      actualHours: z.number().optional(),
-      markAsMilestoneFlag: z.boolean().optional(),
-      notes: z.string().optional(),
+      wbsCode: z.string().optional().describe("WBS code for the phase"),
+      billingMethod: z.string().optional().describe("ActualRates | FixedFee | NotToExceed | OverrideRate"),
+      billPhaseSeparatelyFlag: z.boolean().optional().describe("Bill this phase separately"),
+      billProjectAfterClosedFlag: z.boolean().optional().describe("Bill project after phase is closed"),
+      billingAmount: z.number().optional().describe("Billing amount"),
+      budgetHours: z.number().optional().describe("Budget hours for the phase"),
+      scheduledStart: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      scheduledEnd: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      scheduledHours: z.number().optional().describe("Scheduled hours for the phase"),
+      actualStart: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      actualEnd: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      actualHours: z.number().optional().describe("Actual hours logged"),
+      markAsMilestoneFlag: z.boolean().optional().describe("Mark this phase as a milestone"),
+      notes: z.string().optional().describe("Phase notes"),
     },
     async (args) => {
       const body: Record<string, unknown> = { description: args.description };
@@ -275,7 +275,7 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
     {
       projectId: z.number().describe("Project ID"),
       phaseId: z.number().describe("Phase ID"),
-      patch: z.array(patchOp),
+      patch: z.array(patchOp).describe("JSON Patch operations to apply"),
     },
     async ({ projectId, phaseId, patch }) => {
       const result = await client.patch(`/project/projects/${projectId}/phases/${phaseId}`, patch);
@@ -296,16 +296,16 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Project team members =====
+  // ── Project team members ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_project_team_members",
     "List team members on a project.",
     {
       projectId: z.number().describe("Project ID"),
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ projectId, conditions, page, pageSize }) => {
       const result = await client.get(`/project/projects/${projectId}/teamMembers`, {
@@ -337,10 +337,10 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
       projectId: z.number().describe("Project ID"),
       memberId: z.number().describe("Member ID"),
       projectRoleId: z.number().describe("Project role ID"),
-      hoursScheduled: z.number().optional(),
-      startDate: z.string().optional(),
-      endDate: z.string().optional(),
-      workRoleId: z.number().optional(),
+      hoursScheduled: z.number().optional().describe("Hours scheduled for this team member"),
+      startDate: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      endDate: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      workRoleId: z.number().optional().describe("Work role ID"),
     },
     async (args) => {
       const body: Record<string, unknown> = {
@@ -362,7 +362,7 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
     {
       projectId: z.number().describe("Project ID"),
       teamMemberId: z.number().describe("Team-member row ID"),
-      patch: z.array(patchOp),
+      patch: z.array(patchOp).describe("JSON Patch operations to apply"),
     },
     async ({ projectId, teamMemberId, patch }) => {
       const result = await client.patch(`/project/projects/${projectId}/teamMembers/${teamMemberId}`, patch);
@@ -383,16 +383,16 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Project notes =====
+  // ── Project notes ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_project_notes",
     "List notes on a project.",
     {
       projectId: z.number().describe("Project ID"),
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ projectId, conditions, page, pageSize }) => {
       const result = await client.get(`/project/projects/${projectId}/notes`, {
@@ -424,7 +424,7 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
       projectId: z.number().describe("Project ID"),
       text: z.string().describe("Note text"),
       typeId: z.number().optional().describe("Note type ID"),
-      flagged: z.boolean().optional(),
+      flagged: z.boolean().optional().describe("Flag this note"),
     },
     async (args) => {
       const body: Record<string, unknown> = { text: args.text };
@@ -441,7 +441,7 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
     {
       projectId: z.number().describe("Project ID"),
       noteId: z.number().describe("Note ID"),
-      patch: z.array(patchOp),
+      patch: z.array(patchOp).describe("JSON Patch operations to apply"),
     },
     async ({ projectId, noteId, patch }) => {
       const result = await client.patch(`/project/projects/${projectId}/notes/${noteId}`, patch);
@@ -462,16 +462,16 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Project contacts =====
+  // ── Project contacts ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_project_contacts",
     "List contacts on a project.",
     {
       projectId: z.number().describe("Project ID"),
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ projectId, conditions, page, pageSize }) => {
       const result = await client.get(`/project/projects/${projectId}/contacts`, {
@@ -511,15 +511,15 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Project catalog: statuses, types, roles, security roles =====
+  // ── Project catalog: statuses, types, roles, security roles ─────────────────────────────────────────
 
   server.tool(
     "cw_list_project_statuses",
     "List project statuses.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/project/statuses", {
@@ -535,7 +535,7 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
     "cw_get_project_status",
     "Get a single project status.",
     {
-      id: z.number(),
+      id: z.number().describe("Project status ID"),
     },
     async ({ id }) => {
       const result = await client.get(`/project/statuses/${id}`);
@@ -547,9 +547,9 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
     "cw_list_project_types",
     "List project types.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/project/projectTypes", {
@@ -565,7 +565,7 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
     "cw_get_project_type",
     "Get a single project type.",
     {
-      id: z.number(),
+      id: z.number().describe("Project type ID"),
     },
     async ({ id }) => {
       const result = await client.get(`/project/projectTypes/${id}`);
@@ -577,9 +577,9 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
     "cw_list_project_roles",
     "List project roles (used on team-member rows).",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/project/projectRoles", {
@@ -595,7 +595,7 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
     "cw_get_project_role",
     "Get a project role.",
     {
-      id: z.number(),
+      id: z.number().describe("Project role ID"),
     },
     async ({ id }) => {
       const result = await client.get(`/project/projectRoles/${id}`);
@@ -607,9 +607,9 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
     "cw_list_project_security_roles",
     "List project security roles.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/project/securityRoles", {
@@ -621,15 +621,15 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Project boards (subset of service boards used by projects) =====
+  // ── Project boards (subset of service boards used by projects) ─────────────────────────────────────────
 
   server.tool(
     "cw_list_project_boards",
     "List project boards.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/project/boards", {
@@ -645,7 +645,7 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
     "cw_get_project_board",
     "Get a project board.",
     {
-      id: z.number(),
+      id: z.number().describe("Project board ID"),
     },
     async ({ id }) => {
       const result = await client.get(`/project/boards/${id}`);
@@ -653,17 +653,17 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Project ticket links (search tickets scoped to a project) =====
+  // ── Project ticket links (search tickets scoped to a project) ─────────────────────────────────────────
 
   server.tool(
     "cw_list_project_tickets",
     "List tickets attached to a project via /project/projects/{id}/tickets.",
     {
       projectId: z.number().describe("Project ID"),
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
-      orderBy: z.string().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      orderBy: z.string().optional().describe("Field to order by"),
     },
     async ({ projectId, conditions, page, pageSize, orderBy }) => {
       const result = await client.get(`/project/projects/${projectId}/tickets`, {
@@ -676,15 +676,15 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Project templates =====
+  // ── Project templates ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_project_templates",
     "List project templates.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/project/projectTemplates", {
@@ -700,7 +700,7 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
     "cw_get_project_template",
     "Get a project template.",
     {
-      id: z.number(),
+      id: z.number().describe("Project template ID"),
     },
     async ({ id }) => {
       const result = await client.get(`/project/projectTemplates/${id}`);

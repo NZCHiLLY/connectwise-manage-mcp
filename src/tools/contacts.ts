@@ -17,19 +17,19 @@ const communicationItem = z.object({
 });
 
 export function registerContactTools(server: McpServer, client: CwManageClient) {
-  // ===== Contacts =====
+  // ── Contacts ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_search_contacts",
     "Search contacts. Use 'conditions' for CW query syntax (e.g. \"firstName='Jane'\").",
     {
-      conditions: z.string().optional(),
-      childConditions: z.string().optional(),
-      customFieldConditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
-      orderBy: z.string().optional(),
-      fields: z.string().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      childConditions: z.string().optional().describe("Child object conditions query string"),
+      customFieldConditions: z.string().optional().describe("Custom field conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      orderBy: z.string().optional().describe("Field to order by"),
+      fields: z.string().optional().describe("Comma-separated list of fields to return"),
     },
     async ({ conditions, childConditions, customFieldConditions, page, pageSize, orderBy, fields }) => {
       const result = await client.get("/company/contacts", {
@@ -50,7 +50,7 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
     "Get a single contact by ID.",
     {
       id: z.number().describe("Contact ID"),
-      fields: z.string().optional(),
+      fields: z.string().optional().describe("Comma-separated list of fields to return"),
     },
     async ({ id, fields }) => {
       const result = await client.get(`/company/contacts/${id}`, { fields });
@@ -62,9 +62,9 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
     "cw_count_contacts",
     "Count contacts matching a conditions query.",
     {
-      conditions: z.string().optional(),
-      childConditions: z.string().optional(),
-      customFieldConditions: z.string().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      childConditions: z.string().optional().describe("Child object conditions query string"),
+      customFieldConditions: z.string().optional().describe("Custom field conditions query string"),
     },
     async (args) => {
       const result = await client.get("/company/contacts/count", args);
@@ -76,27 +76,27 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
     "cw_create_contact",
     "Create a new contact. firstName is required; companyId associates the contact with a company.",
     {
-      firstName: z.string().describe("First name (required)"),
-      lastName: z.string().optional(),
-      companyId: z.number().optional().describe("Company ID this contact belongs to"),
+      firstName: z.string().describe("Contact first name"),
+      lastName: z.string().optional().describe("Contact last name"),
+      companyId: z.number().optional().describe("Company ID"),
       siteId: z.number().optional().describe("Site ID"),
-      title: z.string().optional(),
+      title: z.string().optional().describe("Job title"),
       typeId: z.number().optional().describe("Contact type ID"),
       departmentId: z.number().optional().describe("Contact department ID"),
-      relationshipId: z.number().optional(),
-      defaultPhoneNbr: z.string().optional(),
+      relationshipId: z.number().optional().describe("Contact relationship ID"),
+      defaultPhoneNbr: z.string().optional().describe("Default phone number"),
       defaultPhoneType: z.string().optional().describe("Direct, Mobile, Fax, etc."),
-      defaultPhoneExtension: z.string().optional(),
-      defaultBillingFlag: z.boolean().optional(),
-      defaultFlag: z.boolean().optional(),
-      inactiveFlag: z.boolean().optional(),
-      marriedFlag: z.boolean().optional(),
-      childrenFlag: z.boolean().optional(),
-      portalSecurityLevelId: z.number().optional(),
-      disablePortalLoginFlag: z.boolean().optional(),
-      unsubscribeFlag: z.boolean().optional(),
+      defaultPhoneExtension: z.string().optional().describe("Default phone extension"),
+      defaultBillingFlag: z.boolean().optional().describe("Mark as default billing contact"),
+      defaultFlag: z.boolean().optional().describe("Mark as default"),
+      inactiveFlag: z.boolean().optional().describe("Mark as inactive"),
+      marriedFlag: z.boolean().optional().describe("Mark contact as married"),
+      childrenFlag: z.boolean().optional().describe("Mark contact as having children"),
+      portalSecurityLevelId: z.number().optional().describe("Portal security level ID"),
+      disablePortalLoginFlag: z.boolean().optional().describe("Disable portal login for contact"),
+      unsubscribeFlag: z.boolean().optional().describe("Unsubscribe contact from marketing"),
       communicationItems: z.array(communicationItem).optional().describe("Phone/email/fax items"),
-      customFields: z.array(z.object({ id: z.number(), value: z.unknown() })).optional(),
+      customFields: z.array(z.object({ id: z.number(), value: z.unknown() })).optional().describe("Custom field values"),
     },
     async (args) => {
       const body: Record<string, unknown> = { firstName: args.firstName };
@@ -130,7 +130,7 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
     "Update a contact via JSON Patch.",
     {
       id: z.number().describe("Contact ID"),
-      patch: z.array(patchOp),
+      patch: z.array(patchOp).describe("JSON Patch operations to apply"),
     },
     async ({ id, patch }) => {
       const result = await client.patch(`/company/contacts/${id}`, patch);
@@ -143,7 +143,7 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
     "Replace a contact via PUT.",
     {
       id: z.number().describe("Contact ID"),
-      body: z.record(z.string(), z.unknown()).describe("Full contact body"),
+      body: z.record(z.string(), z.unknown()).describe("Full replacement body for PUT"),
     },
     async ({ id, body }) => {
       const result = await client.request("PUT", `/company/contacts/${id}`, body);
@@ -163,16 +163,16 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Contact communications =====
+  // ── Contact communications ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_contact_communications",
     "List communication items (phone, email, fax) for a contact.",
     {
       contactId: z.number().describe("Contact ID"),
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ contactId, conditions, page, pageSize }) => {
       const result = await client.get(`/company/contacts/${contactId}/communications`, {
@@ -204,8 +204,8 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
       contactId: z.number().describe("Contact ID"),
       typeId: z.number().describe("Communication type ID (Direct, Mobile, Email, Fax, etc.)"),
       value: z.string().describe("The phone number / email / fax value"),
-      extension: z.string().optional(),
-      defaultFlag: z.boolean().optional(),
+      extension: z.string().optional().describe("Phone extension"),
+      defaultFlag: z.boolean().optional().describe("Mark as default"),
       communicationType: z.string().optional().describe("'Phone' | 'Email' | 'Fax'"),
     },
     async (args) => {
@@ -227,7 +227,7 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
     {
       contactId: z.number().describe("Contact ID"),
       communicationId: z.number().describe("Communication item ID"),
-      patch: z.array(patchOp),
+      patch: z.array(patchOp).describe("JSON Patch operations to apply"),
     },
     async ({ contactId, communicationId, patch }) => {
       const result = await client.patch(`/company/contacts/${contactId}/communications/${communicationId}`, patch);
@@ -248,16 +248,16 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Contact notes =====
+  // ── Contact notes ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_contact_notes",
     "List notes on a contact.",
     {
       contactId: z.number().describe("Contact ID"),
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ contactId, conditions, page, pageSize }) => {
       const result = await client.get(`/company/contacts/${contactId}/notes`, {
@@ -274,7 +274,7 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
     "Get a single contact note.",
     {
       contactId: z.number().describe("Contact ID"),
-      noteId: z.number().describe("Note ID"),
+      noteId: z.number().describe("Contact note ID"),
     },
     async ({ contactId, noteId }) => {
       const result = await client.get(`/company/contacts/${contactId}/notes/${noteId}`);
@@ -288,8 +288,8 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
     {
       contactId: z.number().describe("Contact ID"),
       text: z.string().describe("Note text"),
-      typeId: z.number().optional(),
-      flagged: z.boolean().optional(),
+      typeId: z.number().optional().describe("Note type ID"),
+      flagged: z.boolean().optional().describe("Flag this note for attention"),
     },
     async (args) => {
       const body: Record<string, unknown> = { text: args.text };
@@ -305,8 +305,8 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
     "Update a contact note via JSON Patch.",
     {
       contactId: z.number().describe("Contact ID"),
-      noteId: z.number().describe("Note ID"),
-      patch: z.array(patchOp),
+      noteId: z.number().describe("Contact note ID"),
+      patch: z.array(patchOp).describe("JSON Patch operations to apply"),
     },
     async ({ contactId, noteId, patch }) => {
       const result = await client.patch(`/company/contacts/${contactId}/notes/${noteId}`, patch);
@@ -319,7 +319,7 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
     "Delete a contact note.",
     {
       contactId: z.number().describe("Contact ID"),
-      noteId: z.number().describe("Note ID"),
+      noteId: z.number().describe("Contact note ID"),
     },
     async ({ contactId, noteId }) => {
       const result = await client.request("DELETE", `/company/contacts/${contactId}/notes/${noteId}`);
@@ -327,16 +327,16 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Contact tracks =====
+  // ── Contact tracks ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_contact_tracks",
     "List marketing tracks assigned to a contact.",
     {
       contactId: z.number().describe("Contact ID"),
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ contactId, conditions, page, pageSize }) => {
       const result = await client.get(`/company/contacts/${contactId}/tracks`, {
@@ -353,7 +353,7 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
     "Assign a marketing track to a contact.",
     {
       contactId: z.number().describe("Contact ID"),
-      trackId: z.number().describe("Track ID"),
+      trackId: z.number().describe("Contact track ID"),
       startDate: z.string().optional().describe("Start date in [YYYY-MM-DDTHH:MM:SSZ] format"),
     },
     async (args) => {
@@ -377,15 +377,15 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ===== Contact catalog: types, departments, relationships, communication types, portal security =====
+  // ── Contact catalog: types, departments, relationships, communication types, portal security ─────────────────────────────────────────────────────────────────
 
   server.tool(
     "cw_list_contact_types",
     "List contact type definitions.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/company/contacts/types", {
@@ -414,7 +414,7 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
     "Create a contact type.",
     {
       description: z.string().describe("Type name"),
-      defaultFlag: z.boolean().optional(),
+      defaultFlag: z.boolean().optional().describe("Mark as default"),
     },
     async (args) => {
       const body: Record<string, unknown> = { description: args.description };
@@ -428,8 +428,8 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
     "cw_update_contact_type",
     "Update a contact type via JSON Patch.",
     {
-      id: z.number(),
-      patch: z.array(patchOp),
+      id: z.number().describe("Contact type ID"),
+      patch: z.array(patchOp).describe("JSON Patch operations to apply"),
     },
     async ({ id, patch }) => {
       const result = await client.patch(`/company/contacts/types/${id}`, patch);
@@ -441,7 +441,7 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
     "cw_delete_contact_type",
     "Delete a contact type.",
     {
-      id: z.number(),
+      id: z.number().describe("Contact type ID"),
     },
     async ({ id }) => {
       const result = await client.request("DELETE", `/company/contacts/types/${id}`);
@@ -453,9 +453,9 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
     "cw_list_contact_departments",
     "List contact departments.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/company/contacts/departments", {
@@ -471,7 +471,7 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
     "cw_get_contact_department",
     "Get a contact department.",
     {
-      id: z.number(),
+      id: z.number().describe("Contact department ID"),
     },
     async ({ id }) => {
       const result = await client.get(`/company/contacts/departments/${id}`);
@@ -483,9 +483,9 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
     "cw_list_contact_relationships",
     "List contact relationships.",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/company/contacts/relationships", {
@@ -501,9 +501,9 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
     "cw_list_communication_types",
     "List communication-type definitions (Direct, Mobile, Email, Fax, etc.).",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/company/communicationTypes", {
@@ -519,9 +519,9 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
     "cw_list_portal_security_levels",
     "List portal security levels (drives self-service permissions for client-portal access).",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/company/portalSecurities", {
@@ -537,9 +537,9 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
     "cw_list_contact_tracks_catalog",
     "List marketing track definitions (the catalog, not the per-contact assignments).",
     {
-      conditions: z.string().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/company/tracks", {
