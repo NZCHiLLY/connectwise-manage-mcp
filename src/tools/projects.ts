@@ -1,19 +1,208 @@
-import { z } from "zod";
+﻿import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
 
+const patchOp = z.object({
+  op: z.enum(["replace", "add", "remove"]),
+  path: z.string(),
+  value: z.unknown().optional(),
+});
+
 export function registerProjectTools(server: McpServer, client: CwManageClient) {
+  // ── Projects ─────────────────────────────────────────────────────────────────
+
   server.tool(
     "cw_search_projects",
-    "Search projects in ConnectWise Manage.",
+    "Search projects. Use 'conditions' for CW query syntax.",
     {
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      childConditions: z.string().optional().describe("Child object conditions query string"),
+      customFieldConditions: z.string().optional().describe("Custom field conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      orderBy: z.string().optional().describe("Field to order by"),
+      fields: z.string().optional().describe("Comma-separated list of fields to return"),
+    },
+    async ({ conditions, childConditions, customFieldConditions, page, pageSize, orderBy, fields }) => {
+      const result = await client.get("/project/projects", {
+        conditions,
+        childConditions,
+        customFieldConditions,
+        page: page ?? 1,
+        pageSize: pageSize ?? 25,
+        orderBy,
+        fields,
+      });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_get_project",
+    "Get a single project by ID.",
+    {
+      id: z.number().describe("Project ID"),
+      fields: z.string().optional().describe("Comma-separated list of fields to return"),
+    },
+    async ({ id, fields }) => {
+      const result = await client.get(`/project/projects/${id}`, { fields });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_count_projects",
+    "Count projects matching a conditions query.",
+    {
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      childConditions: z.string().optional().describe("Child object conditions query string"),
+      customFieldConditions: z.string().optional().describe("Custom field conditions query string"),
+    },
+    async (args) => {
+      const result = await client.get("/project/projects/count", args);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_create_project",
+    "Create a new project. name, companyId, and boardId are normally required.",
+    {
+      name: z.string().describe("Project name (required)"),
+      companyId: z.number().describe("Customer company ID (required)"),
+      boardId: z.number().describe("Service board ID (required)"),
+      statusId: z.number().optional().describe("Project status ID"),
+      typeId: z.number().optional().describe("Project type ID"),
+      managerId: z.number().optional().describe("Project manager member ID"),
+      contactId: z.number().optional().describe("Contact ID"),
+      siteId: z.number().optional().describe("Site ID"),
+      estimatedStart: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      estimatedEnd: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      actualStart: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      actualEnd: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      estimatedHours: z.number().optional().describe("Estimated hours for the project"),
+      estimatedExpenseRevenue: z.number().optional().describe("Estimated expense revenue"),
+      estimatedProductRevenue: z.number().optional().describe("Estimated product revenue"),
+      estimatedTimeRevenue: z.number().optional().describe("Estimated time revenue"),
+      billingMethod: z.string().optional().describe("ActualRates | FixedFee | NotToExceed | OverrideRate"),
+      billingAmount: z.number().optional().describe("Billing amount"),
+      downpayment: z.number().optional().describe("Downpayment amount"),
+      billingAttention: z.string().optional().describe("Billing attention contact name"),
+      restrictDownPaymentFlag: z.boolean().optional().describe("Restrict down payment"),
+      restrictInvoiceFlag: z.boolean().optional().describe("Restrict invoice"),
+      agreementId: z.number().optional().describe("Agreement ID"),
+      opportunityId: z.number().optional().describe("Opportunity ID"),
+      description: z.string().optional().describe("Project description"),
+      customFields: z.array(z.object({ id: z.number(), value: z.unknown() })).optional().describe("Custom field values"),
+    },
+    async (args) => {
+      const body: Record<string, unknown> = {
+        name: args.name,
+        company: { id: args.companyId },
+        board: { id: args.boardId },
+      };
+      if (args.statusId !== undefined) body.status = { id: args.statusId };
+      if (args.typeId !== undefined) body.type = { id: args.typeId };
+      if (args.managerId !== undefined) body.manager = { id: args.managerId };
+      if (args.contactId !== undefined) body.contact = { id: args.contactId };
+      if (args.siteId !== undefined) body.site = { id: args.siteId };
+      if (args.estimatedStart) body.estimatedStart = args.estimatedStart;
+      if (args.estimatedEnd) body.estimatedEnd = args.estimatedEnd;
+      if (args.actualStart) body.actualStart = args.actualStart;
+      if (args.actualEnd) body.actualEnd = args.actualEnd;
+      if (args.estimatedHours !== undefined) body.estimatedHours = args.estimatedHours;
+      if (args.estimatedExpenseRevenue !== undefined) body.estimatedExpenseRevenue = args.estimatedExpenseRevenue;
+      if (args.estimatedProductRevenue !== undefined) body.estimatedProductRevenue = args.estimatedProductRevenue;
+      if (args.estimatedTimeRevenue !== undefined) body.estimatedTimeRevenue = args.estimatedTimeRevenue;
+      if (args.billingMethod) body.billingMethod = args.billingMethod;
+      if (args.billingAmount !== undefined) body.billingAmount = args.billingAmount;
+      if (args.downpayment !== undefined) body.downpayment = args.downpayment;
+      if (args.billingAttention) body.billingAttention = args.billingAttention;
+      if (args.restrictDownPaymentFlag !== undefined) body.restrictDownPaymentFlag = args.restrictDownPaymentFlag;
+      if (args.restrictInvoiceFlag !== undefined) body.restrictInvoiceFlag = args.restrictInvoiceFlag;
+      if (args.agreementId !== undefined) body.agreement = { id: args.agreementId };
+      if (args.opportunityId !== undefined) body.opportunity = { id: args.opportunityId };
+      if (args.description) body.description = args.description;
+      if (args.customFields) body.customFields = args.customFields;
+      const result = await client.post("/project/projects", body);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_update_project",
+    "Update a project via JSON Patch.",
+    {
+      id: z.number().describe("Project ID"),
+      patch: z.array(patchOp).describe("JSON Patch operations to apply"),
+    },
+    async ({ id, patch }) => {
+      const result = await client.patch(`/project/projects/${id}`, patch);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_replace_project",
+    "Replace a project via PUT.",
+    {
+      id: z.number().describe("Project ID"),
+      body: z.record(z.string(), z.unknown()).describe("Full replacement body for PUT"),
+    },
+    async ({ id, body }) => {
+      const result = await client.request("PUT", `/project/projects/${id}`, body);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_delete_project",
+    "Delete a project. Destructive.",
+    {
+      id: z.number().describe("Project ID"),
+    },
+    async ({ id }) => {
+      const result = await client.request("DELETE", `/project/projects/${id}`);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_copy_project_to_template",
+    "Save a project as a project template via /project/projects/{id}/copyToTemplate.",
+    {
+      id: z.number().describe("Source project ID"),
+      name: z.string().describe("Template name"),
+      copyNotesFlag: z.boolean().optional().describe("Copy notes to template"),
+      copyTeamMembersFlag: z.boolean().optional().describe("Copy team members to template"),
+      copyTimeEntriesFlag: z.boolean().optional().describe("Copy time entries to template"),
+      copyDocumentsFlag: z.boolean().optional().describe("Copy documents to template"),
+    },
+    async (args) => {
+      const body: Record<string, unknown> = { name: args.name };
+      if (args.copyNotesFlag !== undefined) body.copyNotesFlag = args.copyNotesFlag;
+      if (args.copyTeamMembersFlag !== undefined) body.copyTeamMembersFlag = args.copyTeamMembersFlag;
+      if (args.copyTimeEntriesFlag !== undefined) body.copyTimeEntriesFlag = args.copyTimeEntriesFlag;
+      if (args.copyDocumentsFlag !== undefined) body.copyDocumentsFlag = args.copyDocumentsFlag;
+      const result = await client.post(`/project/projects/${args.id}/copyToTemplate`, body);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  // ── Project phases ─────────────────────────────────────────────────────────────────
+
+  server.tool(
+    "cw_list_project_phases",
+    "List phases under a project.",
+    {
+      projectId: z.number().describe("Project ID"),
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
       pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
       orderBy: z.string().optional().describe("Field to order by"),
     },
-    async ({ conditions, page, pageSize, orderBy }) => {
-      const result = await client.get("/project/projects", {
+    async ({ projectId, conditions, page, pageSize, orderBy }) => {
+      const result = await client.get(`/project/projects/${projectId}/phases`, {
         conditions,
         page: page ?? 1,
         pageSize: pageSize ?? 25,
@@ -24,34 +213,461 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
   );
 
   server.tool(
-    "cw_get_project",
-    "Get a specific project by ID.",
+    "cw_get_project_phase",
+    "Get a single project phase.",
     {
-      id: z.number().describe("Project ID"),
+      projectId: z.number().describe("Project ID"),
+      phaseId: z.number().describe("Phase ID"),
     },
-    async ({ id }) => {
-      const result = await client.get(`/project/projects/${id}`);
+    async ({ projectId, phaseId }) => {
+      const result = await client.get(`/project/projects/${projectId}/phases/${phaseId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
 
   server.tool(
-    "cw_search_project_tickets",
-    "Search tickets under a project. Use projectId to filter by project, or conditions for CW query syntax.",
+    "cw_create_project_phase",
+    "Create a phase under a project. description is required.",
     {
-      projectId: z.number().optional().describe("Filter by project ID"),
+      projectId: z.number().describe("Project ID"),
+      description: z.string().describe("Phase description / name"),
+      parentPhaseId: z.number().optional().describe("Parent phase ID for sub-phases"),
+      wbsCode: z.string().optional().describe("WBS code for the phase"),
+      billingMethod: z.string().optional().describe("ActualRates | FixedFee | NotToExceed | OverrideRate"),
+      billPhaseSeparatelyFlag: z.boolean().optional().describe("Bill this phase separately"),
+      billProjectAfterClosedFlag: z.boolean().optional().describe("Bill project after phase is closed"),
+      billingAmount: z.number().optional().describe("Billing amount"),
+      budgetHours: z.number().optional().describe("Budget hours for the phase"),
+      scheduledStart: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      scheduledEnd: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      scheduledHours: z.number().optional().describe("Scheduled hours for the phase"),
+      actualStart: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      actualEnd: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      actualHours: z.number().optional().describe("Actual hours logged"),
+      markAsMilestoneFlag: z.boolean().optional().describe("Mark this phase as a milestone"),
+      notes: z.string().optional().describe("Phase notes"),
+    },
+    async (args) => {
+      const body: Record<string, unknown> = { description: args.description };
+      if (args.parentPhaseId !== undefined) body.parentPhase = { id: args.parentPhaseId };
+      if (args.wbsCode) body.wbsCode = args.wbsCode;
+      if (args.billingMethod) body.billingMethod = args.billingMethod;
+      if (args.billPhaseSeparatelyFlag !== undefined) body.billPhaseSeparatelyFlag = args.billPhaseSeparatelyFlag;
+      if (args.billProjectAfterClosedFlag !== undefined) body.billProjectAfterClosedFlag = args.billProjectAfterClosedFlag;
+      if (args.billingAmount !== undefined) body.billingAmount = args.billingAmount;
+      if (args.budgetHours !== undefined) body.budgetHours = args.budgetHours;
+      if (args.scheduledStart) body.scheduledStart = args.scheduledStart;
+      if (args.scheduledEnd) body.scheduledEnd = args.scheduledEnd;
+      if (args.scheduledHours !== undefined) body.scheduledHours = args.scheduledHours;
+      if (args.actualStart) body.actualStart = args.actualStart;
+      if (args.actualEnd) body.actualEnd = args.actualEnd;
+      if (args.actualHours !== undefined) body.actualHours = args.actualHours;
+      if (args.markAsMilestoneFlag !== undefined) body.markAsMilestoneFlag = args.markAsMilestoneFlag;
+      if (args.notes) body.notes = args.notes;
+      const result = await client.post(`/project/projects/${args.projectId}/phases`, body);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_update_project_phase",
+    "Update a project phase via JSON Patch.",
+    {
+      projectId: z.number().describe("Project ID"),
+      phaseId: z.number().describe("Phase ID"),
+      patch: z.array(patchOp).describe("JSON Patch operations to apply"),
+    },
+    async ({ projectId, phaseId, patch }) => {
+      const result = await client.patch(`/project/projects/${projectId}/phases/${phaseId}`, patch);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_delete_project_phase",
+    "Delete a project phase.",
+    {
+      projectId: z.number().describe("Project ID"),
+      phaseId: z.number().describe("Phase ID"),
+    },
+    async ({ projectId, phaseId }) => {
+      const result = await client.request("DELETE", `/project/projects/${projectId}/phases/${phaseId}`);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  // ── Project team members ─────────────────────────────────────────────────────────────────
+
+  server.tool(
+    "cw_list_project_team_members",
+    "List team members on a project.",
+    {
+      projectId: z.number().describe("Project ID"),
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
       pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
-      orderBy: z.string().optional().describe("Field to order by (e.g. 'id desc')"),
+    },
+    async ({ projectId, conditions, page, pageSize }) => {
+      const result = await client.get(`/project/projects/${projectId}/teamMembers`, {
+        conditions,
+        page: page ?? 1,
+        pageSize: pageSize ?? 25,
+      });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_get_project_team_member",
+    "Get a single project team-member row.",
+    {
+      projectId: z.number().describe("Project ID"),
+      teamMemberId: z.number().describe("Team-member row ID"),
+    },
+    async ({ projectId, teamMemberId }) => {
+      const result = await client.get(`/project/projects/${projectId}/teamMembers/${teamMemberId}`);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_create_project_team_member",
+    "Add a member to a project team.",
+    {
+      projectId: z.number().describe("Project ID"),
+      memberId: z.number().describe("Member ID"),
+      projectRoleId: z.number().describe("Project role ID"),
+      hoursScheduled: z.number().optional().describe("Hours scheduled for this team member"),
+      startDate: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      endDate: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      workRoleId: z.number().optional().describe("Work role ID"),
+    },
+    async (args) => {
+      const body: Record<string, unknown> = {
+        member: { id: args.memberId },
+        projectRole: { id: args.projectRoleId },
+      };
+      if (args.hoursScheduled !== undefined) body.hoursScheduled = args.hoursScheduled;
+      if (args.startDate) body.startDate = args.startDate;
+      if (args.endDate) body.endDate = args.endDate;
+      if (args.workRoleId !== undefined) body.workRole = { id: args.workRoleId };
+      const result = await client.post(`/project/projects/${args.projectId}/teamMembers`, body);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_update_project_team_member",
+    "Update a project team-member row via JSON Patch.",
+    {
+      projectId: z.number().describe("Project ID"),
+      teamMemberId: z.number().describe("Team-member row ID"),
+      patch: z.array(patchOp).describe("JSON Patch operations to apply"),
+    },
+    async ({ projectId, teamMemberId, patch }) => {
+      const result = await client.patch(`/project/projects/${projectId}/teamMembers/${teamMemberId}`, patch);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_delete_project_team_member",
+    "Remove a member from a project team.",
+    {
+      projectId: z.number().describe("Project ID"),
+      teamMemberId: z.number().describe("Team-member row ID"),
+    },
+    async ({ projectId, teamMemberId }) => {
+      const result = await client.request("DELETE", `/project/projects/${projectId}/teamMembers/${teamMemberId}`);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  // ── Project notes ─────────────────────────────────────────────────────────────────
+
+  server.tool(
+    "cw_list_project_notes",
+    "List notes on a project.",
+    {
+      projectId: z.number().describe("Project ID"),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+    },
+    async ({ projectId, conditions, page, pageSize }) => {
+      const result = await client.get(`/project/projects/${projectId}/notes`, {
+        conditions,
+        page: page ?? 1,
+        pageSize: pageSize ?? 25,
+      });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_get_project_note",
+    "Get a single project note.",
+    {
+      projectId: z.number().describe("Project ID"),
+      noteId: z.number().describe("Note ID"),
+    },
+    async ({ projectId, noteId }) => {
+      const result = await client.get(`/project/projects/${projectId}/notes/${noteId}`);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_create_project_note",
+    "Add a note to a project.",
+    {
+      projectId: z.number().describe("Project ID"),
+      text: z.string().describe("Note text"),
+      typeId: z.number().optional().describe("Note type ID"),
+      flagged: z.boolean().optional().describe("Flag this note"),
+    },
+    async (args) => {
+      const body: Record<string, unknown> = { text: args.text };
+      if (args.typeId !== undefined) body.type = { id: args.typeId };
+      if (args.flagged !== undefined) body.flagged = args.flagged;
+      const result = await client.post(`/project/projects/${args.projectId}/notes`, body);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_update_project_note",
+    "Update a project note via JSON Patch.",
+    {
+      projectId: z.number().describe("Project ID"),
+      noteId: z.number().describe("Note ID"),
+      patch: z.array(patchOp).describe("JSON Patch operations to apply"),
+    },
+    async ({ projectId, noteId, patch }) => {
+      const result = await client.patch(`/project/projects/${projectId}/notes/${noteId}`, patch);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_delete_project_note",
+    "Delete a project note.",
+    {
+      projectId: z.number().describe("Project ID"),
+      noteId: z.number().describe("Note ID"),
+    },
+    async ({ projectId, noteId }) => {
+      const result = await client.request("DELETE", `/project/projects/${projectId}/notes/${noteId}`);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  // ── Project contacts ─────────────────────────────────────────────────────────────────
+
+  server.tool(
+    "cw_list_project_contacts",
+    "List contacts on a project.",
+    {
+      projectId: z.number().describe("Project ID"),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+    },
+    async ({ projectId, conditions, page, pageSize }) => {
+      const result = await client.get(`/project/projects/${projectId}/contacts`, {
+        conditions,
+        page: page ?? 1,
+        pageSize: pageSize ?? 25,
+      });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_add_project_contact",
+    "Attach a contact to a project.",
+    {
+      projectId: z.number().describe("Project ID"),
+      contactId: z.number().describe("Contact ID"),
+    },
+    async ({ projectId, contactId }) => {
+      const result = await client.post(`/project/projects/${projectId}/contacts`, {
+        id: contactId,
+      });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_remove_project_contact",
+    "Remove a contact from a project.",
+    {
+      projectId: z.number().describe("Project ID"),
+      contactId: z.number().describe("Contact ID"),
+    },
+    async ({ projectId, contactId }) => {
+      const result = await client.request("DELETE", `/project/projects/${projectId}/contacts/${contactId}`);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  // ── Project catalog: statuses, types, roles, security roles ─────────────────────────────────────────
+
+  server.tool(
+    "cw_list_project_statuses",
+    "List project statuses.",
+    {
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+    },
+    async ({ conditions, page, pageSize }) => {
+      const result = await client.get("/project/statuses", {
+        conditions,
+        page: page ?? 1,
+        pageSize: pageSize ?? 25,
+      });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_get_project_status",
+    "Get a single project status.",
+    {
+      id: z.number().describe("Project status ID"),
+    },
+    async ({ id }) => {
+      const result = await client.get(`/project/statuses/${id}`);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_list_project_types",
+    "List project types.",
+    {
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+    },
+    async ({ conditions, page, pageSize }) => {
+      const result = await client.get("/project/projectTypes", {
+        conditions,
+        page: page ?? 1,
+        pageSize: pageSize ?? 25,
+      });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_get_project_type",
+    "Get a single project type.",
+    {
+      id: z.number().describe("Project type ID"),
+    },
+    async ({ id }) => {
+      const result = await client.get(`/project/projectTypes/${id}`);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_list_project_roles",
+    "List project roles (used on team-member rows).",
+    {
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+    },
+    async ({ conditions, page, pageSize }) => {
+      const result = await client.get("/project/projectRoles", {
+        conditions,
+        page: page ?? 1,
+        pageSize: pageSize ?? 25,
+      });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_get_project_role",
+    "Get a project role.",
+    {
+      id: z.number().describe("Project role ID"),
+    },
+    async ({ id }) => {
+      const result = await client.get(`/project/projectRoles/${id}`);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_list_project_security_roles",
+    "List project security roles.",
+    {
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+    },
+    async ({ conditions, page, pageSize }) => {
+      const result = await client.get("/project/securityRoles", {
+        conditions,
+        page: page ?? 1,
+        pageSize: pageSize ?? 25,
+      });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  // ── Project boards (subset of service boards used by projects) ─────────────────────────────────────────
+
+  server.tool(
+    "cw_list_project_boards",
+    "List project boards.",
+    {
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+    },
+    async ({ conditions, page, pageSize }) => {
+      const result = await client.get("/project/boards", {
+        conditions,
+        page: page ?? 1,
+        pageSize: pageSize ?? 25,
+      });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_get_project_board",
+    "Get a project board.",
+    {
+      id: z.number().describe("Project board ID"),
+    },
+    async ({ id }) => {
+      const result = await client.get(`/project/boards/${id}`);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  // ── Project ticket links (search tickets scoped to a project) ─────────────────────────────────────────
+
+  server.tool(
+    "cw_list_project_tickets",
+    "List tickets attached to a project via /project/projects/{id}/tickets.",
+    {
+      projectId: z.number().describe("Project ID"),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      orderBy: z.string().optional().describe("Field to order by"),
     },
     async ({ projectId, conditions, page, pageSize, orderBy }) => {
-      const conditionParts: string[] = [];
-      if (projectId !== undefined) conditionParts.push(`project/id=${projectId}`);
-      if (conditions) conditionParts.push(conditions);
-
-      const result = await client.get("/project/tickets", {
-        conditions: conditionParts.join(" and ") || undefined,
+      const result = await client.get(`/project/projects/${projectId}/tickets`, {
+        conditions,
         page: page ?? 1,
         pageSize: pageSize ?? 25,
         orderBy,
@@ -60,93 +676,34 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  server.tool(
-    "cw_get_project_ticket",
-    "Get a specific project ticket by ID.",
-    {
-      id: z.number().describe("Project ticket ID"),
-    },
-    async ({ id }) => {
-      const result = await client.get(`/project/tickets/${id}`);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    },
-  );
+  // ── Project templates ─────────────────────────────────────────────────────────────────
 
   server.tool(
-    "cw_get_project_ticket_notes",
-    "Get all notes on a project ticket, including notes from any child tickets.",
+    "cw_list_project_templates",
+    "List project templates.",
     {
-      id: z.number().describe("Project ticket ID"),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
       pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
-    async ({ id, page, pageSize }) => {
-      try {
-        const result = await client.get(`/project/tickets/${id}/allNotes`, {
-          page: page ?? 1,
-          pageSize: pageSize ?? 25,
-        });
-        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
-        if (msg.includes("404") || msg.includes("405")) {
-          // allNotes not supported on this CWM version — fall back to /notes
-          const result = await client.get(`/project/tickets/${id}/notes`, {
-            page: page ?? 1,
-            pageSize: pageSize ?? 25,
-          });
-          return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-        }
-        throw err;
-      }
-    },
-  );
-
-  server.tool(
-    "cw_add_project_ticket_note",
-    "Add a note to a project ticket. Use internalAnalysisFlag for internal-only notes or resolutionFlag for resolution notes. Defaults to a plain discussion note.",
-    {
-      id: z.number().describe("Project ticket ID"),
-      text: z.string().describe("Note text content"),
-      detailDescriptionFlag: z.boolean().optional().describe("Add as detail description (default: false)"),
-      internalAnalysisFlag: z.boolean().optional().describe("Mark as internal analysis only (default: false)"),
-      resolutionFlag: z.boolean().optional().describe("Mark as resolution note (default: false)"),
-    },
-    async ({ id, text, detailDescriptionFlag, internalAnalysisFlag, resolutionFlag }) => {
-      const body: Record<string, unknown> = { text };
-      if (detailDescriptionFlag !== undefined) body.detailDescriptionFlag = detailDescriptionFlag;
-      if (internalAnalysisFlag !== undefined) body.internalAnalysisFlag = internalAnalysisFlag;
-      if (resolutionFlag !== undefined) body.resolutionFlag = resolutionFlag;
-
-      const result = await client.post(`/project/tickets/${id}/notes`, body);
+    async ({ conditions, page, pageSize }) => {
+      const result = await client.get("/project/projectTemplates", {
+        conditions,
+        page: page ?? 1,
+        pageSize: pageSize ?? 25,
+      });
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
 
   server.tool(
-    "cw_create_project",
-    "Create a new project.",
+    "cw_get_project_template",
+    "Get a project template.",
     {
-      name: z.string().describe("Project name"),
-      boardId: z.number().describe("Project board ID"),
-      companyId: z.number().describe("Company ID"),
-      estimatedStart: z.string().optional().describe("Estimated start date (ISO 8601)"),
-      estimatedEnd: z.string().optional().describe("Estimated end date (ISO 8601)"),
-      description: z.string().optional().describe("Project description"),
-      managerId: z.number().optional().describe("Project manager member ID"),
+      id: z.number().describe("Project template ID"),
     },
-    async ({ name, boardId, companyId, estimatedStart, estimatedEnd, description, managerId }) => {
-      const body: Record<string, unknown> = {
-        name,
-        board: { id: boardId },
-        company: { id: companyId },
-      };
-      if (estimatedStart) body.estimatedStart = estimatedStart;
-      if (estimatedEnd) body.estimatedEnd = estimatedEnd;
-      if (description) body.description = description;
-      if (managerId) body.manager = { id: managerId };
-
-      const result = await client.post("/project/projects", body);
+    async ({ id }) => {
+      const result = await client.get(`/project/projectTemplates/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
