@@ -1,6 +1,19 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
+import { auditLog } from "../audit/log.js";
+
+const sentinelParams = {
+  user_intent: z.string().min(20).describe(
+    "Plain-English description of what the user asked for. " +
+      "Must be at least 20 characters. Example: " +
+      "'User asked to close ticket 12345 because they have billed it.'",
+  ),
+  user_quote: z.string().min(20).describe(
+    "Verbatim quote of the user's actual words that motivated this action. " +
+      "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+  ),
+};
 
 export function registerExpenseTools(server: McpServer, client: CwManageClient) {
   // ── /expense/entries ─────────────────────────────────────────────────────
@@ -36,7 +49,7 @@ export function registerExpenseTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_create_expense_entry",
-    "Create an expense entry. Required: amount, date, member, type, billableOption. Dates use CW format with square brackets and Z suffix.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create an expense entry. Required: amount, date, member, type, billableOption. Dates use CW format with square brackets and Z suffix.",
     {
       amount: z.number().describe("Expense amount"),
       date: z.string().describe("Expense date in CW format: [YYYY-MM-DDTHH:MM:SSZ]"),
@@ -56,12 +69,15 @@ export function registerExpenseTools(server: McpServer, client: CwManageClient) 
       agreementId: z.number().optional().describe("Agreement ID for billing"),
       locationId: z.number().optional().describe("Location ID"),
       businessUnitId: z.number().optional().describe("Business unit ID"),
+      ...sentinelParams,
     },
     async ({
       amount, date, memberId, typeId, billableOption, companyId,
       chargeToId, chargeToType, classificationId, notes, invoiceAmount,
       taxesId, paymentMethodId, currencyId, mileage, agreementId, locationId, businessUnitId,
+      user_intent, user_quote,
     }) => {
+      await auditLog({ tool: "cw_create_expense_entry", entityType: "expense_entry", entityId: 0, userIntent: user_intent, userQuote: user_quote });
       const body: Record<string, unknown> = {
         amount,
         date,
@@ -90,7 +106,7 @@ export function registerExpenseTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_expense_entry",
-    "Update an expense entry via JSON Patch operations.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an expense entry via JSON Patch operations.",
     {
       id: z.number().describe("Expense entry ID"),
       operations: z.array(z.object({
@@ -98,8 +114,10 @@ export function registerExpenseTools(server: McpServer, client: CwManageClient) 
         path: z.string(),
         value: z.unknown().optional(),
       })).describe("Array of JSON Patch operations"),
+      ...sentinelParams,
     },
-    async ({ id, operations }) => {
+    async ({ id, operations, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_expense_entry", entityType: "expense_entry", entityId: id, userIntent: user_intent, userQuote: user_quote, operations });
       const result = await client.patch(`/expense/entries/${id}`, operations);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -107,11 +125,13 @@ export function registerExpenseTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_expense_entry",
-    "Delete an expense entry by ID.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete an expense entry by ID.",
     {
       id: z.number().describe("Expense entry ID"),
+      ...sentinelParams,
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_expense_entry", entityType: "expense_entry", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/expense/entries/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -150,15 +170,17 @@ export function registerExpenseTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_create_expense_report",
-    "Create an expense report (a submission grouping multiple expense entries).",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create an expense report (a submission grouping multiple expense entries).",
     {
       memberId: z.number().describe("Member ID submitting the report"),
       dateStart: z.string().describe("Report period start in CW format: [YYYY-MM-DDTHH:MM:SSZ]"),
       dateEnd: z.string().describe("Report period end in CW format: [YYYY-MM-DDTHH:MM:SSZ]"),
       statusId: z.number().optional().describe("Status ID"),
       notes: z.string().optional().describe("Free-text notes"),
+      ...sentinelParams,
     },
-    async ({ memberId, dateStart, dateEnd, statusId, notes }) => {
+    async ({ memberId, dateStart, dateEnd, statusId, notes, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_create_expense_report", entityType: "expense_report", entityId: 0, userIntent: user_intent, userQuote: user_quote });
       const body: Record<string, unknown> = {
         member: { id: memberId },
         dateStart,
@@ -174,7 +196,7 @@ export function registerExpenseTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_expense_report",
-    "Update an expense report via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an expense report via JSON Patch.",
     {
       id: z.number().describe("Expense report ID"),
       operations: z.array(z.object({
@@ -182,8 +204,10 @@ export function registerExpenseTools(server: McpServer, client: CwManageClient) 
         path: z.string(),
         value: z.unknown().optional(),
       })).describe("Array of JSON Patch operations"),
+      ...sentinelParams,
     },
-    async ({ id, operations }) => {
+    async ({ id, operations, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_expense_report", entityType: "expense_report", entityId: id, userIntent: user_intent, userQuote: user_quote, operations });
       const result = await client.patch(`/expense/reports/${id}`, operations);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -191,11 +215,13 @@ export function registerExpenseTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_expense_report",
-    "Delete an expense report by ID.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete an expense report by ID.",
     {
       id: z.number().describe("Expense report ID"),
+      ...sentinelParams,
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_expense_report", entityType: "expense_report", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/expense/reports/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -203,11 +229,13 @@ export function registerExpenseTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_approve_expense_report",
-    "Approve an expense report — moves it past the approval gate. POST to /expense/reports/{id}/approve.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Approve an expense report — moves it past the approval gate. POST to /expense/reports/{id}/approve.",
     {
       id: z.number().describe("Expense report ID"),
+      ...sentinelParams,
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_approve_expense_report", entityType: "expense_report", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.post(`/expense/reports/${id}/approve`, {});
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -215,12 +243,14 @@ export function registerExpenseTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_reject_expense_report",
-    "Reject an expense report. POST to /expense/reports/{id}/reject.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Reject an expense report. POST to /expense/reports/{id}/reject.",
     {
       id: z.number().describe("Expense report ID"),
       reason: z.string().optional().describe("Optional rejection reason text"),
+      ...sentinelParams,
     },
-    async ({ id, reason }) => {
+    async ({ id, reason, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_reject_expense_report", entityType: "expense_report", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const body: Record<string, unknown> = {};
       if (reason) body.reason = reason;
       const result = await client.post(`/expense/reports/${id}/reject`, body);
@@ -230,11 +260,13 @@ export function registerExpenseTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_submit_expense_report",
-    "Submit an expense report for approval. POST to /expense/reports/{id}/submit.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Submit an expense report for approval. POST to /expense/reports/{id}/submit.",
     {
       id: z.number().describe("Expense report ID"),
+      ...sentinelParams,
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_submit_expense_report", entityType: "expense_report", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.post(`/expense/reports/${id}/submit`, {});
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -322,7 +354,7 @@ export function registerExpenseTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_create_expense_type",
-    "Create a new expense type.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a new expense type.",
     {
       name: z.string().describe("Expense type name"),
       billableOption: z.string().describe("'Billable', 'DoNotBill', or 'NoCharge'"),
@@ -332,11 +364,14 @@ export function registerExpenseTools(server: McpServer, client: CwManageClient) 
       invoiceMarkupAmount: z.number().optional().describe("Markup amount when invoicing"),
       classificationId: z.number().optional().describe("Default classification ID"),
       paymentTypeId: z.number().optional().describe("Default payment type ID"),
+      ...sentinelParams,
     },
     async ({
       name, billableOption, mileageFlag, amountFlag, advanceAmountFlag,
       invoiceMarkupAmount, classificationId, paymentTypeId,
+      user_intent, user_quote,
     }) => {
+      await auditLog({ tool: "cw_create_expense_type", entityType: "expense_type", entityId: 0, userIntent: user_intent, userQuote: user_quote });
       const body: Record<string, unknown> = { name, billableOption };
       if (mileageFlag !== undefined) body.mileageFlag = mileageFlag;
       if (amountFlag !== undefined) body.amountFlag = amountFlag;
@@ -352,7 +387,7 @@ export function registerExpenseTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_expense_type",
-    "Update an expense type via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an expense type via JSON Patch.",
     {
       id: z.number().describe("Expense type ID"),
       operations: z.array(z.object({
@@ -360,8 +395,10 @@ export function registerExpenseTools(server: McpServer, client: CwManageClient) 
         path: z.string(),
         value: z.unknown().optional(),
       })).describe("Array of JSON Patch operations"),
+      ...sentinelParams,
     },
-    async ({ id, operations }) => {
+    async ({ id, operations, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_expense_type", entityType: "expense_type", entityId: id, userIntent: user_intent, userQuote: user_quote, operations });
       const result = await client.patch(`/expense/types/${id}`, operations);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },

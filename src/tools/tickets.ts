@@ -65,7 +65,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_create_ticket",
-    "Create a new service ticket. summary is required; either company or contact is normally required.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a new service ticket. summary is required; either company or contact is normally required.",
     {
       summary: z.string().describe("Ticket summary / title (required)"),
       boardId: z.number().optional().describe("Service board ID"),
@@ -99,8 +99,18 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       automaticEmailCc: z.string().optional().describe("Email addresses to CC automatically"),
       customFields: z.array(z.object({ id: z.number(), value: z.unknown() })).optional()
         .describe("Custom field values: [{id, value}]"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_ticket", entityType: "ticket", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = { summary: args.summary };
       if (args.boardId !== undefined) body.board = { id: args.boardId };
       if (args.statusId !== undefined) body.status = { id: args.statusId };
@@ -170,12 +180,22 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_replace_ticket",
-    "Replace a service ticket via PUT. Sends the full ticket body — use cw_update_ticket for partial changes.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Replace a service ticket via PUT. Sends the full ticket body — use cw_update_ticket for partial changes.",
     {
       id: z.number().describe("Ticket ID"),
       body: z.record(z.string(), z.unknown()).describe("Full ticket body for PUT replacement"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id, body }) => {
+    async ({ id, body, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_replace_ticket", entityType: "ticket", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("PUT", `/service/tickets/${id}`, body);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -183,11 +203,21 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_delete_ticket",
-    "Delete a service ticket. Destructive — ticket history may be retained but the ticket record is removed.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a service ticket. Destructive — ticket history may be retained but the ticket record is removed.",
     {
       id: z.number().describe("Ticket ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_ticket", entityType: "ticket", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/service/tickets/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -209,7 +239,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_copy_ticket",
-    "Copy an existing ticket to a new ticket. Returns the new ticket.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Copy an existing ticket to a new ticket. Returns the new ticket.",
     {
       id: z.number().describe("Source ticket ID"),
       summary: z.string().optional().describe("Override summary on the copy"),
@@ -220,8 +250,18 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       includeDocumentsFlag: z.boolean().optional().describe("Copy documents to the new ticket"),
       includeProductsFlag: z.boolean().optional().describe("Copy products to the new ticket"),
       includeAllNotesFlag: z.boolean().optional().describe("Copy all notes (including internal) to the new ticket"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
     async (args) => {
+      await auditLog({ tool: "cw_copy_ticket", entityType: "ticket", entityId: args.id, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = {};
       if (args.summary) body.summary = args.summary;
       if (args.boardId !== undefined) body.board = { id: args.boardId };
@@ -238,13 +278,23 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_merge_tickets",
-    "Merge one or more source tickets into a target ticket. Source tickets are closed and their notes/time/products move to the target.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Merge one or more source tickets into a target ticket. Source tickets are closed and their notes/time/products move to the target.",
     {
       targetTicketId: z.number().describe("Surviving ticket ID"),
       mergeTicketIds: z.array(z.number()).describe("IDs of tickets to merge into the target"),
       statusId: z.number().optional().describe("Status to apply to closed source tickets"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ targetTicketId, mergeTicketIds, statusId }) => {
+    async ({ targetTicketId, mergeTicketIds, statusId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_merge_tickets", entityType: "ticket", entityId: targetTicketId, userIntent: user_intent, userQuote: user_quote });
       const body: Record<string, unknown> = {
         mergeTicketIds: mergeTicketIds.map((id) => ({ id })),
       };
@@ -256,13 +306,23 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_convert_ticket_from_survey",
-    "Convert a survey response into a service ticket via /service/tickets/{id}/convertFromSurvey.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Convert a survey response into a service ticket via /service/tickets/{id}/convertFromSurvey.",
     {
       id: z.number().describe("Source survey ticket ID"),
       boardId: z.number().optional().describe("Destination board"),
       statusId: z.number().optional().describe("Destination status"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id, boardId, statusId }) => {
+    async ({ id, boardId, statusId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_convert_ticket_from_survey", entityType: "ticket", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const body: Record<string, unknown> = {};
       if (boardId !== undefined) body.board = { id: boardId };
       if (statusId !== undefined) body.status = { id: statusId };
@@ -339,7 +399,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_add_ticket_note",
-    "Add a note to a service ticket. Use detailDescriptionFlag for a description note, internalAnalysisFlag for an internal-only note, or resolutionFlag for a resolution note. Defaults to a plain discussion note visible to the customer.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Add a note to a service ticket. Use detailDescriptionFlag for a description note, internalAnalysisFlag for an internal-only note, or resolutionFlag for a resolution note. Defaults to a plain discussion note visible to the customer.",
     {
       id: z.number().describe("Ticket ID"),
       text: z.string().describe("Note text content"),
@@ -347,8 +407,18 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       internalAnalysisFlag: z.boolean().optional().describe("Mark as internal analysis only (default: false)"),
       resolutionFlag: z.boolean().optional().describe("Mark as resolution note (default: false)"),
       customerUpdatedFlag: z.boolean().optional().describe("Flag that the customer was updated (default: false)"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id, text, detailDescriptionFlag, internalAnalysisFlag, resolutionFlag, customerUpdatedFlag }) => {
+    async ({ id, text, detailDescriptionFlag, internalAnalysisFlag, resolutionFlag, customerUpdatedFlag, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_add_ticket_note", entityType: "ticket_note", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const body: Record<string, unknown> = { text };
       if (detailDescriptionFlag !== undefined) body.detailDescriptionFlag = detailDescriptionFlag;
       if (internalAnalysisFlag !== undefined) body.internalAnalysisFlag = internalAnalysisFlag;
@@ -361,7 +431,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_create_ticket_note",
-    "Add a note to a ticket. At least one of detailDescriptionFlag / internalAnalysisFlag / resolutionFlag should be true.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Add a note to a ticket. At least one of detailDescriptionFlag / internalAnalysisFlag / resolutionFlag should be true.",
     {
       ticketId: z.number().describe("Ticket ID"),
       text: z.string().describe("Note text"),
@@ -372,8 +442,18 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       processNotifications: z.boolean().optional().describe("Trigger workflow / email notifications"),
       memberId: z.number().optional().describe("Member who authored the note"),
       contactId: z.number().optional().describe("Contact who authored the note (if not a member)"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_ticket_note", entityType: "ticket_note", entityId: args.ticketId, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = { text: args.text };
       if (args.detailDescriptionFlag !== undefined) body.detailDescriptionFlag = args.detailDescriptionFlag;
       if (args.internalAnalysisFlag !== undefined) body.internalAnalysisFlag = args.internalAnalysisFlag;
@@ -389,13 +469,23 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_update_ticket_note",
-    "Update a ticket note via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a ticket note via JSON Patch.",
     {
       ticketId: z.number().describe("Ticket ID"),
       noteId: z.number().describe("Note ID"),
       patch: z.array(patchOp).describe("Array of JSON Patch operations"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ ticketId, noteId, patch }) => {
+    async ({ ticketId, noteId, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_ticket_note", entityType: "ticket_note", entityId: noteId, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/service/tickets/${ticketId}/notes/${noteId}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -403,12 +493,22 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_delete_ticket_note",
-    "Delete a ticket note.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a ticket note.",
     {
       ticketId: z.number().describe("Ticket ID"),
       noteId: z.number().describe("Note ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ ticketId, noteId }) => {
+    async ({ ticketId, noteId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_ticket_note", entityType: "ticket_note", entityId: noteId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/service/tickets/${ticketId}/notes/${noteId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -452,7 +552,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_create_ticket_task",
-    "Create a task / checklist item on a ticket.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a task / checklist item on a ticket.",
     {
       ticketId: z.number().describe("Ticket ID"),
       notes: z.string().describe("Task notes / description"),
@@ -460,8 +560,18 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       priority: z.number().optional().describe("Display priority / ordering"),
       scheduleId: z.number().optional().describe("Linked schedule entry"),
       resolution: z.string().optional().describe("Resolution text for the task"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_ticket_task", entityType: "ticket_task", entityId: args.ticketId, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = { notes: args.notes };
       if (args.closedFlag !== undefined) body.closedFlag = args.closedFlag;
       if (args.priority !== undefined) body.priority = args.priority;
@@ -474,13 +584,23 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_update_ticket_task",
-    "Update a ticket task via JSON Patch (typical use: /closedFlag = true to tick a checkbox).",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a ticket task via JSON Patch (typical use: /closedFlag = true to tick a checkbox).",
     {
       ticketId: z.number().describe("Ticket ID"),
       taskId: z.number().describe("Task ID"),
       patch: z.array(patchOp).describe("Array of JSON Patch operations"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ ticketId, taskId, patch }) => {
+    async ({ ticketId, taskId, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_ticket_task", entityType: "ticket_task", entityId: taskId, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/service/tickets/${ticketId}/tasks/${taskId}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -488,12 +608,22 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_delete_ticket_task",
-    "Delete a ticket task.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a ticket task.",
     {
       ticketId: z.number().describe("Ticket ID"),
       taskId: z.number().describe("Task ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ ticketId, taskId }) => {
+    async ({ ticketId, taskId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_ticket_task", entityType: "ticket_task", entityId: taskId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/service/tickets/${ticketId}/tasks/${taskId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -535,13 +665,23 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_add_ticket_team_member",
-    "Add a member to a ticket's sub-team.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Add a member to a ticket's sub-team.",
     {
       ticketId: z.number().describe("Ticket ID"),
       memberId: z.number().describe("Member ID to add"),
       teamRoleId: z.number().optional().describe("Team role ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ ticketId, memberId, teamRoleId }) => {
+    async ({ ticketId, memberId, teamRoleId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_add_ticket_team_member", entityType: "ticket_team_member", entityId: ticketId, userIntent: user_intent, userQuote: user_quote });
       const body: Record<string, unknown> = { member: { id: memberId } };
       if (teamRoleId !== undefined) body.teamRole = { id: teamRoleId };
       const result = await client.post(`/service/tickets/${ticketId}/allTeamMembers`, body);
@@ -551,13 +691,23 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_update_ticket_team_member",
-    "Update a team-member assignment (e.g. change team role) via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a team-member assignment (e.g. change team role) via JSON Patch.",
     {
       ticketId: z.number().describe("Ticket ID"),
       teamMemberId: z.number().describe("Team-member assignment ID"),
       patch: z.array(patchOp).describe("Array of JSON Patch operations"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ ticketId, teamMemberId, patch }) => {
+    async ({ ticketId, teamMemberId, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_ticket_team_member", entityType: "ticket_team_member", entityId: teamMemberId, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/service/tickets/${ticketId}/allTeamMembers/${teamMemberId}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -565,12 +715,22 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_remove_ticket_team_member",
-    "Remove a member from a ticket's sub-team.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Remove a member from a ticket's sub-team.",
     {
       ticketId: z.number().describe("Ticket ID"),
       teamMemberId: z.number().describe("Team-member assignment ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ ticketId, teamMemberId }) => {
+    async ({ ticketId, teamMemberId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_remove_ticket_team_member", entityType: "ticket_team_member", entityId: teamMemberId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/service/tickets/${ticketId}/allTeamMembers/${teamMemberId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -620,12 +780,22 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_attach_configuration_to_ticket",
-    "Attach a configuration (asset) to a ticket.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Attach a configuration (asset) to a ticket.",
     {
       ticketId: z.number().describe("Ticket ID"),
       configurationId: z.number().describe("Configuration ID to attach"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ ticketId, configurationId }) => {
+    async ({ ticketId, configurationId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_attach_configuration_to_ticket", entityType: "ticket_configuration", entityId: configurationId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.post(`/service/tickets/${ticketId}/configurations`, {
         id: configurationId,
       });
@@ -635,12 +805,22 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_detach_configuration_from_ticket",
-    "Detach a configuration from a ticket.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Detach a configuration from a ticket.",
     {
       ticketId: z.number().describe("Ticket ID"),
       configurationId: z.number().describe("Configuration ID to detach"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ ticketId, configurationId }) => {
+    async ({ ticketId, configurationId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_detach_configuration_from_ticket", entityType: "ticket_configuration", entityId: configurationId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/service/tickets/${ticketId}/configurations/${configurationId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -730,12 +910,22 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_add_ticket_member",
-    "Add a member (resource) to a service ticket by creating a schedule entry assignment.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Add a member (resource) to a service ticket by creating a schedule entry assignment.",
     {
       id: z.number().describe("Ticket ID"),
       memberIdentifier: z.string().describe("Member username/identifier to assign (e.g. 'jsmith')"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id, memberIdentifier }) => {
+    async ({ id, memberIdentifier, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_add_ticket_member", entityType: "ticket_member", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.post(`/schedule/entries`, {
         type: { id: 4 },
         objectId: id,

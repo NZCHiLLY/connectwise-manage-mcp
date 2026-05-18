@@ -3,11 +3,11 @@ import path from "node:path";
 
 export interface AuditEntry {
   tool: string;
-  entityType: "ticket" | "company" | "catalog_item";
-  entityId: number;
+  entityType: string;
+  entityId: number | string;
   userIntent: string;
   userQuote: string;
-  operations: unknown;
+  operations?: unknown;
 }
 
 const AUDIT_PATH = process.env.CW_SENTINEL_AUDIT_PATH

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
+import { auditLog } from "../audit/log.js";
 
 export function registerMarketingTools(server: McpServer, client: CwManageClient) {
   // ── /marketing/campaigns ─────────────────────────────────────────────────
@@ -36,7 +37,7 @@ export function registerMarketingTools(server: McpServer, client: CwManageClient
 
   server.tool(
     "cw_create_campaign",
-    "Create a marketing campaign.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a marketing campaign.",
     {
       name: z.string().describe("Campaign name"),
       typeId: z.number().describe("Campaign type ID"),
@@ -51,11 +52,21 @@ export function registerMarketingTools(server: McpServer, client: CwManageClient
       locationId: z.number().optional().describe("Location ID"),
       businessUnitId: z.number().optional().describe("Business unit ID"),
       notes: z.string().optional().describe("Free-text notes"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
     async ({
       name, typeId, statusId, subTypeId, description, startDate, endDate,
-      ownerId, cost, goal, locationId, businessUnitId, notes,
+      ownerId, cost, goal, locationId, businessUnitId, notes, user_intent, user_quote,
     }) => {
+      await auditLog({ tool: "cw_create_campaign", entityType: "campaign", entityId: 0, userIntent: user_intent, userQuote: user_quote });
       const body: Record<string, unknown> = {
         name,
         type: { id: typeId },
@@ -79,7 +90,7 @@ export function registerMarketingTools(server: McpServer, client: CwManageClient
 
   server.tool(
     "cw_update_campaign",
-    "Update a marketing campaign via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a marketing campaign via JSON Patch.",
     {
       id: z.number().describe("Campaign ID"),
       operations: z.array(z.object({
@@ -87,8 +98,18 @@ export function registerMarketingTools(server: McpServer, client: CwManageClient
         path: z.string(),
         value: z.unknown().optional(),
       })).describe("Array of JSON Patch operations"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id, operations }) => {
+    async ({ id, operations, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_campaign", entityType: "campaign", entityId: id, userIntent: user_intent, userQuote: user_quote, operations });
       const result = await client.patch(`/marketing/campaigns/${id}`, operations);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -96,11 +117,21 @@ export function registerMarketingTools(server: McpServer, client: CwManageClient
 
   server.tool(
     "cw_delete_campaign",
-    "Delete a marketing campaign by ID.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a marketing campaign by ID.",
     {
       id: z.number().describe("Campaign ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_campaign", entityType: "campaign", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/marketing/campaigns/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -175,15 +206,25 @@ export function registerMarketingTools(server: McpServer, client: CwManageClient
 
   server.tool(
     "cw_create_marketing_group",
-    "Create a marketing group.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a marketing group.",
     {
       name: z.string().describe("Group name"),
       groupType: z.string().describe("Group type ('Contact' or 'Company')"),
       description: z.string().optional().describe("Description"),
       locationId: z.number().optional().describe("Location ID"),
       businessUnitId: z.number().optional().describe("Business unit ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ name, groupType, description, locationId, businessUnitId }) => {
+    async ({ name, groupType, description, locationId, businessUnitId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_create_marketing_group", entityType: "marketing_group", entityId: 0, userIntent: user_intent, userQuote: user_quote });
       const body: Record<string, unknown> = { name, groupType };
       if (description) body.description = description;
       if (locationId) body.location = { id: locationId };
@@ -196,7 +237,7 @@ export function registerMarketingTools(server: McpServer, client: CwManageClient
 
   server.tool(
     "cw_update_marketing_group",
-    "Update a marketing group via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a marketing group via JSON Patch.",
     {
       id: z.number().describe("Group ID"),
       operations: z.array(z.object({
@@ -204,8 +245,18 @@ export function registerMarketingTools(server: McpServer, client: CwManageClient
         path: z.string(),
         value: z.unknown().optional(),
       })).describe("Array of JSON Patch operations"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id, operations }) => {
+    async ({ id, operations, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_marketing_group", entityType: "marketing_group", entityId: id, userIntent: user_intent, userQuote: user_quote, operations });
       const result = await client.patch(`/marketing/groups/${id}`, operations);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -213,11 +264,21 @@ export function registerMarketingTools(server: McpServer, client: CwManageClient
 
   server.tool(
     "cw_delete_marketing_group",
-    "Delete a marketing group by ID.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a marketing group by ID.",
     {
       id: z.number().describe("Group ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_marketing_group", entityType: "marketing_group", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/marketing/groups/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },

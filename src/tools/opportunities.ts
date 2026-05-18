@@ -1,12 +1,25 @@
-﻿import { z } from "zod";
+import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
+import { auditLog } from "../audit/log.js";
 
 const patchOp = z.object({
   op: z.enum(["replace", "add", "remove"]),
   path: z.string(),
   value: z.unknown().optional(),
 });
+
+const sentinelParams = {
+  user_intent: z.string().min(20).describe(
+    "Plain-English description of what the user asked for. " +
+      "Must be at least 20 characters. Example: " +
+      "'User asked to close ticket 12345 because they have billed it.'",
+  ),
+  user_quote: z.string().min(20).describe(
+    "Verbatim quote of the user's actual words that motivated this action. " +
+      "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+  ),
+};
 
 export function registerOpportunityTools(server: McpServer, client: CwManageClient) {
   // ── Opportunities ─────────────────────────────────────────────────────────────────
@@ -66,7 +79,7 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_create_opportunity",
-    "Create a new sales opportunity. name, companyId, typeId, primarySalesRepId, stageId are required.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a new sales opportunity. name, companyId, typeId, primarySalesRepId, stageId are required.",
     {
       name: z.string().describe("Opportunity name (required)"),
       companyId: z.number().describe("Customer company ID (required)"),
@@ -94,8 +107,10 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
       secondarySalesRepId: z.number().optional().describe("Secondary sales rep member ID"),
       customerPO: z.string().optional().describe("Customer purchase order number"),
       customFields: z.array(z.object({ id: z.number(), value: z.unknown() })).optional().describe("Custom field values"),
+      ...sentinelParams,
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_opportunity", entityType: "opportunity", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = {
         name: args.name,
         company: { id: args.companyId },
@@ -131,12 +146,14 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_update_opportunity",
-    "Update an opportunity via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an opportunity via JSON Patch.",
     {
       id: z.number().describe("Opportunity ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
+      ...sentinelParams,
     },
-    async ({ id, patch }) => {
+    async ({ id, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_opportunity", entityType: "opportunity", entityId: id, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/sales/opportunities/${id}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -144,12 +161,14 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_replace_opportunity",
-    "Replace an opportunity via PUT.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Replace an opportunity via PUT.",
     {
       id: z.number().describe("Opportunity ID"),
       body: z.record(z.string(), z.unknown()).describe("Full replacement body for PUT"),
+      ...sentinelParams,
     },
-    async ({ id, body }) => {
+    async ({ id, body, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_replace_opportunity", entityType: "opportunity", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("PUT", `/sales/opportunities/${id}`, body);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -157,11 +176,13 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_delete_opportunity",
-    "Delete an opportunity.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete an opportunity.",
     {
       id: z.number().describe("Opportunity ID"),
+      ...sentinelParams,
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_opportunity", entityType: "opportunity", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/sales/opportunities/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -169,12 +190,14 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_copy_opportunity",
-    "Copy an opportunity to a new one via /sales/opportunities/{id}/copy.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Copy an opportunity to a new one via /sales/opportunities/{id}/copy.",
     {
       id: z.number().describe("Source opportunity ID"),
       name: z.string().optional().describe("Override name on the copy"),
+      ...sentinelParams,
     },
-    async ({ id, name }) => {
+    async ({ id, name, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_copy_opportunity", entityType: "opportunity", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const body: Record<string, unknown> = {};
       if (name) body.name = name;
       const result = await client.post(`/sales/opportunities/${id}/copy`, body);
@@ -184,13 +207,15 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_win_opportunity",
-    "Mark an opportunity as won. Provide a closed status with wonFlag=true via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Mark an opportunity as won. Provide a closed status with wonFlag=true via JSON Patch.",
     {
       id: z.number().describe("Opportunity ID"),
       statusId: z.number().describe("Status ID where wonFlag=true and closedFlag=true"),
       closedDate: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      ...sentinelParams,
     },
     async (args) => {
+      await auditLog({ tool: "cw_win_opportunity", entityType: "opportunity", entityId: args.id, userIntent: args.user_intent, userQuote: args.user_quote });
       const patch: Array<Record<string, unknown>> = [
         { op: "replace", path: "/status/id", value: args.statusId },
       ];
@@ -204,13 +229,15 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_lose_opportunity",
-    "Mark an opportunity as lost. Provide a closed status with lostFlag=true via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Mark an opportunity as lost. Provide a closed status with lostFlag=true via JSON Patch.",
     {
       id: z.number().describe("Opportunity ID"),
       statusId: z.number().describe("Status ID where lostFlag=true and closedFlag=true"),
       closedDate: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      ...sentinelParams,
     },
     async (args) => {
+      await auditLog({ tool: "cw_lose_opportunity", entityType: "opportunity", entityId: args.id, userIntent: args.user_intent, userQuote: args.user_quote });
       const patch: Array<Record<string, unknown>> = [
         { op: "replace", path: "/status/id", value: args.statusId },
       ];
@@ -224,12 +251,14 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_reopen_opportunity",
-    "Reopen a closed opportunity. Provide an open status (closedFlag=false) via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Reopen a closed opportunity. Provide an open status (closedFlag=false) via JSON Patch.",
     {
       id: z.number().describe("Opportunity ID"),
       statusId: z.number().describe("Open status ID (closedFlag=false)"),
+      ...sentinelParams,
     },
-    async ({ id, statusId }) => {
+    async ({ id, statusId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_reopen_opportunity", entityType: "opportunity", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const patch: Array<Record<string, unknown>> = [
         { op: "replace", path: "/status/id", value: statusId },
         { op: "remove", path: "/closedDate" },
@@ -241,7 +270,7 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_convert_opportunity_to_project",
-    "Convert an opportunity to a project via /sales/opportunities/{id}/convertToProject.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Convert an opportunity to a project via /sales/opportunities/{id}/convertToProject.",
     {
       id: z.number().describe("Opportunity ID"),
       name: z.string().optional().describe("Project name (defaults to opportunity name)"),
@@ -251,8 +280,10 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
       managerId: z.number().optional().describe("Project manager member ID"),
       estimatedStart: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
       estimatedEnd: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      ...sentinelParams,
     },
     async (args) => {
+      await auditLog({ tool: "cw_convert_opportunity_to_project", entityType: "opportunity", entityId: args.id, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = {
         board: { id: args.boardId },
       };
@@ -269,15 +300,17 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_convert_opportunity_to_ticket",
-    "Convert an opportunity to a ticket via /sales/opportunities/{id}/convertToServiceTicket.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Convert an opportunity to a ticket via /sales/opportunities/{id}/convertToServiceTicket.",
     {
       id: z.number().describe("Opportunity ID"),
       summary: z.string().optional().describe("Ticket summary (defaults to opportunity name)"),
       boardId: z.number().describe("Destination board ID"),
       statusId: z.number().optional().describe("Ticket status ID"),
       priorityId: z.number().optional().describe("Ticket priority ID"),
+      ...sentinelParams,
     },
     async (args) => {
+      await auditLog({ tool: "cw_convert_opportunity_to_ticket", entityType: "opportunity", entityId: args.id, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = {
         board: { id: args.boardId },
       };
@@ -291,11 +324,13 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_recalculate_opportunity_prices",
-    "Recalculate prices on an opportunity (refreshes from current catalog and agreement pricing).",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Recalculate prices on an opportunity (refreshes from current catalog and agreement pricing).",
     {
       id: z.number().describe("Opportunity ID"),
+      ...sentinelParams,
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_recalculate_opportunity_prices", entityType: "opportunity", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.post(`/sales/opportunities/${id}/recalculatePrices`, {});
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -337,7 +372,7 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_create_opportunity_product",
-    "Add a product to an opportunity.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Add a product to an opportunity.",
     {
       opportunityId: z.number().describe("Opportunity ID"),
       catalogItemId: z.number().describe("Catalog item ID"),
@@ -352,8 +387,10 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
       dropshipFlag: z.boolean().optional().describe("Whether to dropship this product"),
       specialOrderFlag: z.boolean().optional().describe("Whether this is a special order"),
       forecastDetailId: z.number().optional().describe("Forecast detail ID"),
+      ...sentinelParams,
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_opportunity_product", entityType: "opportunity_product", entityId: args.opportunityId, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = {
         catalogItem: { id: args.catalogItemId },
         quantity: args.quantity,
@@ -375,13 +412,15 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_update_opportunity_product",
-    "Update an opportunity product via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an opportunity product via JSON Patch.",
     {
       opportunityId: z.number().describe("Opportunity ID"),
       productId: z.number().describe("Opportunity product ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
+      ...sentinelParams,
     },
-    async ({ opportunityId, productId, patch }) => {
+    async ({ opportunityId, productId, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_opportunity_product", entityType: "opportunity_product", entityId: productId, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/sales/opportunities/${opportunityId}/products/${productId}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -389,12 +428,14 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_delete_opportunity_product",
-    "Remove a product from an opportunity.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Remove a product from an opportunity.",
     {
       opportunityId: z.number().describe("Opportunity ID"),
       productId: z.number().describe("Opportunity product ID"),
+      ...sentinelParams,
     },
-    async ({ opportunityId, productId }) => {
+    async ({ opportunityId, productId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_opportunity_product", entityType: "opportunity_product", entityId: productId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/sales/opportunities/${opportunityId}/products/${productId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -423,12 +464,14 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_add_opportunity_contact",
-    "Attach a contact to an opportunity.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Attach a contact to an opportunity.",
     {
       opportunityId: z.number().describe("Opportunity ID"),
       contactId: z.number().describe("Contact ID"),
+      ...sentinelParams,
     },
-    async ({ opportunityId, contactId }) => {
+    async ({ opportunityId, contactId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_add_opportunity_contact", entityType: "opportunity_contact", entityId: opportunityId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.post(`/sales/opportunities/${opportunityId}/contacts`, {
         id: contactId,
       });
@@ -438,12 +481,14 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_remove_opportunity_contact",
-    "Remove a contact from an opportunity.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Remove a contact from an opportunity.",
     {
       opportunityId: z.number().describe("Opportunity ID"),
       contactId: z.number().describe("Contact ID"),
+      ...sentinelParams,
     },
-    async ({ opportunityId, contactId }) => {
+    async ({ opportunityId, contactId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_remove_opportunity_contact", entityType: "opportunity_contact", entityId: contactId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/sales/opportunities/${opportunityId}/contacts/${contactId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -485,14 +530,16 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_create_opportunity_note",
-    "Add a note to an opportunity.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Add a note to an opportunity.",
     {
       opportunityId: z.number().describe("Opportunity ID"),
       text: z.string().describe("Note text"),
       typeId: z.number().optional().describe("Note type ID"),
       flagged: z.boolean().optional().describe("Flag the note as important"),
+      ...sentinelParams,
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_opportunity_note", entityType: "opportunity_note", entityId: args.opportunityId, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = { text: args.text };
       if (args.typeId !== undefined) body.type = { id: args.typeId };
       if (args.flagged !== undefined) body.flagged = args.flagged;
@@ -503,13 +550,15 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_update_opportunity_note",
-    "Update an opportunity note via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an opportunity note via JSON Patch.",
     {
       opportunityId: z.number().describe("Opportunity ID"),
       noteId: z.number().describe("Opportunity note ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
+      ...sentinelParams,
     },
-    async ({ opportunityId, noteId, patch }) => {
+    async ({ opportunityId, noteId, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_opportunity_note", entityType: "opportunity_note", entityId: noteId, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/sales/opportunities/${opportunityId}/notes/${noteId}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -517,12 +566,14 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_delete_opportunity_note",
-    "Delete an opportunity note.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete an opportunity note.",
     {
       opportunityId: z.number().describe("Opportunity ID"),
       noteId: z.number().describe("Opportunity note ID"),
+      ...sentinelParams,
     },
-    async ({ opportunityId, noteId }) => {
+    async ({ opportunityId, noteId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_opportunity_note", entityType: "opportunity_note", entityId: noteId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/sales/opportunities/${opportunityId}/notes/${noteId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -556,66 +607,6 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     },
     async ({ id }) => {
       const result = await client.get(`/sales/opportunities/ratings/${id}`);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    },
-  );
-
-  server.tool(
-    "cw_list_opportunity_types",
-    "List opportunity types.",
-    {
-      conditions: z.string().optional().describe("ConnectWise conditions query string"),
-      page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
-    },
-    async ({ conditions, page, pageSize }) => {
-      const result = await client.get("/sales/opportunities/types", {
-        conditions,
-        page: page ?? 1,
-        pageSize: pageSize ?? 25,
-      });
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    },
-  );
-
-  server.tool(
-    "cw_get_opportunity_type",
-    "Get an opportunity type.",
-    {
-      id: z.number().describe("Opportunity type ID"),
-    },
-    async ({ id }) => {
-      const result = await client.get(`/sales/opportunities/types/${id}`);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    },
-  );
-
-  server.tool(
-    "cw_list_opportunity_statuses",
-    "List opportunity statuses.",
-    {
-      conditions: z.string().optional().describe("ConnectWise conditions query string"),
-      page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
-    },
-    async ({ conditions, page, pageSize }) => {
-      const result = await client.get("/sales/opportunities/statuses", {
-        conditions,
-        page: page ?? 1,
-        pageSize: pageSize ?? 25,
-      });
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    },
-  );
-
-  server.tool(
-    "cw_get_opportunity_status",
-    "Get an opportunity status.",
-    {
-      id: z.number().describe("Opportunity status ID"),
-    },
-    async ({ id }) => {
-      const result = await client.get(`/sales/opportunities/statuses/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
