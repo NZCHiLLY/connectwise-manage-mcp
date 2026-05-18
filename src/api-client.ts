@@ -47,6 +47,7 @@ export class CwManageClient {
   private readonly clientId: string;
   private readonly apiBase: string;
   private readonly rejectUnauthorized: boolean;
+  private tlsAgent?: unknown;
 
   constructor(config: CwManageConfig) {
     // Auth: Basic base64("{companyId}+{publicKey}:{privateKey}")
@@ -59,6 +60,7 @@ export class CwManageClient {
       : `${config.baseUrl}/v4_6_release/apis/3.0`;
     this.rejectUnauthorized =
       process.env.CW_MANAGE_REJECT_UNAUTHORIZED !== "false";
+    // tlsAgent is lazy-initialised on first request (see request() below)
   }
 
   private defaultHeaders(): Record<string, string> {
@@ -91,8 +93,9 @@ export class CwManageClient {
       }
     }
 
-    // For self-hosted instances with self-signed certificates
-    const fetchOptions: RequestInit & { dispatcher?: unknown } = {
+    // Omit<RequestInit, 'dispatcher'> avoids a type conflict between the
+    // undici-types shipped with @types/node and undici's own Agent type.
+    const fetchOptions: Omit<RequestInit, "dispatcher"> & { dispatcher?: unknown } = {
       method,
       headers: this.defaultHeaders(),
     };
@@ -101,39 +104,32 @@ export class CwManageClient {
       fetchOptions.body = JSON.stringify(options.body);
     }
 
-    // Node 18+ supports rejecting unauthorized via the global agent or
-    // environment variable NODE_TLS_REJECT_UNAUTHORIZED. We set it here
-    // so callers don't have to worry about it.
-    const prevTls = process.env.NODE_TLS_REJECT_UNAUTHORIZED;
+    // Scoped TLS agent for self-hosted instances with self-signed certs.
+    // Lazy-initialised to keep the constructor synchronous. Avoids mutating
+    // the global NODE_TLS_REJECT_UNAUTHORIZED env var which would otherwise
+    // disable TLS verification for all concurrent requests (JWKS fetch, OAuth proxy).
     if (!this.rejectUnauthorized) {
-      process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+      if (!this.tlsAgent) {
+        const { Agent } = await import("undici");
+        this.tlsAgent = new Agent({ connect: { rejectUnauthorized: false } });
+      }
+      fetchOptions.dispatcher = this.tlsAgent;
     }
 
-    try {
-      const response = await fetch(url.toString(), fetchOptions);
+    const response = await fetch(url.toString(), fetchOptions as RequestInit);
 
-      if (!response.ok) {
-        const errorBody = await response.text();
-        throw new Error(
-          `ConnectWise API ${method} ${path} returned ${response.status}: ${errorBody}`,
-        );
-      }
-
-      // Some endpoints return 204 No Content
-      if (response.status === 204) {
-        return undefined as T;
-      }
-
-      return (await response.json()) as T;
-    } finally {
-      if (!this.rejectUnauthorized) {
-        if (prevTls === undefined) {
-          delete process.env.NODE_TLS_REJECT_UNAUTHORIZED;
-        } else {
-          process.env.NODE_TLS_REJECT_UNAUTHORIZED = prevTls;
-        }
-      }
+    if (!response.ok) {
+      const errorBody = await response.text();
+      console.error(`[cw-api] ${method} ${path} ${response.status}: ${errorBody}`);
+      throw new Error(`ConnectWise API error ${response.status}`);
     }
+
+    // Some endpoints return 204 No Content
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
+    return (await response.json()) as T;
   }
 
   /** GET helper */
