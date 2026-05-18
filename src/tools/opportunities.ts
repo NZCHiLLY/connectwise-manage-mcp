@@ -612,66 +612,6 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
   );
 
   server.tool(
-    "cw_list_opportunity_types",
-    "List opportunity types.",
-    {
-      conditions: z.string().optional().describe("ConnectWise conditions query string"),
-      page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
-    },
-    async ({ conditions, page, pageSize }) => {
-      const result = await client.get("/sales/opportunities/types", {
-        conditions,
-        page: page ?? 1,
-        pageSize: pageSize ?? 25,
-      });
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    },
-  );
-
-  server.tool(
-    "cw_get_opportunity_type",
-    "Get an opportunity type.",
-    {
-      id: z.number().describe("Opportunity type ID"),
-    },
-    async ({ id }) => {
-      const result = await client.get(`/sales/opportunities/types/${id}`);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    },
-  );
-
-  server.tool(
-    "cw_list_opportunity_statuses",
-    "List opportunity statuses.",
-    {
-      conditions: z.string().optional().describe("ConnectWise conditions query string"),
-      page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
-    },
-    async ({ conditions, page, pageSize }) => {
-      const result = await client.get("/sales/opportunities/statuses", {
-        conditions,
-        page: page ?? 1,
-        pageSize: pageSize ?? 25,
-      });
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    },
-  );
-
-  server.tool(
-    "cw_get_opportunity_status",
-    "Get an opportunity status.",
-    {
-      id: z.number().describe("Opportunity status ID"),
-    },
-    async ({ id }) => {
-      const result = await client.get(`/sales/opportunities/statuses/${id}`);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    },
-  );
-
-  server.tool(
     "cw_list_opportunity_note_types",
     "List opportunity note types.",
     {

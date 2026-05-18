@@ -817,21 +817,4 @@ export function registerCatalogTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  server.tool(
-    "cw_list_manufacturers",
-    "List manufacturers referenced by catalog items.",
-    {
-      conditions: z.string().optional().describe("ConnectWise conditions query string"),
-      page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25)"),
-    },
-    async ({ conditions, page, pageSize }) => {
-      const result = await client.get("/procurement/manufacturers", {
-        conditions,
-        page: page ?? 1,
-        pageSize: pageSize ?? 25,
-      });
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    },
-  );
 }

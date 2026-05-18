@@ -815,55 +815,6 @@ export function registerSystemTools(server: McpServer, client: CwManageClient) {
     },
   );
 
-  // ── /system/surveys ──────────────────────────────────────────────────────
-
-  server.tool(
-    "cw_list_surveys",
-    "List survey templates.",
-    {
-      conditions: z.string().optional().describe("ConnectWise conditions query string"),
-      page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
-      orderBy: z.string().optional().describe("Field to order by"),
-    },
-    async ({ conditions, page, pageSize, orderBy }) => {
-      const result = await client.get("/system/surveys", {
-        conditions, page: page ?? 1, pageSize: pageSize ?? 25, orderBy,
-      });
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    },
-  );
-
-  server.tool(
-    "cw_get_survey",
-    "Get a single survey template by ID.",
-    {
-      id: z.number().describe("Survey ID"),
-    },
-    async ({ id }) => {
-      const result = await client.get(`/system/surveys/${id}`);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    },
-  );
-
-  server.tool(
-    "cw_list_survey_results",
-    "List the responses returned for a given survey.",
-    {
-      surveyId: z.number().describe("Parent survey ID"),
-      conditions: z.string().optional().describe("ConnectWise conditions query string"),
-      page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
-      orderBy: z.string().optional().describe("Field to order by"),
-    },
-    async ({ surveyId, conditions, page, pageSize, orderBy }) => {
-      const result = await client.get(`/system/surveys/${surveyId}/results`, {
-        conditions, page: page ?? 1, pageSize: pageSize ?? 25, orderBy,
-      });
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    },
-  );
-
   // ── /system/documents ────────────────────────────────────────────────────
 
   server.tool(
@@ -980,37 +931,6 @@ export function registerSystemTools(server: McpServer, client: CwManageClient) {
     },
     async ({ id }) => {
       const result = await client.get(`/system/kpis/${id}`);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    },
-  );
-
-  // ── /system/sla ──────────────────────────────────────────────────────────
-
-  server.tool(
-    "cw_list_slas",
-    "List SLA (service-level agreement) definitions.",
-    {
-      conditions: z.string().optional().describe("ConnectWise conditions query string"),
-      page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
-      orderBy: z.string().optional().describe("Field to order by"),
-    },
-    async ({ conditions, page, pageSize, orderBy }) => {
-      const result = await client.get("/system/sla", {
-        conditions, page: page ?? 1, pageSize: pageSize ?? 25, orderBy,
-      });
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    },
-  );
-
-  server.tool(
-    "cw_get_sla",
-    "Get a single SLA definition by ID.",
-    {
-      id: z.number().describe("SLA ID"),
-    },
-    async ({ id }) => {
-      const result = await client.get(`/system/sla/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
