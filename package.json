@@ -20,7 +20,9 @@
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest --passWithNoTests",
     "pack:mcpb": "node scripts/pack-mcpb.js",
-    "validate:mcpb": "mcpb validate manifest.json"
+    "validate:mcpb": "mcpb validate manifest.json",
+    "secretlint": "secretlint \"**/*\"",
+    "prepare": "git config core.hooksPath .githooks || true"
   },
   "repository": {
     "type": "git",
@@ -42,16 +44,19 @@
   "homepage": "https://github.com/wyre-technology/connectwise-manage-mcp#readme",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.25.3",
-    "jose": "^6.2.2"
+    "jose": "6.2.2",
+    "undici": "^8.3.0"
   },
   "devDependencies": {
+    "@secretlint/secretlint-rule-preset-recommend": "^13.0.2",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/github": "^11.0.0",
-    "@types/node": "^20.11.0",
+    "@types/node": "^22.19.19",
     "@typescript-eslint/eslint-plugin": "^6.19.0",
     "@typescript-eslint/parser": "^6.19.0",
     "eslint": "^8.56.0",
+    "secretlint": "^13.0.2",
     "semantic-release": "^25.0.0",
     "typescript": "^5.3.3",
     "vitest": "^1.2.0"

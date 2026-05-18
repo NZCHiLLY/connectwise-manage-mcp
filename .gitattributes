@@ -1,0 +1,4 @@
+# Ensure shell scripts always use LF in the repo
+*.sh text eol=lf
+docker-entrypoint.sh text eol=lf
+.githooks/* text eol=lf

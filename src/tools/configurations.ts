@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
+import { auditLog } from "../audit/log.js";
 
 /**
  * Configurations tools — full coverage of /company/configurations subtree.
@@ -13,6 +14,19 @@ import { CwManageClient } from "../api-client.js";
  * Register this file's `registerConfigurationTools` INSTEAD OF any prior
  * configurations registration in index.ts.
  */
+
+const sentinelParams = {
+  user_intent: z.string().min(20).describe(
+    "Plain-English description of what the user asked for. " +
+      "Must be at least 20 characters. Example: " +
+      "'User asked to close ticket 12345 because they have billed it.'",
+  ),
+  user_quote: z.string().min(20).describe(
+    "Verbatim quote of the user's actual words that motivated this action. " +
+      "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+  ),
+};
+
 export function registerConfigurationTools(server: McpServer, client: CwManageClient) {
   // ── /company/configurations (instances) ──────────────────────────────────
 
@@ -47,7 +61,7 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
 
   server.tool(
     "cw_create_configuration",
-    "Create a configuration (deployed asset). Required: name, typeId, companyId, statusId.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a configuration (deployed asset). Required: name, typeId, companyId, statusId.",
     {
       name: z.string().describe("Configuration name / asset label"),
       typeId: z.number().describe("Configuration type ID"),
@@ -94,8 +108,10 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
       backupProtectedDeviceList: z.string().optional().describe("Backup protected device list"),
       backupYear: z.number().optional().describe("Backup year"),
       backupMonth: z.number().optional().describe("Backup month"),
+      ...sentinelParams,
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_configuration", entityType: "configuration", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = {
         name: args.name,
         type: { id: args.typeId },
@@ -151,7 +167,7 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
 
   server.tool(
     "cw_update_configuration",
-    "Update a configuration via JSON Patch. Common ops: replace status/id, replace warrantyExpirationDate, replace ipAddress.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a configuration via JSON Patch. Common ops: replace status/id, replace warrantyExpirationDate, replace ipAddress.",
     {
       id: z.number().describe("Configuration ID"),
       operations: z.array(z.object({
@@ -159,8 +175,10 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
         path: z.string(),
         value: z.unknown().optional(),
       })).describe("Array of JSON Patch operations"),
+      ...sentinelParams,
     },
-    async ({ id, operations }) => {
+    async ({ id, operations, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_configuration", entityType: "configuration", entityId: id, userIntent: user_intent, userQuote: user_quote, operations });
       const result = await client.patch(`/company/configurations/${id}`, operations);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -168,11 +186,13 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
 
   server.tool(
     "cw_delete_configuration",
-    "Delete a configuration by ID.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a configuration by ID.",
     {
       id: z.number().describe("Configuration ID"),
+      ...sentinelParams,
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_configuration", entityType: "configuration", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/company/configurations/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -180,11 +200,13 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
 
   server.tool(
     "cw_bulk_update_configurations",
-    "Bulk-update multiple configurations in a single call. POST to /company/configurations/bulk.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Bulk-update multiple configurations in a single call. POST to /company/configurations/bulk.",
     {
       configurations: z.array(z.record(z.string(), z.unknown())).describe("Array of full configuration objects to upsert"),
+      ...sentinelParams,
     },
-    async ({ configurations }) => {
+    async ({ configurations, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_bulk_update_configurations", entityType: "configuration", entityId: 0, userIntent: user_intent, userQuote: user_quote });
       const result = await client.post("/company/configurations/bulk", configurations);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -225,7 +247,7 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
 
   server.tool(
     "cw_update_configuration_question",
-    "Update a per-instance question answer via JSON Patch (typically replace 'answer').",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a per-instance question answer via JSON Patch (typically replace 'answer').",
     {
       configurationId: z.number().describe("Parent configuration ID"),
       questionId: z.number().describe("Question answer ID"),
@@ -234,8 +256,10 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
         path: z.string(),
         value: z.unknown().optional(),
       })).describe("Array of JSON Patch operations"),
+      ...sentinelParams,
     },
-    async ({ configurationId, questionId, operations }) => {
+    async ({ configurationId, questionId, operations, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_configuration_question", entityType: "configuration_type_question", entityId: questionId, userIntent: user_intent, userQuote: user_quote, operations });
       const result = await client.patch(`/company/configurations/${configurationId}/questions/${questionId}`, operations);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -274,13 +298,15 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
 
   server.tool(
     "cw_create_configuration_type",
-    "Create a configuration type (template).",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a configuration type (template).",
     {
       name: z.string().describe("Type name"),
       inactiveFlag: z.boolean().optional().describe("Inactive flag"),
       systemFlag: z.boolean().optional().describe("System-managed flag"),
+      ...sentinelParams,
     },
-    async ({ name, inactiveFlag, systemFlag }) => {
+    async ({ name, inactiveFlag, systemFlag, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_create_configuration_type", entityType: "configuration_type", entityId: 0, userIntent: user_intent, userQuote: user_quote });
       const body: Record<string, unknown> = { name };
       if (inactiveFlag !== undefined) body.inactiveFlag = inactiveFlag;
       if (systemFlag !== undefined) body.systemFlag = systemFlag;
@@ -291,7 +317,7 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
 
   server.tool(
     "cw_update_configuration_type",
-    "Update a configuration type via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a configuration type via JSON Patch.",
     {
       id: z.number().describe("Configuration type ID"),
       operations: z.array(z.object({
@@ -299,8 +325,10 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
         path: z.string(),
         value: z.unknown().optional(),
       })).describe("Array of JSON Patch operations"),
+      ...sentinelParams,
     },
-    async ({ id, operations }) => {
+    async ({ id, operations, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_configuration_type", entityType: "configuration_type", entityId: id, userIntent: user_intent, userQuote: user_quote, operations });
       const result = await client.patch(`/company/configurations/types/${id}`, operations);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -308,11 +336,13 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
 
   server.tool(
     "cw_delete_configuration_type",
-    "Delete a configuration type by ID.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a configuration type by ID.",
     {
       id: z.number().describe("Configuration type ID"),
+      ...sentinelParams,
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_configuration_type", entityType: "configuration_type", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/company/configurations/types/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -353,7 +383,7 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
 
   server.tool(
     "cw_create_configuration_type_question",
-    "Add a question template entry to a configuration type.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Add a question template entry to a configuration type.",
     {
       typeId: z.number().describe("Parent configuration type ID"),
       question: z.string().describe("Question text"),
@@ -363,8 +393,10 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
       sequenceNumber: z.number().optional().describe("Display sequence number"),
       numberOfDecimals: z.number().optional().describe("Number of decimal places (for Number/Currency types)"),
       fieldSize: z.number().optional().describe("Field size in characters"),
+      ...sentinelParams,
     },
-    async ({ typeId, question, fieldType, requiredFlag, inactiveFlag, sequenceNumber, numberOfDecimals, fieldSize }) => {
+    async ({ typeId, question, fieldType, requiredFlag, inactiveFlag, sequenceNumber, numberOfDecimals, fieldSize, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_create_configuration_type_question", entityType: "configuration_type_question", entityId: typeId, userIntent: user_intent, userQuote: user_quote });
       const body: Record<string, unknown> = { question, fieldType };
       if (requiredFlag !== undefined) body.requiredFlag = requiredFlag;
       if (inactiveFlag !== undefined) body.inactiveFlag = inactiveFlag;
@@ -378,7 +410,7 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
 
   server.tool(
     "cw_update_configuration_type_question",
-    "Update a question template entry via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a question template entry via JSON Patch.",
     {
       typeId: z.number().describe("Parent configuration type ID"),
       questionId: z.number().describe("Question ID"),
@@ -387,8 +419,10 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
         path: z.string(),
         value: z.unknown().optional(),
       })).describe("Array of JSON Patch operations"),
+      ...sentinelParams,
     },
-    async ({ typeId, questionId, operations }) => {
+    async ({ typeId, questionId, operations, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_configuration_type_question", entityType: "configuration_type_question", entityId: questionId, userIntent: user_intent, userQuote: user_quote, operations });
       const result = await client.patch(`/company/configurations/types/${typeId}/questions/${questionId}`, operations);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -396,12 +430,14 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
 
   server.tool(
     "cw_delete_configuration_type_question",
-    "Remove a question template entry from a configuration type.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Remove a question template entry from a configuration type.",
     {
       typeId: z.number().describe("Parent configuration type ID"),
       questionId: z.number().describe("Question ID"),
+      ...sentinelParams,
     },
-    async ({ typeId, questionId }) => {
+    async ({ typeId, questionId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_configuration_type_question", entityType: "configuration_type_question", entityId: questionId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/company/configurations/types/${typeId}/questions/${questionId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -430,15 +466,17 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
 
   server.tool(
     "cw_create_configuration_type_question_value",
-    "Add an allowed value (picklist option) to a template question.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Add an allowed value (picklist option) to a template question.",
     {
       typeId: z.number().describe("Parent configuration type ID"),
       questionId: z.number().describe("Parent question ID"),
       value: z.string().describe("Value text"),
       defaultFlag: z.boolean().optional().describe("Default-selected flag"),
       inactiveFlag: z.boolean().optional().describe("Inactive flag"),
+      ...sentinelParams,
     },
-    async ({ typeId, questionId, value, defaultFlag, inactiveFlag }) => {
+    async ({ typeId, questionId, value, defaultFlag, inactiveFlag, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_create_configuration_type_question_value", entityType: "configuration_type_question_value", entityId: 0, userIntent: user_intent, userQuote: user_quote });
       const body: Record<string, unknown> = { value };
       if (defaultFlag !== undefined) body.defaultFlag = defaultFlag;
       if (inactiveFlag !== undefined) body.inactiveFlag = inactiveFlag;
@@ -449,7 +487,7 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
 
   server.tool(
     "cw_update_configuration_type_question_value",
-    "Update a picklist value via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a picklist value via JSON Patch.",
     {
       typeId: z.number().describe("Parent configuration type ID"),
       questionId: z.number().describe("Parent question ID"),
@@ -459,8 +497,10 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
         path: z.string(),
         value: z.unknown().optional(),
       })).describe("Array of JSON Patch operations"),
+      ...sentinelParams,
     },
-    async ({ typeId, questionId, valueId, operations }) => {
+    async ({ typeId, questionId, valueId, operations, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_configuration_type_question_value", entityType: "configuration_type_question_value", entityId: valueId, userIntent: user_intent, userQuote: user_quote, operations });
       const result = await client.patch(`/company/configurations/types/${typeId}/questions/${questionId}/values/${valueId}`, operations);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -468,13 +508,15 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
 
   server.tool(
     "cw_delete_configuration_type_question_value",
-    "Remove a picklist value from a template question.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Remove a picklist value from a template question.",
     {
       typeId: z.number().describe("Parent configuration type ID"),
       questionId: z.number().describe("Parent question ID"),
       valueId: z.number().describe("Value ID"),
+      ...sentinelParams,
     },
-    async ({ typeId, questionId, valueId }) => {
+    async ({ typeId, questionId, valueId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_configuration_type_question_value", entityType: "configuration_type_question_value", entityId: valueId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/company/configurations/types/${typeId}/questions/${questionId}/values/${valueId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -513,14 +555,16 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
 
   server.tool(
     "cw_create_configuration_status",
-    "Create a configuration status.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a configuration status.",
     {
       description: z.string().describe("Status description"),
       closedFlag: z.boolean().optional().describe("Closed/retired flag"),
       defaultFlag: z.boolean().optional().describe("Default flag"),
       inactiveFlag: z.boolean().optional().describe("Inactive flag"),
+      ...sentinelParams,
     },
-    async ({ description, closedFlag, defaultFlag, inactiveFlag }) => {
+    async ({ description, closedFlag, defaultFlag, inactiveFlag, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_create_configuration_status", entityType: "configuration_status", entityId: 0, userIntent: user_intent, userQuote: user_quote });
       const body: Record<string, unknown> = { description };
       if (closedFlag !== undefined) body.closedFlag = closedFlag;
       if (defaultFlag !== undefined) body.defaultFlag = defaultFlag;
@@ -532,7 +576,7 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
 
   server.tool(
     "cw_update_configuration_status",
-    "Update a configuration status via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a configuration status via JSON Patch.",
     {
       id: z.number().describe("Configuration status ID"),
       operations: z.array(z.object({
@@ -540,8 +584,10 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
         path: z.string(),
         value: z.unknown().optional(),
       })).describe("Array of JSON Patch operations"),
+      ...sentinelParams,
     },
-    async ({ id, operations }) => {
+    async ({ id, operations, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_configuration_status", entityType: "configuration_status", entityId: id, userIntent: user_intent, userQuote: user_quote, operations });
       const result = await client.patch(`/company/configurations/statuses/${id}`, operations);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -549,11 +595,13 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
 
   server.tool(
     "cw_delete_configuration_status",
-    "Delete a configuration status by ID.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a configuration status by ID.",
     {
       id: z.number().describe("Configuration status ID"),
+      ...sentinelParams,
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_configuration_status", entityType: "configuration_status", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/company/configurations/statuses/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },

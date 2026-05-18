@@ -1,6 +1,19 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
+import { auditLog } from "../audit/log.js";
+
+const sentinelParams = {
+  user_intent: z.string().min(20).describe(
+    "Plain-English description of what the user asked for. " +
+      "Must be at least 20 characters. Example: " +
+      "'User asked to close ticket 12345 because they have billed it.'",
+  ),
+  user_quote: z.string().min(20).describe(
+    "Verbatim quote of the user's actual words that motivated this action. " +
+      "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+  ),
+};
 
 /**
  * Procurement tools — covers /procurement subtree.
@@ -42,7 +55,7 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_create_product",
-    "Create a product instance (places a catalog item onto a ticket / project / agreement / opportunity).",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a product instance (places a catalog item onto a ticket / project / agreement / opportunity).",
     {
       catalogItemId: z.number().describe("Catalog item ID from /procurement/catalog"),
       quantity: z.number().describe("Quantity"),
@@ -67,8 +80,10 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
       internalNotes: z.string().optional().describe("Internal notes"),
       warehouseId: z.number().optional().describe("Source warehouse ID"),
       warehouseBinId: z.number().optional().describe("Source warehouse bin ID"),
+      ...sentinelParams,
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_product", entityType: "product", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = {
         catalogItem: { id: args.catalogItemId },
         quantity: args.quantity,
@@ -102,7 +117,7 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_update_product",
-    "Update a product instance via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a product instance via JSON Patch.",
     {
       id: z.number().describe("Product ID"),
       operations: z.array(z.object({
@@ -110,8 +125,10 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
         path: z.string(),
         value: z.unknown().optional(),
       })).describe("Array of JSON Patch operations"),
+      ...sentinelParams,
     },
-    async ({ id, operations }) => {
+    async ({ id, operations, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_product", entityType: "product", entityId: id, userIntent: user_intent, userQuote: user_quote, operations });
       const result = await client.patch(`/procurement/products/${id}`, operations);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -119,11 +136,13 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_delete_product",
-    "Delete a product instance by ID.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a product instance by ID.",
     {
       id: z.number().describe("Product ID"),
+      ...sentinelParams,
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_product", entityType: "product", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/procurement/products/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -211,7 +230,7 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_create_purchase_order",
-    "Create a purchase order.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a purchase order.",
     {
       vendorCompanyId: z.number().describe("Vendor company ID"),
       statusId: z.number().describe("PO status ID"),
@@ -239,8 +258,10 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
       freightCost: z.number().optional().describe("Freight cost"),
       freightTaxableFlag: z.boolean().optional().describe("Freight taxable"),
       reconciledFlag: z.boolean().optional().describe("Reconciled flag"),
+      ...sentinelParams,
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_purchase_order", entityType: "purchase_order", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = {
         vendorCompany: { id: args.vendorCompanyId },
         status: { id: args.statusId },
@@ -277,7 +298,7 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_update_purchase_order",
-    "Update a purchase order via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a purchase order via JSON Patch.",
     {
       id: z.number().describe("Purchase order ID"),
       operations: z.array(z.object({
@@ -285,8 +306,10 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
         path: z.string(),
         value: z.unknown().optional(),
       })).describe("Array of JSON Patch operations"),
+      ...sentinelParams,
     },
-    async ({ id, operations }) => {
+    async ({ id, operations, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_purchase_order", entityType: "purchase_order", entityId: id, userIntent: user_intent, userQuote: user_quote, operations });
       const result = await client.patch(`/procurement/purchaseorders/${id}`, operations);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -294,11 +317,13 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_delete_purchase_order",
-    "Delete a purchase order by ID.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a purchase order by ID.",
     {
       id: z.number().describe("Purchase order ID"),
+      ...sentinelParams,
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_purchase_order", entityType: "purchase_order", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/procurement/purchaseorders/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -306,11 +331,13 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_submit_purchase_order",
-    "Submit a purchase order — moves status from Draft past the approval gate. POST to /procurement/purchaseorders/{id}/submit.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Submit a purchase order — moves status from Draft past the approval gate. POST to /procurement/purchaseorders/{id}/submit.",
     {
       id: z.number().describe("Purchase order ID"),
+      ...sentinelParams,
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_submit_purchase_order", entityType: "purchase_order", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.post(`/procurement/purchaseorders/${id}/submit`, {});
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -318,11 +345,13 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_unsubmit_purchase_order",
-    "Unsubmit a purchase order — returns it to Draft. POST to /procurement/purchaseorders/{id}/unsubmit.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Unsubmit a purchase order — returns it to Draft. POST to /procurement/purchaseorders/{id}/unsubmit.",
     {
       id: z.number().describe("Purchase order ID"),
+      ...sentinelParams,
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_unsubmit_purchase_order", entityType: "purchase_order", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.post(`/procurement/purchaseorders/${id}/unsubmit`, {});
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -330,7 +359,7 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_email_purchase_order",
-    "Email a purchase order to a recipient. POST to /procurement/purchaseorders/{id}/emailPO.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Email a purchase order to a recipient. POST to /procurement/purchaseorders/{id}/emailPO.",
     {
       id: z.number().describe("Purchase order ID"),
       to: z.string().optional().describe("Comma-separated recipient email addresses"),
@@ -338,8 +367,10 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
       bcc: z.string().optional().describe("Comma-separated BCC email addresses"),
       subject: z.string().optional().describe("Email subject override"),
       body: z.string().optional().describe("Email body override"),
+      ...sentinelParams,
     },
-    async ({ id, to, cc, bcc, subject, body: emailBody }) => {
+    async ({ id, to, cc, bcc, subject, body: emailBody, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_email_purchase_order", entityType: "purchase_order", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const body: Record<string, unknown> = {};
       if (to) body.to = to;
       if (cc) body.cc = cc;
@@ -386,7 +417,7 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_create_purchase_order_line_item",
-    "Add a line item to a purchase order.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Add a line item to a purchase order.",
     {
       poId: z.number().describe("Parent purchase order ID"),
       productId: z.number().describe("Catalog item / product ID"),
@@ -406,8 +437,10 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
       shipToCompanyId: z.number().optional().describe("Ship-to company ID"),
       shipToContactId: z.number().optional().describe("Ship-to contact ID"),
       shipToSiteId: z.number().optional().describe("Ship-to site ID"),
+      ...sentinelParams,
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_purchase_order_line_item", entityType: "purchase_order_line_item", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = {
         product: { id: args.productId },
         quantity: args.quantity,
@@ -435,7 +468,7 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_update_purchase_order_line_item",
-    "Update a purchase order line item via JSON Patch. Common ops: replace receivedQuantity, replace receivedFlag.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a purchase order line item via JSON Patch. Common ops: replace receivedQuantity, replace receivedFlag.",
     {
       poId: z.number().describe("Parent purchase order ID"),
       lineItemId: z.number().describe("Line item ID"),
@@ -444,8 +477,10 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
         path: z.string(),
         value: z.unknown().optional(),
       })).describe("Array of JSON Patch operations"),
+      ...sentinelParams,
     },
-    async ({ poId, lineItemId, operations }) => {
+    async ({ poId, lineItemId, operations, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_purchase_order_line_item", entityType: "purchase_order_line_item", entityId: lineItemId, userIntent: user_intent, userQuote: user_quote, operations });
       const result = await client.patch(`/procurement/purchaseorders/${poId}/lineitems/${lineItemId}`, operations);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -453,12 +488,14 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_delete_purchase_order_line_item",
-    "Delete a purchase order line item.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a purchase order line item.",
     {
       poId: z.number().describe("Parent purchase order ID"),
       lineItemId: z.number().describe("Line item ID"),
+      ...sentinelParams,
     },
-    async ({ poId, lineItemId }) => {
+    async ({ poId, lineItemId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_purchase_order_line_item", entityType: "purchase_order_line_item", entityId: lineItemId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/procurement/purchaseorders/${poId}/lineitems/${lineItemId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -581,15 +618,17 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_create_warehouse",
-    "Create a warehouse.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a warehouse.",
     {
       name: z.string().describe("Warehouse name"),
       defaultFlag: z.boolean().optional().describe("Default warehouse?"),
       inactiveFlag: z.boolean().optional().describe("Inactive?"),
       locationId: z.number().optional().describe("Location ID"),
       businessUnitId: z.number().optional().describe("Business unit ID"),
+      ...sentinelParams,
     },
-    async ({ name, defaultFlag, inactiveFlag, locationId, businessUnitId }) => {
+    async ({ name, defaultFlag, inactiveFlag, locationId, businessUnitId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_create_warehouse", entityType: "warehouse", entityId: 0, userIntent: user_intent, userQuote: user_quote });
       const body: Record<string, unknown> = { name };
       if (defaultFlag !== undefined) body.defaultFlag = defaultFlag;
       if (inactiveFlag !== undefined) body.inactiveFlag = inactiveFlag;
@@ -602,7 +641,7 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_update_warehouse",
-    "Update a warehouse via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a warehouse via JSON Patch.",
     {
       id: z.number().describe("Warehouse ID"),
       operations: z.array(z.object({
@@ -610,8 +649,10 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
         path: z.string(),
         value: z.unknown().optional(),
       })).describe("Array of JSON Patch operations"),
+      ...sentinelParams,
     },
-    async ({ id, operations }) => {
+    async ({ id, operations, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_warehouse", entityType: "warehouse", entityId: id, userIntent: user_intent, userQuote: user_quote, operations });
       const result = await client.patch(`/procurement/warehouses/${id}`, operations);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -619,11 +660,13 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_delete_warehouse",
-    "Delete a warehouse by ID.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a warehouse by ID.",
     {
       id: z.number().describe("Warehouse ID"),
+      ...sentinelParams,
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_warehouse", entityType: "warehouse", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/procurement/warehouses/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -662,14 +705,16 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_create_warehouse_bin",
-    "Create a warehouse bin.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a warehouse bin.",
     {
       name: z.string().describe("Bin name"),
       warehouseId: z.number().describe("Parent warehouse ID"),
       defaultFlag: z.boolean().optional().describe("Default bin?"),
       inactiveFlag: z.boolean().optional().describe("Inactive?"),
+      ...sentinelParams,
     },
-    async ({ name, warehouseId, defaultFlag, inactiveFlag }) => {
+    async ({ name, warehouseId, defaultFlag, inactiveFlag, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_create_warehouse_bin", entityType: "warehouse_bin", entityId: 0, userIntent: user_intent, userQuote: user_quote });
       const body: Record<string, unknown> = {
         name,
         warehouse: { id: warehouseId },
@@ -683,7 +728,7 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_update_warehouse_bin",
-    "Update a warehouse bin via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a warehouse bin via JSON Patch.",
     {
       id: z.number().describe("Warehouse bin ID"),
       operations: z.array(z.object({
@@ -691,8 +736,10 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
         path: z.string(),
         value: z.unknown().optional(),
       })).describe("Array of JSON Patch operations"),
+      ...sentinelParams,
     },
-    async ({ id, operations }) => {
+    async ({ id, operations, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_warehouse_bin", entityType: "warehouse_bin", entityId: id, userIntent: user_intent, userQuote: user_quote, operations });
       const result = await client.patch(`/procurement/warehouseBins/${id}`, operations);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -700,11 +747,13 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_delete_warehouse_bin",
-    "Delete a warehouse bin by ID.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a warehouse bin by ID.",
     {
       id: z.number().describe("Warehouse bin ID"),
+      ...sentinelParams,
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_warehouse_bin", entityType: "warehouse_bin", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/procurement/warehouseBins/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -743,7 +792,7 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_create_pricing_schedule",
-    "Create a pricing schedule.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a pricing schedule.",
     {
       name: z.string().describe("Pricing schedule name"),
       typeId: z.number().optional().describe("Pricing schedule type ID"),
@@ -755,8 +804,10 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
       hidePriceFlag: z.boolean().optional().describe("Hide price flag"),
       locationId: z.number().optional().describe("Location ID"),
       businessUnitId: z.number().optional().describe("Business unit ID"),
+      ...sentinelParams,
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_pricing_schedule", entityType: "pricing_schedule", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = { name: args.name };
       if (args.typeId) body.type = { id: args.typeId };
       if (args.discountFlag !== undefined) body.discountFlag = args.discountFlag;
@@ -774,7 +825,7 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_update_pricing_schedule",
-    "Update a pricing schedule via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a pricing schedule via JSON Patch.",
     {
       id: z.number().describe("Pricing schedule ID"),
       operations: z.array(z.object({
@@ -782,8 +833,10 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
         path: z.string(),
         value: z.unknown().optional(),
       })).describe("Array of JSON Patch operations"),
+      ...sentinelParams,
     },
-    async ({ id, operations }) => {
+    async ({ id, operations, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_pricing_schedule", entityType: "pricing_schedule", entityId: id, userIntent: user_intent, userQuote: user_quote, operations });
       const result = await client.patch(`/procurement/pricingSchedules/${id}`, operations);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -791,11 +844,13 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_delete_pricing_schedule",
-    "Delete a pricing schedule by ID.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a pricing schedule by ID.",
     {
       id: z.number().describe("Pricing schedule ID"),
+      ...sentinelParams,
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_pricing_schedule", entityType: "pricing_schedule", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/procurement/pricingSchedules/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -916,7 +971,7 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_create_adjustment",
-    "Create an inventory adjustment header.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create an inventory adjustment header.",
     {
       typeId: z.number().describe("Adjustment type ID"),
       identifier: z.string().describe("Adjustment identifier"),
@@ -924,8 +979,10 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
       notes: z.string().optional().describe("Notes"),
       locationId: z.number().optional().describe("Location ID"),
       businessUnitId: z.number().optional().describe("Business unit ID"),
+      ...sentinelParams,
     },
-    async ({ typeId, identifier, reason, notes, locationId, businessUnitId }) => {
+    async ({ typeId, identifier, reason, notes, locationId, businessUnitId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_create_adjustment", entityType: "adjustment", entityId: 0, userIntent: user_intent, userQuote: user_quote });
       const body: Record<string, unknown> = {
         type: { id: typeId },
         identifier,
@@ -941,7 +998,7 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_update_adjustment",
-    "Update an adjustment via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an adjustment via JSON Patch.",
     {
       id: z.number().describe("Adjustment ID"),
       operations: z.array(z.object({
@@ -949,8 +1006,10 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
         path: z.string(),
         value: z.unknown().optional(),
       })).describe("Array of JSON Patch operations"),
+      ...sentinelParams,
     },
-    async ({ id, operations }) => {
+    async ({ id, operations, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_adjustment", entityType: "adjustment", entityId: id, userIntent: user_intent, userQuote: user_quote, operations });
       const result = await client.patch(`/procurement/adjustments/${id}`, operations);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -958,11 +1017,13 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_delete_adjustment",
-    "Delete an adjustment by ID.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete an adjustment by ID.",
     {
       id: z.number().describe("Adjustment ID"),
+      ...sentinelParams,
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_adjustment", entityType: "adjustment", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/procurement/adjustments/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -988,7 +1049,7 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_create_adjustment_detail",
-    "Add a detail line (single product movement) to an adjustment.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Add a detail line (single product movement) to an adjustment.",
     {
       adjustmentId: z.number().describe("Parent adjustment ID"),
       catalogItemId: z.number().describe("Catalog item ID"),
@@ -999,8 +1060,10 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
       unitCost: z.number().optional().describe("Unit cost"),
       serialNumber: z.string().optional().describe("Serial number"),
       notes: z.string().optional().describe("Notes"),
+      ...sentinelParams,
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_adjustment_detail", entityType: "adjustment", entityId: args.adjustmentId, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = {
         catalogItem: { id: args.catalogItemId },
         quantityOnHand: args.quantityOnHand,

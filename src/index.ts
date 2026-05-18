@@ -52,6 +52,7 @@ import {
   handleToken,
 } from "./auth/routes.js";
 import { AuthError } from "./auth/types.js";
+import { applyToolProfile }           from "./tools/profiles.js";
 import { registerActivityTools }      from "./tools/activities.js";
 import { registerCatalogTools }       from "./tools/catalog.js";
 import { registerCompanyTools }       from "./tools/companies.js";
@@ -70,6 +71,42 @@ import { registerServiceTools }       from "./tools/service.js";
 import { registerSystemTools }        from "./tools/system.js";
 import { registerTicketTools }        from "./tools/tickets.js";
 import { registerTimeEntryTools }     from "./tools/time-entries.js";
+
+// ---------------------------------------------------------------------------
+// Security headers applied to every HTTP response
+// ---------------------------------------------------------------------------
+
+function applySecurityHeaders(res: ServerResponse): void {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  res.setHeader("X-DNS-Prefetch-Control", "off");
+  res.setHeader("Content-Security-Policy", "default-src 'none'");
+}
+
+// ---------------------------------------------------------------------------
+// Gateway mode: X-CW-URL validation
+// Prevents SSRF by rejecting non-HTTPS URLs and private/loopback addresses.
+// ---------------------------------------------------------------------------
+
+const PRIVATE_ADDR =
+  /^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|127\.|169\.254\.|0\.0\.0\.0$|::1$|fc00:|fd)/i;
+
+function validateCwBaseUrl(rawUrl: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    throw new Error("X-CW-URL is not a valid URL");
+  }
+  if (parsed.protocol !== "https:") {
+    throw new Error("X-CW-URL must use HTTPS");
+  }
+  if (PRIVATE_ADDR.test(parsed.hostname)) {
+    throw new Error("X-CW-URL must not target a private or loopback address");
+  }
+  return parsed.origin;
+}
 
 // ---------------------------------------------------------------------------
 // Server factory
@@ -119,25 +156,26 @@ function createMcpServer(): McpServer {
   }
 
   const client = new CwManageClient(config);
+  const toolServer = applyToolProfile(server, process.env.MCP_TOOL_PROFILE);
 
-  registerActivityTools(server, client);
-  registerCatalogTools(server, client);
-  registerCompanyTools(server, client);
-  registerConfigurationTools(server, client);
-  registerContactTools(server, client);
-  registerExpenseTools(server, client);
-  registerFinanceTools(server, client);
-  registerHealthTools(server, client);
-  registerMarketingTools(server, client);
-  registerOpportunityTools(server, client);
-  registerProcurementTools(server, client);
-  registerProjectTools(server, client);
-  registerSalesTools(server, client);
-  registerScheduleTools(server, client);
-  registerServiceTools(server, client);
-  registerSystemTools(server, client);
-  registerTicketTools(server, client);
-  registerTimeEntryTools(server, client);
+  registerActivityTools(toolServer, client);
+  registerCatalogTools(toolServer, client);
+  registerCompanyTools(toolServer, client);
+  registerConfigurationTools(toolServer, client);
+  registerContactTools(toolServer, client);
+  registerExpenseTools(toolServer, client);
+  registerFinanceTools(toolServer, client);
+  registerHealthTools(toolServer, client);
+  registerMarketingTools(toolServer, client);
+  registerOpportunityTools(toolServer, client);
+  registerProcurementTools(toolServer, client);
+  registerProjectTools(toolServer, client);
+  registerSalesTools(toolServer, client);
+  registerScheduleTools(toolServer, client);
+  registerServiceTools(toolServer, client);
+  registerSystemTools(toolServer, client);
+  registerTicketTools(toolServer, client);
+  registerTimeEntryTools(toolServer, client);
 
   return server;
 }
@@ -184,6 +222,7 @@ async function startHttpTransport(): Promise<void> {
   }
 
   httpServer = createServer((req: IncomingMessage, res: ServerResponse) => {
+    applySecurityHeaders(res);
     const url = new URL(
       req.url || "/",
       `http://${req.headers.host || "localhost"}`,
@@ -244,8 +283,6 @@ async function startHttpTransport(): Promise<void> {
         JSON.stringify({
           status: "ok",
           transport: "http",
-          authMode: isGatewayMode ? "gateway" : "env",
-          oauthEnabled,
           timestamp: new Date().toISOString(),
         }),
       );
@@ -309,7 +346,7 @@ async function startHttpTransport(): Promise<void> {
               identity = await validateToken(token, entraConfig, jwksClient!);
             }
             console.error(
-              `[audit] ${identity.upn} | ${new Date().toISOString()} | POST /mcp`,
+              `[audit] ${identity.oid} | ${new Date().toISOString()} | POST /mcp`,
             );
           } catch (err) {
             if (err instanceof AuthError) {
@@ -361,7 +398,13 @@ async function startHttpTransport(): Promise<void> {
           process.env.CW_MANAGE_PRIVATE_KEY = privateKey;
           process.env.CW_MANAGE_CLIENT_ID = clientId;
           if (baseUrl) {
-            process.env.CW_MANAGE_URL = baseUrl;
+            try {
+              process.env.CW_MANAGE_URL = validateCwBaseUrl(baseUrl);
+            } catch (err) {
+              res.writeHead(400, { "Content-Type": "application/json" });
+              res.end(JSON.stringify({ error: "invalid_url", message: (err as Error).message }));
+              return;
+            }
           }
         }
 

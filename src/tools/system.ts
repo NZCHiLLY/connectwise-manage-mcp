@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
+import { auditLog } from "../audit/log.js";
 
 /**
  * System tools — covers /system subtree.
@@ -40,7 +41,7 @@ export function registerSystemTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_create_member",
-    "Create a member. Required: identifier (≤15 chars), firstName, lastName, licenseClass ('F'=Full, 'A'=API, 'S'=StreamlineIT, 'C'=Subcontractor), title, defaultEmail, primaryEmail.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a member. Required: identifier (≤15 chars), firstName, lastName, licenseClass ('F'=Full, 'A'=API, 'S'=StreamlineIT, 'C'=Subcontractor), title, defaultEmail, primaryEmail.",
     {
       identifier: z.string().describe("Login identifier — max 15 chars"),
       firstName: z.string().describe("First name"),
@@ -73,8 +74,18 @@ export function registerSystemTools(server: McpServer, client: CwManageClient) {
       adminFlag: z.boolean().optional().describe("Admin flag"),
       enableMobileFlag: z.boolean().optional().describe("Mobile access enabled"),
       hireDate: z.string().optional().describe("Hire date in CW format: [YYYY-MM-DDTHH:MM:SSZ]"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_member", entityType: "member", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = {
         identifier: args.identifier,
         firstName: args.firstName,
@@ -116,7 +127,7 @@ export function registerSystemTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_update_member",
-    "Update a member via JSON Patch. To deactivate, replace inactiveFlag=true (DO NOT call DELETE — CW returns 400).",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a member via JSON Patch. To deactivate, replace inactiveFlag=true (DO NOT call DELETE — CW returns 400).",
     {
       id: z.number().describe("Member ID"),
       operations: z.array(z.object({
@@ -124,8 +135,18 @@ export function registerSystemTools(server: McpServer, client: CwManageClient) {
         path: z.string(),
         value: z.unknown().optional(),
       })).describe("Array of JSON Patch operations"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id, operations }) => {
+    async ({ id, operations, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_member", entityType: "member", entityId: id, userIntent: user_intent, userQuote: user_quote, operations });
       const result = await client.patch(`/system/members/${id}`, operations);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -133,11 +154,21 @@ export function registerSystemTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_deactivate_member",
-    "Deactivate a member by PATCHing inactiveFlag=true. Use INSTEAD OF delete — CW does not support DELETE on members.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Deactivate a member by PATCHing inactiveFlag=true. Use INSTEAD OF delete — CW does not support DELETE on members.",
     {
       id: z.number().describe("Member ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_deactivate_member", entityType: "member", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.patch(`/system/members/${id}`, [
         { op: "replace", path: "inactiveFlag", value: true },
       ]);
@@ -177,15 +208,25 @@ export function registerSystemTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_add_member_skill",
-    "Add a skill to a member's profile.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Add a skill to a member's profile.",
     {
       memberId: z.number().describe("Parent member ID"),
       skillId: z.number().describe("Skill ID from /system/skills"),
       level: z.string().optional().describe("Skill level"),
       certifiedFlag: z.boolean().optional().describe("Certified in this skill"),
       yearsOfExperience: z.number().optional().describe("Years of experience"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ memberId, skillId, level, certifiedFlag, yearsOfExperience }) => {
+    async ({ memberId, skillId, level, certifiedFlag, yearsOfExperience, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_add_member_skill", entityType: "member_skill", entityId: memberId, userIntent: user_intent, userQuote: user_quote });
       const body: Record<string, unknown> = { skill: { id: skillId } };
       if (level) body.level = level;
       if (certifiedFlag !== undefined) body.certifiedFlag = certifiedFlag;
@@ -197,12 +238,22 @@ export function registerSystemTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_delete_member_skill",
-    "Remove a skill from a member's profile.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Remove a skill from a member's profile.",
     {
       memberId: z.number().describe("Parent member ID"),
       skillEntryId: z.number().describe("Member-skill entry ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ memberId, skillEntryId }) => {
+    async ({ memberId, skillEntryId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_member_skill", entityType: "member_skill", entityId: skillEntryId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/system/members/${memberId}/skills/${skillEntryId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -277,12 +328,22 @@ export function registerSystemTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_create_api_member_key",
-    "Create a new API key for an API member. Response includes the privateKey ONCE — never returned again. Store it immediately.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a new API key for an API member. Response includes the privateKey ONCE — never returned again. Store it immediately.",
     {
       apiMemberId: z.number().describe("Parent API member ID"),
       description: z.string().describe("Description for the key (purpose / which integration)"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ apiMemberId, description }) => {
+    async ({ apiMemberId, description, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_create_api_member_key", entityType: "api_member_key", entityId: apiMemberId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.post(`/system/apiMembers/${apiMemberId}/apiKeys`, { description });
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -290,12 +351,22 @@ export function registerSystemTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_delete_api_member_key",
-    "Revoke / delete an API key from an API member.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Revoke / delete an API key from an API member.",
     {
       apiMemberId: z.number().describe("Parent API member ID"),
       apiKeyId: z.number().describe("API key ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ apiMemberId, apiKeyId }) => {
+    async ({ apiMemberId, apiKeyId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_api_member_key", entityType: "api_member_key", entityId: apiKeyId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/system/apiMembers/${apiMemberId}/apiKeys/${apiKeyId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -504,7 +575,7 @@ export function registerSystemTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_create_callback",
-    "Register a callback / webhook for a given event type. CW POSTs the event payload to your URL when the event fires.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Register a callback / webhook for a given event type. CW POSTs the event payload to your URL when the event fires.",
     {
       url: z.string().describe("Target URL CW POSTs to"),
       objectId: z.number().describe("Object ID the callback subscribes to (use 1 to subscribe to all)"),
@@ -513,8 +584,18 @@ export function registerSystemTools(server: McpServer, client: CwManageClient) {
       description: z.string().optional().describe("Description"),
       memberId: z.number().optional().describe("Owner member ID"),
       payloadVersion: z.string().optional().describe("Payload version ('1.0', '2.0')"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ url, objectId, type, level, description, memberId, payloadVersion }) => {
+    async ({ url, objectId, type, level, description, memberId, payloadVersion, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_create_callback", entityType: "callback", entityId: 0, userIntent: user_intent, userQuote: user_quote });
       const body: Record<string, unknown> = { url, objectId, type, level };
       if (description) body.description = description;
       if (memberId) body.memberId = memberId;
@@ -526,7 +607,7 @@ export function registerSystemTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_update_callback",
-    "Update a callback registration via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a callback registration via JSON Patch.",
     {
       id: z.number().describe("Callback ID"),
       operations: z.array(z.object({
@@ -534,8 +615,18 @@ export function registerSystemTools(server: McpServer, client: CwManageClient) {
         path: z.string(),
         value: z.unknown().optional(),
       })).describe("Array of JSON Patch operations"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id, operations }) => {
+    async ({ id, operations, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_callback", entityType: "callback", entityId: id, userIntent: user_intent, userQuote: user_quote, operations });
       const result = await client.patch(`/system/callbacks/${id}`, operations);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -543,11 +634,21 @@ export function registerSystemTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_delete_callback",
-    "Delete a callback / webhook registration.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a callback / webhook registration.",
     {
       id: z.number().describe("Callback ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_callback", entityType: "callback", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/system/callbacks/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -714,55 +815,6 @@ export function registerSystemTools(server: McpServer, client: CwManageClient) {
     },
   );
 
-  // ── /system/surveys ──────────────────────────────────────────────────────
-
-  server.tool(
-    "cw_list_surveys",
-    "List survey templates.",
-    {
-      conditions: z.string().optional().describe("ConnectWise conditions query string"),
-      page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
-      orderBy: z.string().optional().describe("Field to order by"),
-    },
-    async ({ conditions, page, pageSize, orderBy }) => {
-      const result = await client.get("/system/surveys", {
-        conditions, page: page ?? 1, pageSize: pageSize ?? 25, orderBy,
-      });
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    },
-  );
-
-  server.tool(
-    "cw_get_survey",
-    "Get a single survey template by ID.",
-    {
-      id: z.number().describe("Survey ID"),
-    },
-    async ({ id }) => {
-      const result = await client.get(`/system/surveys/${id}`);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    },
-  );
-
-  server.tool(
-    "cw_list_survey_results",
-    "List the responses returned for a given survey.",
-    {
-      surveyId: z.number().describe("Parent survey ID"),
-      conditions: z.string().optional().describe("ConnectWise conditions query string"),
-      page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
-      orderBy: z.string().optional().describe("Field to order by"),
-    },
-    async ({ surveyId, conditions, page, pageSize, orderBy }) => {
-      const result = await client.get(`/system/surveys/${surveyId}/results`, {
-        conditions, page: page ?? 1, pageSize: pageSize ?? 25, orderBy,
-      });
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    },
-  );
-
   // ── /system/documents ────────────────────────────────────────────────────
 
   server.tool(
@@ -796,11 +848,21 @@ export function registerSystemTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_delete_document",
-    "Delete a document by ID.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a document by ID.",
     {
       id: z.number().describe("Document ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_document", entityType: "document", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/system/documents/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -869,37 +931,6 @@ export function registerSystemTools(server: McpServer, client: CwManageClient) {
     },
     async ({ id }) => {
       const result = await client.get(`/system/kpis/${id}`);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    },
-  );
-
-  // ── /system/sla ──────────────────────────────────────────────────────────
-
-  server.tool(
-    "cw_list_slas",
-    "List SLA (service-level agreement) definitions.",
-    {
-      conditions: z.string().optional().describe("ConnectWise conditions query string"),
-      page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
-      orderBy: z.string().optional().describe("Field to order by"),
-    },
-    async ({ conditions, page, pageSize, orderBy }) => {
-      const result = await client.get("/system/sla", {
-        conditions, page: page ?? 1, pageSize: pageSize ?? 25, orderBy,
-      });
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    },
-  );
-
-  server.tool(
-    "cw_get_sla",
-    "Get a single SLA definition by ID.",
-    {
-      id: z.number().describe("SLA ID"),
-    },
-    async ({ id }) => {
-      const result = await client.get(`/system/sla/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );

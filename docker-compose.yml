@@ -8,18 +8,31 @@ services:
     container_name: connectwise-manage-mcp-server
     restart: unless-stopped
     ports:
-      - "8080:8080"
-    env_file:
-      - .env
+      - "127.0.0.1:9090:8080"
     environment:
       - CW_MANAGE_COMPANY_ID=${CW_MANAGE_COMPANY_ID}
-      - CW_MANAGE_PUBLIC_KEY=${CW_MANAGE_PUBLIC_KEY}
-      - CW_MANAGE_PRIVATE_KEY=${CW_MANAGE_PRIVATE_KEY}
-      - CW_MANAGE_CLIENT_ID=${CW_MANAGE_CLIENT_ID}
       - MCP_TRANSPORT=http
       - AUTH_MODE=env
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - NODE_ENV=production
+      - MCP_OAUTH_ENABLED=${MCP_OAUTH_ENABLED:-false}
+      - MCP_SERVER_URL=${MCP_SERVER_URL}
+      - AZURE_TENANT_ID=${AZURE_TENANT_ID}
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
+      - AZURE_AUDIENCE=${AZURE_AUDIENCE}
+      - AZURE_REQUIRED_ROLE=${AZURE_REQUIRED_ROLE:-CWM.Access}
+      - MCP_BEARER_TOKEN=${MCP_BEARER_TOKEN}
+      - MCP_TOOL_PROFILE=${MCP_TOOL_PROFILE:-full}
+    secrets:
+      - cw_manage_public_key
+      - cw_manage_private_key
+      - cw_manage_client_id
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - cwm-audit:/home/cwmanage/.cw-mcp-sentinel
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 30s
@@ -27,4 +40,13 @@ services:
       retries: 3
       start_period: 10s
 
-volumes: {}
+secrets:
+  cw_manage_public_key:
+    file: ./secrets/CW_MANAGE_PUBLIC_KEY
+  cw_manage_private_key:
+    file: ./secrets/CW_MANAGE_PRIVATE_KEY
+  cw_manage_client_id:
+    file: ./secrets/CW_MANAGE_CLIENT_ID
+
+volumes:
+  cwm-audit:
