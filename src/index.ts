@@ -52,6 +52,7 @@ import {
   handleToken,
 } from "./auth/routes.js";
 import { AuthError } from "./auth/types.js";
+import { applyToolProfile }           from "./tools/profiles.js";
 import { registerActivityTools }      from "./tools/activities.js";
 import { registerCatalogTools }       from "./tools/catalog.js";
 import { registerCompanyTools }       from "./tools/companies.js";
@@ -119,25 +120,26 @@ function createMcpServer(): McpServer {
   }
 
   const client = new CwManageClient(config);
+  const toolServer = applyToolProfile(server, process.env.MCP_TOOL_PROFILE);
 
-  registerActivityTools(server, client);
-  registerCatalogTools(server, client);
-  registerCompanyTools(server, client);
-  registerConfigurationTools(server, client);
-  registerContactTools(server, client);
-  registerExpenseTools(server, client);
-  registerFinanceTools(server, client);
-  registerHealthTools(server, client);
-  registerMarketingTools(server, client);
-  registerOpportunityTools(server, client);
-  registerProcurementTools(server, client);
-  registerProjectTools(server, client);
-  registerSalesTools(server, client);
-  registerScheduleTools(server, client);
-  registerServiceTools(server, client);
-  registerSystemTools(server, client);
-  registerTicketTools(server, client);
-  registerTimeEntryTools(server, client);
+  registerActivityTools(toolServer, client);
+  registerCatalogTools(toolServer, client);
+  registerCompanyTools(toolServer, client);
+  registerConfigurationTools(toolServer, client);
+  registerContactTools(toolServer, client);
+  registerExpenseTools(toolServer, client);
+  registerFinanceTools(toolServer, client);
+  registerHealthTools(toolServer, client);
+  registerMarketingTools(toolServer, client);
+  registerOpportunityTools(toolServer, client);
+  registerProcurementTools(toolServer, client);
+  registerProjectTools(toolServer, client);
+  registerSalesTools(toolServer, client);
+  registerScheduleTools(toolServer, client);
+  registerServiceTools(toolServer, client);
+  registerSystemTools(toolServer, client);
+  registerTicketTools(toolServer, client);
+  registerTimeEntryTools(toolServer, client);
 
   return server;
 }
