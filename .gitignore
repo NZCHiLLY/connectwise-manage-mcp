@@ -6,3 +6,9 @@ dist/
 coverage/
 connectwise-manage-mcp-security-review.md
 cw-mcp-sentinel-plan.md
+
+# Local tooling and session artifacts
+.claude/
+cowork-output-tmp/
+*.zip
+*.mcpb
