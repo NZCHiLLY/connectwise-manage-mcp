@@ -6,6 +6,7 @@ dist/
 coverage/
 connectwise-manage-mcp-security-review.md
 cw-mcp-sentinel-plan.md
+connectwise-manage-mcp-whitepaper.md
 
 # Local tooling and session artifacts
 .claude/
