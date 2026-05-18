@@ -330,15 +330,19 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_get_ticket_notes",
-    "Get all notes/discussions on a service ticket, including notes from any child tickets.",
+    "Get notes on a service ticket. Tries /allNotes first (includes child-ticket notes); falls back to /notes on older CWM versions. Supports conditions and orderBy for filtering.",
     {
-      id: z.number().describe("Ticket ID"),
+      ticketId: z.number().describe("Ticket ID"),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      orderBy: z.string().optional().describe("Field to order by"),
       page: z.number().optional().describe("Page number (default: 1)"),
       pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
-    async ({ id, page, pageSize }) => {
+    async ({ ticketId, conditions, orderBy, page, pageSize }) => {
       try {
-        const result = await client.get(`/service/tickets/${id}/allNotes`, {
+        const result = await client.get(`/service/tickets/${ticketId}/allNotes`, {
+          conditions,
+          orderBy,
           page: page ?? 1,
           pageSize: pageSize ?? 25,
         });
@@ -347,7 +351,9 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
         const msg = err instanceof Error ? err.message : String(err);
         if (msg.includes("404") || msg.includes("405")) {
           // allNotes not supported on this CWM version — fall back to /notes
-          const result = await client.get(`/service/tickets/${id}/notes`, {
+          const result = await client.get(`/service/tickets/${ticketId}/notes`, {
+            conditions,
+            orderBy,
             page: page ?? 1,
             pageSize: pageSize ?? 25,
           });
@@ -355,27 +361,6 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
         }
         throw err;
       }
-    },
-  );
-
-  server.tool(
-    "cw_list_ticket_notes",
-    "List notes on a ticket.",
-    {
-      ticketId: z.number().describe("Ticket ID"),
-      conditions: z.string().optional().describe("ConnectWise conditions query string"),
-      page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
-      orderBy: z.string().optional().describe("Field to order by"),
-    },
-    async ({ ticketId, conditions, page, pageSize, orderBy }) => {
-      const result = await client.get(`/service/tickets/${ticketId}/notes`, {
-        conditions,
-        page: page ?? 1,
-        pageSize: pageSize ?? 25,
-        orderBy,
-      });
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
 
@@ -396,44 +381,12 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     "cw_add_ticket_note",
     "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Add a note to a service ticket. Use detailDescriptionFlag for a description note, internalAnalysisFlag for an internal-only note, or resolutionFlag for a resolution note. Defaults to a plain discussion note visible to the customer.",
     {
-      id: z.number().describe("Ticket ID"),
+      ticketId: z.number().describe("Ticket ID"),
       text: z.string().describe("Note text content"),
       detailDescriptionFlag: z.boolean().optional().describe("Add as detail description (default: false)"),
       internalAnalysisFlag: z.boolean().optional().describe("Mark as internal analysis only (default: false)"),
       resolutionFlag: z.boolean().optional().describe("Mark as resolution note (default: false)"),
       customerUpdatedFlag: z.boolean().optional().describe("Flag that the customer was updated (default: false)"),
-      user_intent: z.string().min(20).describe(
-        "Plain-English description of what the user asked for. " +
-          "Must be at least 20 characters. Example: " +
-          "'User asked to close ticket 12345 because they have billed it.'",
-      ),
-      user_quote: z.string().min(20).describe(
-        "Verbatim quote of the user's actual words that motivated this action. " +
-          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
-      ),
-    },
-    async ({ id, text, detailDescriptionFlag, internalAnalysisFlag, resolutionFlag, customerUpdatedFlag, user_intent, user_quote }) => {
-      await auditLog({ tool: "cw_add_ticket_note", entityType: "ticket_note", entityId: id, userIntent: user_intent, userQuote: user_quote });
-      const body: Record<string, unknown> = { text };
-      if (detailDescriptionFlag !== undefined) body.detailDescriptionFlag = detailDescriptionFlag;
-      if (internalAnalysisFlag !== undefined) body.internalAnalysisFlag = internalAnalysisFlag;
-      if (resolutionFlag !== undefined) body.resolutionFlag = resolutionFlag;
-      if (customerUpdatedFlag !== undefined) body.customerUpdatedFlag = customerUpdatedFlag;
-      const result = await client.post(`/service/tickets/${id}/notes`, body);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    },
-  );
-
-  server.tool(
-    "cw_create_ticket_note",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Add a note to a ticket. At least one of detailDescriptionFlag / internalAnalysisFlag / resolutionFlag should be true.",
-    {
-      ticketId: z.number().describe("Ticket ID"),
-      text: z.string().describe("Note text"),
-      detailDescriptionFlag: z.boolean().optional().describe("Show on Description tab"),
-      internalAnalysisFlag: z.boolean().optional().describe("Internal-only analysis note"),
-      resolutionFlag: z.boolean().optional().describe("Show on Resolution tab"),
-      customerUpdatedFlag: z.boolean().optional().describe("Flag that the customer was updated"),
       processNotifications: z.boolean().optional().describe("Trigger workflow / email notifications"),
       memberId: z.number().optional().describe("Member who authored the note"),
       contactId: z.number().optional().describe("Contact who authored the note (if not a member)"),
@@ -447,17 +400,17 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
     },
-    async (args) => {
-      await auditLog({ tool: "cw_create_ticket_note", entityType: "ticket_note", entityId: args.ticketId, userIntent: args.user_intent, userQuote: args.user_quote });
-      const body: Record<string, unknown> = { text: args.text };
-      if (args.detailDescriptionFlag !== undefined) body.detailDescriptionFlag = args.detailDescriptionFlag;
-      if (args.internalAnalysisFlag !== undefined) body.internalAnalysisFlag = args.internalAnalysisFlag;
-      if (args.resolutionFlag !== undefined) body.resolutionFlag = args.resolutionFlag;
-      if (args.customerUpdatedFlag !== undefined) body.customerUpdatedFlag = args.customerUpdatedFlag;
-      if (args.processNotifications !== undefined) body.processNotifications = args.processNotifications;
-      if (args.memberId !== undefined) body.member = { id: args.memberId };
-      if (args.contactId !== undefined) body.contact = { id: args.contactId };
-      const result = await client.post(`/service/tickets/${args.ticketId}/notes`, body);
+    async ({ ticketId, text, detailDescriptionFlag, internalAnalysisFlag, resolutionFlag, customerUpdatedFlag, processNotifications, memberId, contactId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_add_ticket_note", entityType: "ticket_note", entityId: ticketId, userIntent: user_intent, userQuote: user_quote });
+      const body: Record<string, unknown> = { text };
+      if (detailDescriptionFlag !== undefined) body.detailDescriptionFlag = detailDescriptionFlag;
+      if (internalAnalysisFlag !== undefined) body.internalAnalysisFlag = internalAnalysisFlag;
+      if (resolutionFlag !== undefined) body.resolutionFlag = resolutionFlag;
+      if (customerUpdatedFlag !== undefined) body.customerUpdatedFlag = customerUpdatedFlag;
+      if (processNotifications !== undefined) body.processNotifications = processNotifications;
+      if (memberId !== undefined) body.member = { id: memberId };
+      if (contactId !== undefined) body.contact = { id: contactId };
+      const result = await client.post(`/service/tickets/${ticketId}/notes`, body);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
