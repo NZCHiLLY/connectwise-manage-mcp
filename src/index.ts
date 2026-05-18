@@ -73,6 +73,18 @@ import { registerTicketTools }        from "./tools/tickets.js";
 import { registerTimeEntryTools }     from "./tools/time-entries.js";
 
 // ---------------------------------------------------------------------------
+// Security headers applied to every HTTP response
+// ---------------------------------------------------------------------------
+
+function applySecurityHeaders(res: ServerResponse): void {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  res.setHeader("X-DNS-Prefetch-Control", "off");
+  res.setHeader("Content-Security-Policy", "default-src 'none'");
+}
+
+// ---------------------------------------------------------------------------
 // Gateway mode: X-CW-URL validation
 // Prevents SSRF by rejecting non-HTTPS URLs and private/loopback addresses.
 // ---------------------------------------------------------------------------
@@ -210,6 +222,7 @@ async function startHttpTransport(): Promise<void> {
   }
 
   httpServer = createServer((req: IncomingMessage, res: ServerResponse) => {
+    applySecurityHeaders(res);
     const url = new URL(
       req.url || "/",
       `http://${req.headers.host || "localhost"}`,
@@ -270,8 +283,6 @@ async function startHttpTransport(): Promise<void> {
         JSON.stringify({
           status: "ok",
           transport: "http",
-          authMode: isGatewayMode ? "gateway" : "env",
-          oauthEnabled,
           timestamp: new Date().toISOString(),
         }),
       );
@@ -335,7 +346,7 @@ async function startHttpTransport(): Promise<void> {
               identity = await validateToken(token, entraConfig, jwksClient!);
             }
             console.error(
-              `[audit] ${identity.upn} | ${new Date().toISOString()} | POST /mcp`,
+              `[audit] ${identity.oid} | ${new Date().toISOString()} | POST /mcp`,
             );
           } catch (err) {
             if (err instanceof AuthError) {
