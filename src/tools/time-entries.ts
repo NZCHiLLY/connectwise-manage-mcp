@@ -1,6 +1,7 @@
 ﻿import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
+import { auditLog } from "../audit/log.js";
 
 const patchOp = z.object({
   op: z.enum(["replace", "add", "remove"]),
@@ -66,7 +67,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
 
   server.tool(
     "cw_create_time_entry",
-    "Create a time entry. chargeToId and chargeToType are required. " +
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a time entry. chargeToId and chargeToType are required. " +
       "chargeToType is one of: ServiceTicket | ProjectTicket | ChargeCode | Activity.",
     {
       chargeToId: z.number().describe("Ticket / project ticket / charge code / activity ID"),
@@ -105,8 +106,18 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
       ticketBoardId: z.number().optional().describe("Service board ID for the associated ticket"),
       ticketStatusId: z.number().optional().describe("Status ID to set on the ticket after saving"),
       customFields: z.array(z.object({ id: z.number(), value: z.unknown() })).optional(),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_time_entry", entityType: "time_entry", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = {
         chargeToId: args.chargeToId,
         chargeToType: args.chargeToType,
@@ -152,12 +163,22 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
 
   server.tool(
     "cw_update_time_entry",
-    "Update a time entry via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a time entry via JSON Patch.",
     {
       id: z.number().describe("Time entry ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id, patch }) => {
+    async ({ id, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_time_entry", entityType: "time_entry", entityId: id, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/time/entries/${id}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -165,12 +186,22 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
 
   server.tool(
     "cw_replace_time_entry",
-    "Replace a time entry via PUT.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Replace a time entry via PUT.",
     {
       id: z.number().describe("Time entry ID"),
       body: z.record(z.string(), z.unknown()).describe("Full replacement body for PUT"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id, body }) => {
+    async ({ id, body, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_replace_time_entry", entityType: "time_entry", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("PUT", `/time/entries/${id}`, body);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -178,11 +209,21 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
 
   server.tool(
     "cw_delete_time_entry",
-    "Delete a time entry. Destructive.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a time entry.",
     {
       id: z.number().describe("Time entry ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_time_entry", entityType: "time_entry", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/time/entries/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -190,14 +231,24 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
 
   server.tool(
     "cw_copy_time_entry",
-    "Copy a time entry to a new entry via /time/entries/{id}/copy.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Copy a time entry to a new entry via /time/entries/{id}/copy.",
     {
       id: z.number().describe("Time entry ID to copy"),
       memberId: z.number().optional().describe("Override member on the copy"),
       timeStart: z.string().optional().describe("Start date/time (ISO 8601, e.g. 2024-01-15T09:00:00Z)"),
       timeEnd: z.string().optional().describe("End date/time (ISO 8601, e.g. 2024-01-15T17:00:00Z)"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
     async (args) => {
+      await auditLog({ tool: "cw_copy_time_entry", entityType: "time_entry", entityId: args.id, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = {};
       if (args.memberId !== undefined) body.member = { id: args.memberId };
       if (args.timeStart) body.timeStart = args.timeStart;
@@ -243,7 +294,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
 
   server.tool(
     "cw_create_charge_code",
-    "Create a charge code.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a charge code.",
     {
       name: z.string().describe("Charge code name"),
       typeId: z.number().optional().describe("Charge code type ID"),
@@ -258,8 +309,18 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
       locationId: z.number().optional().describe("Location ID"),
       departmentId: z.number().optional().describe("Department ID"),
       payrollItemId: z.number().optional().describe("Payroll item ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_charge_code", entityType: "charge_code", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = { name: args.name };
       if (args.typeId !== undefined) body.type = { id: args.typeId };
       if (args.classification) body.classification = { classification: args.classification };
@@ -280,12 +341,22 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
 
   server.tool(
     "cw_update_charge_code",
-    "Update a charge code via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a charge code via JSON Patch.",
     {
       id: z.number().describe("Charge code ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id, patch }) => {
+    async ({ id, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_charge_code", entityType: "charge_code", entityId: id, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/time/chargeCodes/${id}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -293,11 +364,21 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
 
   server.tool(
     "cw_delete_charge_code",
-    "Delete a charge code.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a charge code.",
     {
       id: z.number().describe("Charge code ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_charge_code", entityType: "charge_code", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/time/chargeCodes/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -360,7 +441,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
 
   server.tool(
     "cw_create_work_type",
-    "Create a work type.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a work type.",
     {
       name: z.string().describe("Work type name"),
       billTime: z.string().optional().describe("Billable | DoNotBill | NoCharge | NoDefault"),
@@ -373,8 +454,18 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
       addToHoursWorkedFlag: z.boolean().optional().describe("Add hours to member worked hours"),
       inactiveFlag: z.boolean().optional().describe("Mark the work type inactive"),
       integrationXref: z.string().optional().describe("External system cross-reference identifier"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_work_type", entityType: "work_type", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = { name: args.name };
       if (args.billTime) body.billTime = args.billTime;
       if (args.rateType) body.rateType = args.rateType;
@@ -393,12 +484,22 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
 
   server.tool(
     "cw_update_work_type",
-    "Update a work type via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a work type via JSON Patch.",
     {
       id: z.number().describe("Work type ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id, patch }) => {
+    async ({ id, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_work_type", entityType: "work_type", entityId: id, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/time/workTypes/${id}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -406,11 +507,21 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
 
   server.tool(
     "cw_delete_work_type",
-    "Delete a work type.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a work type.",
     {
       id: z.number().describe("Work type ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_work_type", entityType: "work_type", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/time/workTypes/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -452,7 +563,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
 
   server.tool(
     "cw_create_work_role",
-    "Create a work role.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a work role.",
     {
       name: z.string().describe("Work role name"),
       hourlyRate: z.number().optional().describe("Hourly rate override"),
@@ -460,8 +571,18 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
       addAllWorkTypesFlag: z.boolean().optional().describe("Add all work types to this role"),
       removeAllWorkTypesFlag: z.boolean().optional().describe("Remove all work types from this role"),
       integrationXref: z.string().optional().describe("Integration cross-reference identifier"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_work_role", entityType: "work_role", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = { name: args.name };
       if (args.hourlyRate !== undefined) body.hourlyRate = args.hourlyRate;
       if (args.inactiveFlag !== undefined) body.inactiveFlag = args.inactiveFlag;
@@ -475,12 +596,22 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
 
   server.tool(
     "cw_update_work_role",
-    "Update a work role via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a work role via JSON Patch.",
     {
       id: z.number().describe("Work role ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id, patch }) => {
+    async ({ id, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_work_role", entityType: "work_role", entityId: id, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/time/workRoles/${id}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -488,11 +619,21 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
 
   server.tool(
     "cw_delete_work_role",
-    "Delete a work role.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a work role.",
     {
       id: z.number().describe("Work role ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_work_role", entityType: "work_role", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/time/workRoles/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -534,11 +675,21 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
 
   server.tool(
     "cw_submit_time_sheet",
-    "Submit a time sheet for approval via /time/sheets/{id}/submit.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Submit a time sheet for approval via /time/sheets/{id}/submit.",
     {
       id: z.number().describe("Time sheet ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_submit_time_sheet", entityType: "time_sheet", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.post(`/time/sheets/${id}/submit`, {});
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -546,11 +697,21 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
 
   server.tool(
     "cw_approve_time_sheet",
-    "Approve a time sheet via /time/sheets/{id}/approve.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Approve a time sheet via /time/sheets/{id}/approve.",
     {
       id: z.number().describe("Time sheet ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_approve_time_sheet", entityType: "time_sheet", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.post(`/time/sheets/${id}/approve`, {});
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -558,12 +719,22 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
 
   server.tool(
     "cw_reject_time_sheet",
-    "Reject a time sheet via /time/sheets/{id}/reject.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Reject a time sheet via /time/sheets/{id}/reject.",
     {
       id: z.number().describe("Time sheet ID"),
       reason: z.string().optional().describe("Rejection reason"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id, reason }) => {
+    async ({ id, reason, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_reject_time_sheet", entityType: "time_sheet", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const body: Record<string, unknown> = {};
       if (reason) body.reason = reason;
       const result = await client.post(`/time/sheets/${id}/reject`, body);
@@ -573,11 +744,21 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
 
   server.tool(
     "cw_reverse_time_sheet",
-    "Reverse an approved time sheet via /time/sheets/{id}/reverse.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Reverse an approved time sheet via /time/sheets/{id}/reverse.",
     {
       id: z.number().describe("Time sheet ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_reverse_time_sheet", entityType: "time_sheet", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.post(`/time/sheets/${id}/reverse`, {});
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
