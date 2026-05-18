@@ -527,40 +527,6 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     },
   );
 
-  // ── Work roles ─────────────────────────────────────────────────────────────────
-
-  server.tool(
-    "cw_list_work_roles",
-    "List work roles (e.g. Engineer, Project Manager).",
-    {
-      conditions: z.string().optional().describe("ConnectWise conditions query string"),
-      page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
-      orderBy: z.string().optional().describe("Field to order by"),
-    },
-    async ({ conditions, page, pageSize, orderBy }) => {
-      const result = await client.get("/time/workRoles", {
-        conditions,
-        page: page ?? 1,
-        pageSize: pageSize ?? 25,
-        orderBy,
-      });
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    },
-  );
-
-  server.tool(
-    "cw_get_work_role",
-    "Get a work role.",
-    {
-      id: z.number().describe("Work role ID"),
-    },
-    async ({ id }) => {
-      const result = await client.get(`/time/workRoles/${id}`);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    },
-  );
-
   server.tool(
     "cw_create_work_role",
     "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a work role.",
