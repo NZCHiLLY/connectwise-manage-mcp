@@ -8,7 +8,7 @@ services:
     container_name: connectwise-manage-mcp-server
     restart: unless-stopped
     ports:
-      - "9090:8080"
+      - "127.0.0.1:9090:8080"
     env_file:
       - .env
     environment:
@@ -28,6 +28,12 @@ services:
       - AZURE_REQUIRED_ROLE=${AZURE_REQUIRED_ROLE:-CWM.Access}
       - MCP_BEARER_TOKEN=${MCP_BEARER_TOKEN}
       - MCP_TOOL_PROFILE=${MCP_TOOL_PROFILE:-full}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - cwm-audit:/home/cwmanage/.cw-mcp-sentinel
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 30s
@@ -35,4 +41,5 @@ services:
       retries: 3
       start_period: 10s
 
-volumes: {}
+volumes:
+  cwm-audit:
