@@ -2,6 +2,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
 import { auditLog } from "../audit/log.js";
+import { sentinelParams } from "./shared.js";
 
 /**
  * Configurations tools — full coverage of /company/configurations subtree.
@@ -14,18 +15,6 @@ import { auditLog } from "../audit/log.js";
  * Register this file's `registerConfigurationTools` INSTEAD OF any prior
  * configurations registration in index.ts.
  */
-
-const sentinelParams = {
-  user_intent: z.string().min(20).describe(
-    "Plain-English description of what the user asked for. " +
-      "Must be at least 20 characters. Example: " +
-      "'User asked to close ticket 12345 because they have billed it.'",
-  ),
-  user_quote: z.string().min(20).describe(
-    "Verbatim quote of the user's actual words that motivated this action. " +
-      "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
-  ),
-};
 
 export function registerConfigurationTools(server: McpServer, client: CwManageClient) {
   // ── /company/configurations (instances) ──────────────────────────────────
