@@ -167,7 +167,7 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
     },
     async ({ id, body, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_replace_activity", entityType: "activity", entityId: id, userIntent: user_intent, userQuote: user_quote });
-      const result = await client.request("PUT", `/sales/activities/${id}`, body);
+      const result = await client.put(`/sales/activities/${id}`, body);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );

@@ -194,7 +194,7 @@ export function registerSalesTools(server: McpServer, client: CwManageClient) {
     },
     async ({ id, body, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_replace_quote", entityType: "quote", entityId: id, userIntent: user_intent, userQuote: user_quote });
-      const result = await client.request("PUT", `/sales/quotes/${id}`, body);
+      const result = await client.put(`/sales/quotes/${id}`, body);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );

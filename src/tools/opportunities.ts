@@ -169,7 +169,7 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     },
     async ({ id, body, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_replace_opportunity", entityType: "opportunity", entityId: id, userIntent: user_intent, userQuote: user_quote });
-      const result = await client.request("PUT", `/sales/opportunities/${id}`, body);
+      const result = await client.put(`/sales/opportunities/${id}`, body);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );

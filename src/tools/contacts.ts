@@ -165,7 +165,7 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
     },
     async ({ id, body, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_replace_contact", entityType: "contact", entityId: id, userIntent: user_intent, userQuote: user_quote });
-      const result = await client.request("PUT", `/company/contacts/${id}`, body);
+      const result = await client.put(`/company/contacts/${id}`, body);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );

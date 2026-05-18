@@ -197,7 +197,7 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
     },
     async ({ id, body, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_replace_company", entityType: "company", entityId: id, userIntent: user_intent, userQuote: user_quote });
-      const result = await client.request("PUT", `/company/companies/${id}`, body);
+      const result = await client.put(`/company/companies/${id}`, body);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );

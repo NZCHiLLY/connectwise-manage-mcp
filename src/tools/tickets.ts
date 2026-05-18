@@ -196,7 +196,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     },
     async ({ id, body, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_replace_ticket", entityType: "ticket", entityId: id, userIntent: user_intent, userQuote: user_quote });
-      const result = await client.request("PUT", `/service/tickets/${id}`, body);
+      const result = await client.put(`/service/tickets/${id}`, body);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );

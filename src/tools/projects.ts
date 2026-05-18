@@ -169,7 +169,7 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
     },
     async ({ id, body, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_replace_project", entityType: "project", entityId: id, userIntent: user_intent, userQuote: user_quote });
-      const result = await client.request("PUT", `/project/projects/${id}`, body);
+      const result = await client.put(`/project/projects/${id}`, body);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
