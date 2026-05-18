@@ -1,6 +1,19 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
+import { auditLog } from "../audit/log.js";
+
+const sentinelParams = {
+  user_intent: z.string().min(20).describe(
+    "Plain-English description of what the user asked for. " +
+      "Must be at least 20 characters. Example: " +
+      "'User asked to close ticket 12345 because they have billed it.'",
+  ),
+  user_quote: z.string().min(20).describe(
+    "Verbatim quote of the user's actual words that motivated this action. " +
+      "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+  ),
+};
 
 const patchOp = z.object({
   op: z.enum(["replace", "add", "remove"]),
@@ -45,15 +58,17 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_create_service_board",
-    "Create a service board. name and locationId are required.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a service board. name and locationId are required.",
     {
       name: z.string().describe("Board name"),
       locationId: z.number().describe("Location ID the board belongs to"),
       businessUnitId: z.number().optional().describe("Business unit ID"),
       departmentId: z.number().optional().describe("Department ID"),
       inactiveFlag: z.boolean().optional().describe("Mark the board inactive"),
+      ...sentinelParams,
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_service_board", entityType: "service_board", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = {
         name: args.name,
         location: { id: args.locationId },
@@ -68,12 +83,14 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_service_board",
-    "Update a service board via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a service board via JSON Patch.",
     {
       id: z.number().describe("Service board ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
+      ...sentinelParams,
     },
-    async ({ id, patch }) => {
+    async ({ id, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_service_board", entityType: "service_board", entityId: id, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/service/boards/${id}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -81,11 +98,13 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_service_board",
-    "Delete a service board.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a service board.",
     {
       id: z.number().describe("Service board ID"),
+      ...sentinelParams,
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_service_board", entityType: "service_board", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/service/boards/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -127,7 +146,7 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_create_board_status",
-    "Create a board status.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a board status.",
     {
       boardId: z.number().describe("Service board ID"),
       name: z.string().describe("Status name"),
@@ -142,8 +161,10 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
       customerPortalDescription: z.string().optional().describe("Customer-facing portal description"),
       roundRobinFlag: z.boolean().optional().describe("Assign tickets via round-robin when entering this status"),
       ownedByMemberFlag: z.boolean().optional().describe("Restrict edits to the owning member"),
+      ...sentinelParams,
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_board_status", entityType: "board_status", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = { name: args.name };
       if (args.sortOrder !== undefined) body.sortOrder = args.sortOrder;
       if (args.defaultFlag !== undefined) body.defaultFlag = args.defaultFlag;
@@ -163,13 +184,15 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_board_status",
-    "Update a board status via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a board status via JSON Patch.",
     {
       boardId: z.number().describe("Service board ID"),
       statusId: z.number().describe("Board status ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
+      ...sentinelParams,
     },
-    async ({ boardId, statusId, patch }) => {
+    async ({ boardId, statusId, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_board_status", entityType: "board_status", entityId: statusId, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/service/boards/${boardId}/statuses/${statusId}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -177,12 +200,14 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_board_status",
-    "Delete a board status.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a board status.",
     {
       boardId: z.number().describe("Service board ID"),
       statusId: z.number().describe("Board status ID"),
+      ...sentinelParams,
     },
-    async ({ boardId, statusId }) => {
+    async ({ boardId, statusId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_board_status", entityType: "board_status", entityId: statusId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/service/boards/${boardId}/statuses/${statusId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -224,7 +249,7 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_create_board_type",
-    "Create a board type.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a board type.",
     {
       boardId: z.number().describe("Service board ID"),
       name: z.string().describe("Type name"),
@@ -232,8 +257,10 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
       inactiveFlag: z.boolean().optional().describe("Mark the type inactive"),
       requestForChangeFlag: z.boolean().optional().describe("Flag the type as a request-for-change"),
       categoryId: z.number().optional().describe("Service category ID"),
+      ...sentinelParams,
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_board_type", entityType: "board_type", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = { name: args.name };
       if (args.defaultFlag !== undefined) body.defaultFlag = args.defaultFlag;
       if (args.inactiveFlag !== undefined) body.inactiveFlag = args.inactiveFlag;
@@ -246,13 +273,15 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_board_type",
-    "Update a board type via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a board type via JSON Patch.",
     {
       boardId: z.number().describe("Service board ID"),
       typeId: z.number().describe("Board type ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
+      ...sentinelParams,
     },
-    async ({ boardId, typeId, patch }) => {
+    async ({ boardId, typeId, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_board_type", entityType: "board_type", entityId: typeId, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/service/boards/${boardId}/types/${typeId}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -260,12 +289,14 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_board_type",
-    "Delete a board type.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a board type.",
     {
       boardId: z.number().describe("Service board ID"),
       typeId: z.number().describe("Board type ID"),
+      ...sentinelParams,
     },
-    async ({ boardId, typeId }) => {
+    async ({ boardId, typeId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_board_type", entityType: "board_type", entityId: typeId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/service/boards/${boardId}/types/${typeId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -307,15 +338,17 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_create_board_subtype",
-    "Create a board subtype.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a board subtype.",
     {
       boardId: z.number().describe("Service board ID"),
       name: z.string().describe("Subtype name"),
       inactiveFlag: z.boolean().optional().describe("Mark the subtype inactive"),
       addAllTypesFlag: z.boolean().optional().describe("Associate the subtype with all existing types"),
       removeAllTypesFlag: z.boolean().optional().describe("Detach the subtype from all existing types"),
+      ...sentinelParams,
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_board_subtype", entityType: "board_subtype", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = { name: args.name };
       if (args.inactiveFlag !== undefined) body.inactiveFlag = args.inactiveFlag;
       if (args.addAllTypesFlag !== undefined) body.addAllTypesFlag = args.addAllTypesFlag;
@@ -327,13 +360,15 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_board_subtype",
-    "Update a board subtype via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a board subtype via JSON Patch.",
     {
       boardId: z.number().describe("Service board ID"),
       subTypeId: z.number().describe("Board subtype ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
+      ...sentinelParams,
     },
-    async ({ boardId, subTypeId, patch }) => {
+    async ({ boardId, subTypeId, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_board_subtype", entityType: "board_subtype", entityId: subTypeId, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/service/boards/${boardId}/subtypes/${subTypeId}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -341,12 +376,14 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_board_subtype",
-    "Delete a board subtype.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a board subtype.",
     {
       boardId: z.number().describe("Service board ID"),
       subTypeId: z.number().describe("Board subtype ID"),
+      ...sentinelParams,
     },
-    async ({ boardId, subTypeId }) => {
+    async ({ boardId, subTypeId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_board_subtype", entityType: "board_subtype", entityId: subTypeId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/service/boards/${boardId}/subtypes/${subTypeId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -388,15 +425,17 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_create_board_item",
-    "Create a board item.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a board item.",
     {
       boardId: z.number().describe("Service board ID"),
       name: z.string().describe("Item name"),
       inactiveFlag: z.boolean().optional().describe("Mark the item inactive"),
       categoryId: z.number().optional().describe("Service category ID"),
       subCategoryId: z.number().optional().describe("Service subcategory ID"),
+      ...sentinelParams,
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_board_item", entityType: "board_item", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = { name: args.name };
       if (args.inactiveFlag !== undefined) body.inactiveFlag = args.inactiveFlag;
       if (args.categoryId !== undefined) body.category = { id: args.categoryId };
@@ -408,13 +447,15 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_board_item",
-    "Update a board item via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a board item via JSON Patch.",
     {
       boardId: z.number().describe("Service board ID"),
       itemId: z.number().describe("Board item ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
+      ...sentinelParams,
     },
-    async ({ boardId, itemId, patch }) => {
+    async ({ boardId, itemId, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_board_item", entityType: "board_item", entityId: itemId, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/service/boards/${boardId}/items/${itemId}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -422,12 +463,14 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_board_item",
-    "Delete a board item.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a board item.",
     {
       boardId: z.number().describe("Service board ID"),
       itemId: z.number().describe("Board item ID"),
+      ...sentinelParams,
     },
-    async ({ boardId, itemId }) => {
+    async ({ boardId, itemId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_board_item", entityType: "board_item", entityId: itemId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/service/boards/${boardId}/items/${itemId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -469,7 +512,7 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_create_board_team",
-    "Create a board team.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a board team.",
     {
       boardId: z.number().describe("Service board ID"),
       name: z.string().describe("Team name"),
@@ -478,8 +521,10 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
       teamLeaderId: z.number().optional().describe("Member ID of the team leader"),
       businessUnitId: z.number().optional().describe("Business unit ID"),
       locationId: z.number().optional().describe("Location ID"),
+      ...sentinelParams,
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_board_team", entityType: "board_team", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = { name: args.name };
       if (args.defaultFlag !== undefined) body.defaultFlag = args.defaultFlag;
       if (args.notifyOnTicketDelete !== undefined) body.notifyOnTicketDelete = args.notifyOnTicketDelete;
@@ -493,13 +538,15 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_board_team",
-    "Update a board team via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a board team via JSON Patch.",
     {
       boardId: z.number().describe("Service board ID"),
       teamId: z.number().describe("Board team ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
+      ...sentinelParams,
     },
-    async ({ boardId, teamId, patch }) => {
+    async ({ boardId, teamId, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_board_team", entityType: "board_team", entityId: teamId, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/service/boards/${boardId}/teams/${teamId}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -507,12 +554,14 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_board_team",
-    "Delete a board team.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a board team.",
     {
       boardId: z.number().describe("Service board ID"),
       teamId: z.number().describe("Board team ID"),
+      ...sentinelParams,
     },
-    async ({ boardId, teamId }) => {
+    async ({ boardId, teamId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_board_team", entityType: "board_team", entityId: teamId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/service/boards/${boardId}/teams/${teamId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },

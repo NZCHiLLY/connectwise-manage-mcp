@@ -1,12 +1,25 @@
-﻿import { z } from "zod";
+import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
+import { auditLog } from "../audit/log.js";
 
 const patchOp = z.object({
   op: z.enum(["replace", "add", "remove"]),
   path: z.string(),
   value: z.unknown().optional(),
 });
+
+const sentinelParams = {
+  user_intent: z.string().min(20).describe(
+    "Plain-English description of what the user asked for. " +
+      "Must be at least 20 characters. Example: " +
+      "'User asked to close ticket 12345 because they have billed it.'",
+  ),
+  user_quote: z.string().min(20).describe(
+    "Verbatim quote of the user's actual words that motivated this action. " +
+      "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+  ),
+};
 
 export function registerProjectTools(server: McpServer, client: CwManageClient) {
   // ── Projects ─────────────────────────────────────────────────────────────────
@@ -66,7 +79,7 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_create_project",
-    "Create a new project. name, companyId, and boardId are normally required.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a new project. name, companyId, and boardId are normally required.",
     {
       name: z.string().describe("Project name (required)"),
       companyId: z.number().describe("Customer company ID (required)"),
@@ -94,8 +107,10 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
       opportunityId: z.number().optional().describe("Opportunity ID"),
       description: z.string().optional().describe("Project description"),
       customFields: z.array(z.object({ id: z.number(), value: z.unknown() })).optional().describe("Custom field values"),
+      ...sentinelParams,
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_project", entityType: "project", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = {
         name: args.name,
         company: { id: args.companyId },
@@ -131,12 +146,14 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_project",
-    "Update a project via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a project via JSON Patch.",
     {
       id: z.number().describe("Project ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
+      ...sentinelParams,
     },
-    async ({ id, patch }) => {
+    async ({ id, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_project", entityType: "project", entityId: id, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/project/projects/${id}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -144,12 +161,14 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_replace_project",
-    "Replace a project via PUT.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Replace a project via PUT.",
     {
       id: z.number().describe("Project ID"),
       body: z.record(z.string(), z.unknown()).describe("Full replacement body for PUT"),
+      ...sentinelParams,
     },
-    async ({ id, body }) => {
+    async ({ id, body, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_replace_project", entityType: "project", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("PUT", `/project/projects/${id}`, body);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -157,11 +176,13 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_project",
-    "Delete a project. Destructive.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a project. Destructive.",
     {
       id: z.number().describe("Project ID"),
+      ...sentinelParams,
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_project", entityType: "project", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/project/projects/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -169,7 +190,7 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_copy_project_to_template",
-    "Save a project as a project template via /project/projects/{id}/copyToTemplate.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Save a project as a project template via /project/projects/{id}/copyToTemplate.",
     {
       id: z.number().describe("Source project ID"),
       name: z.string().describe("Template name"),
@@ -177,8 +198,10 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
       copyTeamMembersFlag: z.boolean().optional().describe("Copy team members to template"),
       copyTimeEntriesFlag: z.boolean().optional().describe("Copy time entries to template"),
       copyDocumentsFlag: z.boolean().optional().describe("Copy documents to template"),
+      ...sentinelParams,
     },
     async (args) => {
+      await auditLog({ tool: "cw_copy_project_to_template", entityType: "project", entityId: args.id, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = { name: args.name };
       if (args.copyNotesFlag !== undefined) body.copyNotesFlag = args.copyNotesFlag;
       if (args.copyTeamMembersFlag !== undefined) body.copyTeamMembersFlag = args.copyTeamMembersFlag;
@@ -227,7 +250,7 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_create_project_phase",
-    "Create a phase under a project. description is required.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a phase under a project. description is required.",
     {
       projectId: z.number().describe("Project ID"),
       description: z.string().describe("Phase description / name"),
@@ -246,8 +269,10 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
       actualHours: z.number().optional().describe("Actual hours logged"),
       markAsMilestoneFlag: z.boolean().optional().describe("Mark this phase as a milestone"),
       notes: z.string().optional().describe("Phase notes"),
+      ...sentinelParams,
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_project_phase", entityType: "project_phase", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = { description: args.description };
       if (args.parentPhaseId !== undefined) body.parentPhase = { id: args.parentPhaseId };
       if (args.wbsCode) body.wbsCode = args.wbsCode;
@@ -271,13 +296,15 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_project_phase",
-    "Update a project phase via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a project phase via JSON Patch.",
     {
       projectId: z.number().describe("Project ID"),
       phaseId: z.number().describe("Phase ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
+      ...sentinelParams,
     },
-    async ({ projectId, phaseId, patch }) => {
+    async ({ projectId, phaseId, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_project_phase", entityType: "project_phase", entityId: phaseId, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/project/projects/${projectId}/phases/${phaseId}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -285,12 +312,14 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_project_phase",
-    "Delete a project phase.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a project phase.",
     {
       projectId: z.number().describe("Project ID"),
       phaseId: z.number().describe("Phase ID"),
+      ...sentinelParams,
     },
-    async ({ projectId, phaseId }) => {
+    async ({ projectId, phaseId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_project_phase", entityType: "project_phase", entityId: phaseId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/project/projects/${projectId}/phases/${phaseId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -332,7 +361,7 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_create_project_team_member",
-    "Add a member to a project team.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Add a member to a project team.",
     {
       projectId: z.number().describe("Project ID"),
       memberId: z.number().describe("Member ID"),
@@ -341,8 +370,10 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
       startDate: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
       endDate: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
       workRoleId: z.number().optional().describe("Work role ID"),
+      ...sentinelParams,
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_project_team_member", entityType: "project_team_member", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = {
         member: { id: args.memberId },
         projectRole: { id: args.projectRoleId },
@@ -358,13 +389,15 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_project_team_member",
-    "Update a project team-member row via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a project team-member row via JSON Patch.",
     {
       projectId: z.number().describe("Project ID"),
       teamMemberId: z.number().describe("Team-member row ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
+      ...sentinelParams,
     },
-    async ({ projectId, teamMemberId, patch }) => {
+    async ({ projectId, teamMemberId, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_project_team_member", entityType: "project_team_member", entityId: teamMemberId, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/project/projects/${projectId}/teamMembers/${teamMemberId}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -372,12 +405,14 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_project_team_member",
-    "Remove a member from a project team.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Remove a member from a project team.",
     {
       projectId: z.number().describe("Project ID"),
       teamMemberId: z.number().describe("Team-member row ID"),
+      ...sentinelParams,
     },
-    async ({ projectId, teamMemberId }) => {
+    async ({ projectId, teamMemberId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_project_team_member", entityType: "project_team_member", entityId: teamMemberId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/project/projects/${projectId}/teamMembers/${teamMemberId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -419,14 +454,16 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_create_project_note",
-    "Add a note to a project.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Add a note to a project.",
     {
       projectId: z.number().describe("Project ID"),
       text: z.string().describe("Note text"),
       typeId: z.number().optional().describe("Note type ID"),
       flagged: z.boolean().optional().describe("Flag this note"),
+      ...sentinelParams,
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_project_note", entityType: "project_note", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = { text: args.text };
       if (args.typeId !== undefined) body.type = { id: args.typeId };
       if (args.flagged !== undefined) body.flagged = args.flagged;
@@ -437,13 +474,15 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_project_note",
-    "Update a project note via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a project note via JSON Patch.",
     {
       projectId: z.number().describe("Project ID"),
       noteId: z.number().describe("Note ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
+      ...sentinelParams,
     },
-    async ({ projectId, noteId, patch }) => {
+    async ({ projectId, noteId, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_project_note", entityType: "project_note", entityId: noteId, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/project/projects/${projectId}/notes/${noteId}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -451,12 +490,14 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_project_note",
-    "Delete a project note.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a project note.",
     {
       projectId: z.number().describe("Project ID"),
       noteId: z.number().describe("Note ID"),
+      ...sentinelParams,
     },
-    async ({ projectId, noteId }) => {
+    async ({ projectId, noteId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_project_note", entityType: "project_note", entityId: noteId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/project/projects/${projectId}/notes/${noteId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -485,12 +526,14 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_add_project_contact",
-    "Attach a contact to a project.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Attach a contact to a project.",
     {
       projectId: z.number().describe("Project ID"),
       contactId: z.number().describe("Contact ID"),
+      ...sentinelParams,
     },
-    async ({ projectId, contactId }) => {
+    async ({ projectId, contactId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_add_project_contact", entityType: "project_contact", entityId: contactId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.post(`/project/projects/${projectId}/contacts`, {
         id: contactId,
       });
@@ -500,12 +543,14 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_remove_project_contact",
-    "Remove a contact from a project.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Remove a contact from a project.",
     {
       projectId: z.number().describe("Project ID"),
       contactId: z.number().describe("Contact ID"),
+      ...sentinelParams,
     },
-    async ({ projectId, contactId }) => {
+    async ({ projectId, contactId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_remove_project_contact", entityType: "project_contact", entityId: contactId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/project/projects/${projectId}/contacts/${contactId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
