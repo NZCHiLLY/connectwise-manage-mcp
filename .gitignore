@@ -3,6 +3,11 @@ dist/
 *.log
 .env
 .env.*
+
+# Docker secrets (populated by scripts/create-secrets.sh)
+secrets/CW_*
+secrets/MCP_*
+secrets/AZURE_*
 .DS_Store
 coverage/
 connectwise-manage-mcp-security-review.md

@@ -42,6 +42,10 @@ RUN npm prune --omit=dev && npm cache clean --force
 # Create logs directory
 RUN mkdir -p /app/logs && chown -R cwmanage:cwmanage /app
 
+# Install entrypoint that loads Docker secrets as env vars
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Switch to non-root user
 USER cwmanage
 
@@ -64,6 +68,7 @@ ENV AUTH_MODE=env
 VOLUME ["/app/logs"]
 
 # Start the application
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["node", "dist/index.js"]
 
 # Labels for metadata
