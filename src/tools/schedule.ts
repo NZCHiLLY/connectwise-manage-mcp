@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
+import { auditLog } from "../audit/log.js";
 
 export function registerScheduleTools(server: McpServer, client: CwManageClient) {
   // ── /schedule/entries ────────────────────────────────────────────────────
@@ -36,8 +37,18 @@ export function registerScheduleTools(server: McpServer, client: CwManageClient)
 
   server.tool(
     "cw_create_schedule_entry",
-    "Create a schedule entry — assigns a member to work on a ticket, project, or activity. Use scheduleTypeId=4 (Service) to assign someone to a service ticket. Dates use CW format with square brackets and Z suffix (e.g. \"[2026-05-19T09:00:00Z]\").",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Create a schedule entry — assigns a member to work on a ticket, project, or activity. Use scheduleTypeId=4 (Service) to assign someone to a service ticket. Dates use CW format with square brackets and Z suffix (e.g. \"[2026-05-19T09:00:00Z]\").",
     {
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
       objectId: z.number().describe("ID of the linked record (ticket id, activity id, etc.)"),
       memberId: z.number().describe("Member ID to schedule"),
       scheduleTypeId: z.number().describe("Schedule type ID — 4=Service, 5=Project, 6=Sales, 7=Activity, 8=Resource, 9=Calendar (verify against /schedule/types)"),
@@ -57,10 +68,12 @@ export function registerScheduleTools(server: McpServer, client: CwManageClient)
       notes: z.string().optional().describe("Free-text notes on the entry"),
     },
     async ({
+      user_intent, user_quote,
       objectId, memberId, scheduleTypeId, dateStart, dateEnd, hours, ticketType,
       statusId, whereId, doneFlag, acknowledgedFlag, ownerLevel,
       allowScheduleConflictsFlag, addMemberToProjectFlag, projectRoleId, reminder, notes,
     }) => {
+      await auditLog({ tool: "cw_create_schedule_entry", entityType: "schedule_entry", entityId: 0, userIntent: user_intent, userQuote: user_quote });
       const body: Record<string, unknown> = {
         objectId,
         member: { id: memberId },
@@ -88,16 +101,27 @@ export function registerScheduleTools(server: McpServer, client: CwManageClient)
 
   server.tool(
     "cw_update_schedule_entry",
-    "Update a schedule entry via JSON Patch. Common ops: replace dateStart/dateEnd, replace member/id, replace status/id.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Update a schedule entry via JSON Patch. Common ops: replace dateStart/dateEnd, replace member/id, replace status/id.",
     {
       id: z.number().describe("Schedule entry ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
       operations: z.array(z.object({
         op: z.enum(["replace", "add", "remove"]),
         path: z.string(),
         value: z.unknown().optional(),
       })).describe("Array of JSON Patch operations"),
     },
-    async ({ id, operations }) => {
+    async ({ id, user_intent, user_quote, operations }) => {
+      await auditLog({ tool: "cw_update_schedule_entry", entityType: "schedule_entry", entityId: id, userIntent: user_intent, userQuote: user_quote, operations });
       const result = await client.patch(`/schedule/entries/${id}`, operations);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -105,12 +129,23 @@ export function registerScheduleTools(server: McpServer, client: CwManageClient)
 
   server.tool(
     "cw_delete_schedule_entry",
-    "Delete a schedule entry. Optionally notify the resource via the {notifyResource} path segment.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Delete a schedule entry. Optionally notify the resource via the {notifyResource} path segment.",
     {
       id: z.number().describe("Schedule entry ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
       notifyResource: z.boolean().optional().describe("If provided, deletes via /schedule/entries/{id}/{notifyResource} and emails the assigned member"),
     },
-    async ({ id, notifyResource }) => {
+    async ({ id, user_intent, user_quote, notifyResource }) => {
+      await auditLog({ tool: "cw_delete_schedule_entry", entityType: "schedule_entry", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const path = notifyResource === undefined
         ? `/schedule/entries/${id}`
         : `/schedule/entries/${id}/${notifyResource}`;
@@ -263,12 +298,23 @@ export function registerScheduleTools(server: McpServer, client: CwManageClient)
 
   server.tool(
     "cw_copy_calendar",
-    "Copy/clone a working-hours calendar. Optional 'overrides' merges onto the new calendar.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Copy/clone a working-hours calendar. Optional 'overrides' merges onto the new calendar.",
     {
       id: z.number().describe("Source calendar ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
       overrides: z.record(z.string(), z.unknown()).optional().describe("Optional Calendar fields to override on the copy"),
     },
-    async ({ id, overrides }) => {
+    async ({ id, user_intent, user_quote, overrides }) => {
+      await auditLog({ tool: "cw_copy_calendar", entityType: "schedule_entry", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.post(`/schedule/calendars/${id}/copy`, overrides ?? {});
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -295,9 +341,21 @@ export function registerScheduleTools(server: McpServer, client: CwManageClient)
 
   server.tool(
     "cw_clear_schedule_colors",
-    "Clear all custom schedule colors (server-side action — destructive).",
-    {},
-    async () => {
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Clear all custom schedule colors (server-side action — destructive).",
+    {
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
+    },
+    async ({ user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_clear_schedule_colors", entityType: "schedule_entry", entityId: 0, userIntent: user_intent, userQuote: user_quote });
       const result = await client.post("/schedule/colors/clear", {});
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -305,9 +363,21 @@ export function registerScheduleTools(server: McpServer, client: CwManageClient)
 
   server.tool(
     "cw_reset_schedule_colors",
-    "Reset schedule colors to system defaults.",
-    {},
-    async () => {
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Reset schedule colors to system defaults.",
+    {
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
+    },
+    async ({ user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_reset_schedule_colors", entityType: "schedule_entry", entityId: 0, userIntent: user_intent, userQuote: user_quote });
       const result = await client.post("/schedule/colors/reset", {});
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },

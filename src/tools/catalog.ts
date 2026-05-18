@@ -67,8 +67,18 @@ export function registerCatalogTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_create_catalog_item",
-    "Create a catalog item. identifier, description, subcategoryId, typeId, and unitOfMeasureId are required.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Create a catalog item. identifier, description, subcategoryId, typeId, and unitOfMeasureId are required.",
     {
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
       identifier: z.string().describe("Item identifier / SKU"),
       description: z.string(),
       subcategoryId: z.number().describe("Catalog sub-category ID"),
@@ -100,6 +110,7 @@ export function registerCatalogTools(server: McpServer, client: CwManageClient) 
       customFields: z.array(z.object({ id: z.number(), value: z.unknown() })).optional(),
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_catalog_item", entityType: "catalog_item", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = {
         identifier: args.identifier,
         description: args.description,
@@ -169,12 +180,23 @@ export function registerCatalogTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_replace_catalog_item",
-    "Replace a catalog item via PUT.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Replace a catalog item via PUT.",
     {
       id: z.number(),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
       body: z.record(z.string(), z.unknown()),
     },
-    async ({ id, body }) => {
+    async ({ id, user_intent, user_quote, body }) => {
+      await auditLog({ tool: "cw_replace_catalog_item", entityType: "catalog_item", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("PUT", `/procurement/catalog/${id}`, body);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -182,11 +204,22 @@ export function registerCatalogTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_catalog_item",
-    "Delete a catalog item. Destructive.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Delete a catalog item. Destructive.",
     {
       id: z.number(),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_catalog_item", entityType: "catalog_item", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/procurement/catalog/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -194,15 +227,26 @@ export function registerCatalogTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_copy_catalog_item",
-    "Copy a catalog item to a new item via /procurement/catalog/{id}/copy.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Copy a catalog item to a new item via /procurement/catalog/{id}/copy.",
     {
       id: z.number().describe("Source catalog item ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
       identifier: z.string().describe("Identifier for the new copy"),
       description: z.string().optional(),
       includeAllComponentsFlag: z.boolean().optional(),
       includeAllPricingFlag: z.boolean().optional(),
     },
     async (args) => {
+      await auditLog({ tool: "cw_copy_catalog_item", entityType: "catalog_item", entityId: args.id, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = { identifier: args.identifier };
       if (args.description) body.description = args.description;
       if (args.includeAllComponentsFlag !== undefined) body.includeAllComponentsFlag = args.includeAllComponentsFlag;
@@ -250,10 +294,20 @@ export function registerCatalogTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_create_catalog_component",
-    "Add a component to a catalog bundle item.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Add a component to a catalog bundle item.",
     {
       catalogItemId: z.number().describe("Parent catalog item ID"),
       componentCatalogItemId: z.number().describe("Catalog item ID to add as a component"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
       quantity: z.number().optional(),
       sequenceNumber: z.number().optional(),
       hidePriceFlag: z.boolean().optional(),
@@ -263,6 +317,7 @@ export function registerCatalogTools(server: McpServer, client: CwManageClient) 
       hideExtendedPriceFlag: z.boolean().optional(),
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_catalog_component", entityType: "catalog_component", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = {
         catalogItem: { id: args.componentCatalogItemId },
       };
@@ -280,13 +335,24 @@ export function registerCatalogTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_catalog_component",
-    "Update a catalog component row via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Update a catalog component row via JSON Patch.",
     {
       catalogItemId: z.number().describe("Parent catalog item ID"),
       componentId: z.number().describe("Component row ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
       patch: z.array(patchOp),
     },
-    async ({ catalogItemId, componentId, patch }) => {
+    async ({ catalogItemId, componentId, user_intent, user_quote, patch }) => {
+      await auditLog({ tool: "cw_update_catalog_component", entityType: "catalog_component", entityId: componentId, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/procurement/catalog/${catalogItemId}/components/${componentId}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -294,12 +360,23 @@ export function registerCatalogTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_catalog_component",
-    "Remove a component from a catalog bundle item.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Remove a component from a catalog bundle item.",
     {
       catalogItemId: z.number().describe("Parent catalog item ID"),
       componentId: z.number().describe("Component row ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ catalogItemId, componentId }) => {
+    async ({ catalogItemId, componentId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_catalog_component", entityType: "catalog_component", entityId: componentId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/procurement/catalog/${catalogItemId}/components/${componentId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -341,14 +418,25 @@ export function registerCatalogTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_create_catalog_bundled_item",
-    "Bundle another catalog item under a catalog item.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Bundle another catalog item under a catalog item.",
     {
       catalogItemId: z.number().describe("Parent catalog item ID"),
       bundledCatalogItemId: z.number().describe("Catalog item ID to add to the bundle"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
       quantity: z.number().optional(),
       sequenceNumber: z.number().optional(),
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_catalog_bundled_item", entityType: "catalog_bundled_item", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = {
         catalogItem: { id: args.bundledCatalogItemId },
       };
@@ -361,13 +449,24 @@ export function registerCatalogTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_catalog_bundled_item",
-    "Update a catalog bundled-item row via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Update a catalog bundled-item row via JSON Patch.",
     {
       catalogItemId: z.number(),
       bundledItemId: z.number(),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
       patch: z.array(patchOp),
     },
-    async ({ catalogItemId, bundledItemId, patch }) => {
+    async ({ catalogItemId, bundledItemId, user_intent, user_quote, patch }) => {
+      await auditLog({ tool: "cw_update_catalog_bundled_item", entityType: "catalog_bundled_item", entityId: bundledItemId, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/procurement/catalog/${catalogItemId}/bundledItems/${bundledItemId}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -375,12 +474,23 @@ export function registerCatalogTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_catalog_bundled_item",
-    "Remove a bundled item from a catalog item.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Remove a bundled item from a catalog item.",
     {
       catalogItemId: z.number(),
       bundledItemId: z.number(),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ catalogItemId, bundledItemId }) => {
+    async ({ catalogItemId, bundledItemId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_catalog_bundled_item", entityType: "catalog_bundled_item", entityId: bundledItemId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/procurement/catalog/${catalogItemId}/bundledItems/${bundledItemId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -443,16 +553,27 @@ export function registerCatalogTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_create_catalog_pricing",
-    "Add a per-schedule price override to a catalog item.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Add a per-schedule price override to a catalog item.",
     {
       catalogItemId: z.number(),
       pricingScheduleId: z.number().describe("Pricing schedule ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
       price: z.number().optional(),
       priceAttribute: z.string().optional().describe("Markup | Margin | None"),
       discount: z.number().optional(),
       markup: z.number().optional(),
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_catalog_pricing", entityType: "catalog_pricing", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = {
         priceSchedule: { id: args.pricingScheduleId },
       };
@@ -467,13 +588,24 @@ export function registerCatalogTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_catalog_pricing",
-    "Update a catalog pricing override via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Update a catalog pricing override via JSON Patch.",
     {
       catalogItemId: z.number(),
       pricingId: z.number(),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
       patch: z.array(patchOp),
     },
-    async ({ catalogItemId, pricingId, patch }) => {
+    async ({ catalogItemId, pricingId, user_intent, user_quote, patch }) => {
+      await auditLog({ tool: "cw_update_catalog_pricing", entityType: "catalog_pricing", entityId: pricingId, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/procurement/catalog/${catalogItemId}/pricing/${pricingId}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -481,12 +613,23 @@ export function registerCatalogTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_catalog_pricing",
-    "Remove a catalog pricing override.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Remove a catalog pricing override.",
     {
       catalogItemId: z.number(),
       pricingId: z.number(),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ catalogItemId, pricingId }) => {
+    async ({ catalogItemId, pricingId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_catalog_pricing", entityType: "catalog_pricing", entityId: pricingId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/procurement/catalog/${catalogItemId}/pricing/${pricingId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -579,16 +722,27 @@ export function registerCatalogTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_create_catalog_manufacturer_part",
-    "Add a manufacturer / vendor part number to a catalog item.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Add a manufacturer / vendor part number to a catalog item.",
     {
       catalogItemId: z.number(),
       manufacturerPartNumber: z.string(),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
       manufacturerId: z.number().optional(),
       vendorId: z.number().optional(),
       vendorSku: z.string().optional(),
       defaultFlag: z.boolean().optional(),
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_catalog_manufacturer_part", entityType: "catalog_manufacturer_part", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = {
         manufacturerPartNumber: args.manufacturerPartNumber,
       };
@@ -603,12 +757,23 @@ export function registerCatalogTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_catalog_manufacturer_part",
-    "Remove a manufacturer part number row from a catalog item.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Remove a manufacturer part number row from a catalog item.",
     {
       catalogItemId: z.number(),
       partId: z.number(),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ catalogItemId, partId }) => {
+    async ({ catalogItemId, partId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_catalog_manufacturer_part", entityType: "catalog_manufacturer_part", entityId: partId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/procurement/catalog/${catalogItemId}/manufacturerPartNumbers/${partId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
