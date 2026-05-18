@@ -73,6 +73,30 @@ import { registerTicketTools }        from "./tools/tickets.js";
 import { registerTimeEntryTools }     from "./tools/time-entries.js";
 
 // ---------------------------------------------------------------------------
+// Gateway mode: X-CW-URL validation
+// Prevents SSRF by rejecting non-HTTPS URLs and private/loopback addresses.
+// ---------------------------------------------------------------------------
+
+const PRIVATE_ADDR =
+  /^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|127\.|169\.254\.|0\.0\.0\.0$|::1$|fc00:|fd)/i;
+
+function validateCwBaseUrl(rawUrl: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    throw new Error("X-CW-URL is not a valid URL");
+  }
+  if (parsed.protocol !== "https:") {
+    throw new Error("X-CW-URL must use HTTPS");
+  }
+  if (PRIVATE_ADDR.test(parsed.hostname)) {
+    throw new Error("X-CW-URL must not target a private or loopback address");
+  }
+  return parsed.origin;
+}
+
+// ---------------------------------------------------------------------------
 // Server factory
 // ---------------------------------------------------------------------------
 
@@ -363,7 +387,13 @@ async function startHttpTransport(): Promise<void> {
           process.env.CW_MANAGE_PRIVATE_KEY = privateKey;
           process.env.CW_MANAGE_CLIENT_ID = clientId;
           if (baseUrl) {
-            process.env.CW_MANAGE_URL = baseUrl;
+            try {
+              process.env.CW_MANAGE_URL = validateCwBaseUrl(baseUrl);
+            } catch (err) {
+              res.writeHead(400, { "Content-Type": "application/json" });
+              res.end(JSON.stringify({ error: "invalid_url", message: (err as Error).message }));
+              return;
+            }
           }
         }
 
