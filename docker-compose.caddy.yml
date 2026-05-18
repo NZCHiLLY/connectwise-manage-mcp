@@ -23,13 +23,8 @@ services:
     image: ghcr.io/wyre-technology/connectwise-manage-mcp:latest
     container_name: connectwise-manage-mcp-server
     restart: unless-stopped
-    env_file:
-      - .env
     environment:
       - CW_MANAGE_COMPANY_ID=${CW_MANAGE_COMPANY_ID}
-      - CW_MANAGE_PUBLIC_KEY=${CW_MANAGE_PUBLIC_KEY}
-      - CW_MANAGE_PRIVATE_KEY=${CW_MANAGE_PRIVATE_KEY}
-      - CW_MANAGE_CLIENT_ID=${CW_MANAGE_CLIENT_ID}
       - MCP_TRANSPORT=http
       - AUTH_MODE=env
       - LOG_LEVEL=${LOG_LEVEL:-info}
@@ -41,6 +36,16 @@ services:
       - AZURE_AUDIENCE=${AZURE_AUDIENCE}
       - AZURE_REQUIRED_ROLE=${AZURE_REQUIRED_ROLE:-CWM.Access}
       - MCP_BEARER_TOKEN=${MCP_BEARER_TOKEN}
+    secrets:
+      - cw_manage_public_key
+      - cw_manage_private_key
+      - cw_manage_client_id
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - cwm-audit:/home/cwmanage/.cw-mcp-sentinel
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 30s
@@ -48,6 +53,15 @@ services:
       retries: 3
       start_period: 10s
 
+secrets:
+  cw_manage_public_key:
+    file: ./secrets/CW_MANAGE_PUBLIC_KEY
+  cw_manage_private_key:
+    file: ./secrets/CW_MANAGE_PRIVATE_KEY
+  cw_manage_client_id:
+    file: ./secrets/CW_MANAGE_CLIENT_ID
+
 volumes:
   caddy-data:
   caddy-config:
+  cwm-audit:
