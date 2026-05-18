@@ -44,10 +44,9 @@ const L1_TOOLS = new Set([
   "cw_create_time_entry",
   "cw_update_time_entry",
 
-  // ── Service / boards ──────────────────────────────────────────────────────
-  "cw_list_boards",
-  "cw_list_statuses",
-  "cw_list_priorities",
+  // ── Service / boards & priorities ────────────────────────────────────────
+  "cw_list_service_boards",
+  "cw_list_service_priorities",
 
   // ── Configurations (assets) ───────────────────────────────────────────────
   "cw_search_configurations",
@@ -61,10 +60,7 @@ const L1_TOOLS = new Set([
   // ── Projects ──────────────────────────────────────────────────────────────
   "cw_search_projects",
   "cw_get_project",
-  "cw_search_project_tickets",
-  "cw_get_project_ticket",
-  "cw_add_project_ticket_note",
-  "cw_get_project_ticket_notes",
+  "cw_list_project_tickets",
 
   // ── Schedule ──────────────────────────────────────────────────────────────
   "cw_create_schedule_entry",
