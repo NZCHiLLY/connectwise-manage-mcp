@@ -67,7 +67,8 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_create_company",
-    "Create a new company. identifier (account code) and name are required.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Create a new company. identifier (account code) and name are required.",
     {
       identifier: z.string().describe("Company account code / identifier"),
       name: z.string().describe("Company display name"),
@@ -98,8 +99,18 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
       defaultDepartmentId: z.number().optional().describe("Default department ID"),
       defaultLocationId: z.number().optional().describe("Default location ID"),
       customFields: z.array(z.object({ id: z.number(), value: z.unknown() })).optional().describe("Custom field values"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_company", entityType: "company", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = {
         identifier: args.identifier,
         name: args.name,
@@ -169,12 +180,23 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_replace_company",
-    "Replace a company via PUT.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Replace a company via PUT.",
     {
       id: z.number().describe("Company ID"),
       body: z.record(z.string(), z.unknown()).describe("Full company body"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id, body }) => {
+    async ({ id, body, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_replace_company", entityType: "company", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("PUT", `/company/companies/${id}`, body);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -182,11 +204,22 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_company",
-    "Delete a company. Destructive — typically blocked if there are dependent records.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Delete a company. Destructive — typically blocked if there are dependent records.",
     {
       id: z.number().describe("Company ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_company", entityType: "company", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/company/companies/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -194,12 +227,23 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_merge_companies",
-    "Merge a source company into a target company via /company/companies/{targetId}/merge.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Merge a source company into a target company via /company/companies/{targetId}/merge.",
     {
       targetCompanyId: z.number().describe("Surviving company ID"),
       sourceCompanyId: z.number().describe("Company to merge in (will be deactivated)"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ targetCompanyId, sourceCompanyId }) => {
+    async ({ targetCompanyId, sourceCompanyId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_merge_companies", entityType: "company", entityId: targetCompanyId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.post(`/company/companies/${targetCompanyId}/merge`, {
         sourceCompany: { id: sourceCompanyId },
       });
@@ -245,7 +289,8 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_create_company_site",
-    "Create a new site on a company.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Create a new site on a company.",
     {
       companyId: z.number().describe("Company ID"),
       name: z.string().describe("Site name"),
@@ -263,8 +308,18 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
       defaultMailingFlag: z.boolean().optional().describe("Mark as default mailing address"),
       defaultShippingFlag: z.boolean().optional().describe("Mark as default shipping address"),
       defaultBillingFlag: z.boolean().optional().describe("Mark as default billing address"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_company_site", entityType: "company_site", entityId: args.companyId, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = { name: args.name };
       if (args.addressLine1) body.addressLine1 = args.addressLine1;
       if (args.addressLine2) body.addressLine2 = args.addressLine2;
@@ -287,13 +342,24 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_company_site",
-    "Update a company site via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Update a company site via JSON Patch.",
     {
       companyId: z.number().describe("Company ID"),
       siteId: z.number().describe("Site ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ companyId, siteId, patch }) => {
+    async ({ companyId, siteId, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_company_site", entityType: "company_site", entityId: siteId, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/company/companies/${companyId}/sites/${siteId}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -301,12 +367,23 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_company_site",
-    "Delete a company site.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Delete a company site.",
     {
       companyId: z.number().describe("Company ID"),
       siteId: z.number().describe("Site ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ companyId, siteId }) => {
+    async ({ companyId, siteId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_company_site", entityType: "company_site", entityId: siteId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/company/companies/${companyId}/sites/${siteId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -348,15 +425,26 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_create_company_note",
-    "Add a note to a company.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Add a note to a company.",
     {
       companyId: z.number().describe("Company ID"),
       text: z.string().describe("Note text"),
       typeId: z.number().optional().describe("Note type ID"),
       enteredBy: z.string().optional().describe("Member identifier of author"),
       flagged: z.boolean().optional().describe("Mark note as flagged"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_company_note", entityType: "company_note", entityId: args.companyId, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = { text: args.text };
       if (args.typeId !== undefined) body.type = { id: args.typeId };
       if (args.enteredBy) body.enteredBy = args.enteredBy;
@@ -368,13 +456,24 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_company_note",
-    "Update a company note via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Update a company note via JSON Patch.",
     {
       companyId: z.number().describe("Company ID"),
       noteId: z.number().describe("Note ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ companyId, noteId, patch }) => {
+    async ({ companyId, noteId, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_company_note", entityType: "company_note", entityId: noteId, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/company/companies/${companyId}/notes/${noteId}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -382,12 +481,23 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_company_note",
-    "Delete a company note.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Delete a company note.",
     {
       companyId: z.number().describe("Company ID"),
       noteId: z.number().describe("Note ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ companyId, noteId }) => {
+    async ({ companyId, noteId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_company_note", entityType: "company_note", entityId: noteId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/company/companies/${companyId}/notes/${noteId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -429,7 +539,8 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_create_company_team",
-    "Add an internal team member to a company's account team.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Add an internal team member to a company's account team.",
     {
       companyId: z.number().describe("Company ID"),
       teamRoleId: z.number().describe("Team role ID"),
@@ -438,8 +549,18 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
       locationId: z.number().optional().describe("Location ID"),
       businessUnitId: z.number().optional().describe("Business unit ID"),
       accountManagerFlag: z.boolean().optional().describe("Mark as account manager"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_company_team", entityType: "company_team", entityId: args.companyId, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = { teamRole: { id: args.teamRoleId } };
       if (args.memberId !== undefined) body.member = { id: args.memberId };
       if (args.contactId !== undefined) body.contact = { id: args.contactId };
@@ -453,13 +574,24 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_company_team",
-    "Update a company team row via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Update a company team row via JSON Patch.",
     {
       companyId: z.number().describe("Company ID"),
       teamId: z.number().describe("Team-row ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ companyId, teamId, patch }) => {
+    async ({ companyId, teamId, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_company_team", entityType: "company_team", entityId: teamId, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/company/companies/${companyId}/teams/${teamId}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -467,12 +599,23 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_company_team",
-    "Remove a member from a company's account team.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Remove a member from a company's account team.",
     {
       companyId: z.number().describe("Company ID"),
       teamId: z.number().describe("Team-row ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ companyId, teamId }) => {
+    async ({ companyId, teamId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_company_team", entityType: "company_team", entityId: teamId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/company/companies/${companyId}/teams/${teamId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -553,7 +696,8 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_create_company_status",
-    "Create a company status.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Create a company status.",
     {
       name: z.string().describe("Status name"),
       defaultFlag: z.boolean().optional().describe("Mark as default status"),
@@ -563,8 +707,18 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
       notificationMessage: z.string().optional().describe("Notification message text"),
       cancelOpenTracksFlag: z.boolean().optional().describe("Cancel open tracks when status is applied"),
       trackId: z.number().optional().describe("Track ID to apply on status change"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_company_status", entityType: "company_status", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = { name: args.name };
       if (args.defaultFlag !== undefined) body.defaultFlag = args.defaultFlag;
       if (args.inactiveFlag !== undefined) body.inactiveFlag = args.inactiveFlag;
@@ -580,12 +734,23 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_company_status",
-    "Update a company status via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Update a company status via JSON Patch.",
     {
       id: z.number().describe("Status ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id, patch }) => {
+    async ({ id, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_company_status", entityType: "company_status", entityId: id, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/company/companies/statuses/${id}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -593,11 +758,22 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_company_status",
-    "Delete a company status.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Delete a company status.",
     {
       id: z.number().describe("Status ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_company_status", entityType: "company_status", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/company/companies/statuses/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -637,15 +813,26 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_create_company_type",
-    "Create a company type.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Create a company type.",
     {
       name: z.string().describe("Company type name"),
       defaultFlag: z.boolean().optional().describe("Mark as default type"),
       vendorFlag: z.boolean().optional().describe("Mark as vendor type"),
       serviceAlertFlag: z.boolean().optional().describe("Enable service alert for this type"),
       serviceAlertMessage: z.string().optional().describe("Service alert message text"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_company_type", entityType: "company_type", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = { name: args.name };
       if (args.defaultFlag !== undefined) body.defaultFlag = args.defaultFlag;
       if (args.vendorFlag !== undefined) body.vendorFlag = args.vendorFlag;
@@ -658,12 +845,23 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_company_type",
-    "Update a company type via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Update a company type via JSON Patch.",
     {
       id: z.number().describe("Type ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id, patch }) => {
+    async ({ id, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_company_type", entityType: "company_type", entityId: id, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/company/companies/types/${id}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -671,11 +869,22 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_company_type",
-    "Delete a company type.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Delete a company type.",
     {
       id: z.number().describe("Type ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_company_type", entityType: "company_type", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/company/companies/types/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },

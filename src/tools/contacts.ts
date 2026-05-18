@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
+import { auditLog } from "../audit/log.js";
 
 const patchOp = z.object({
   op: z.enum(["replace", "add", "remove"]),
@@ -15,6 +16,18 @@ const communicationItem = z.object({
   defaultFlag: z.boolean().optional(),
   communicationType: z.string().optional(),
 });
+
+const sentinelParams = {
+  user_intent: z.string().min(20).describe(
+    "Plain-English description of what the user asked for. " +
+      "Must be at least 20 characters. Example: " +
+      "'User asked to close ticket 12345 because they have billed it.'",
+  ),
+  user_quote: z.string().min(20).describe(
+    "Verbatim quote of the user's actual words that motivated this action. " +
+      "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+  ),
+};
 
 export function registerContactTools(server: McpServer, client: CwManageClient) {
   // ── Contacts ─────────────────────────────────────────────────────────────────
@@ -74,7 +87,7 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_create_contact",
-    "Create a new contact. firstName is required; companyId associates the contact with a company.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a new contact. firstName is required; companyId associates the contact with a company.",
     {
       firstName: z.string().describe("Contact first name"),
       lastName: z.string().optional().describe("Contact last name"),
@@ -97,8 +110,10 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
       unsubscribeFlag: z.boolean().optional().describe("Unsubscribe contact from marketing"),
       communicationItems: z.array(communicationItem).optional().describe("Phone/email/fax items"),
       customFields: z.array(z.object({ id: z.number(), value: z.unknown() })).optional().describe("Custom field values"),
+      ...sentinelParams,
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_contact", entityType: "contact", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = { firstName: args.firstName };
       if (args.lastName) body.lastName = args.lastName;
       if (args.companyId !== undefined) body.company = { id: args.companyId };
@@ -127,12 +142,14 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_contact",
-    "Update a contact via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a contact via JSON Patch.",
     {
       id: z.number().describe("Contact ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
+      ...sentinelParams,
     },
-    async ({ id, patch }) => {
+    async ({ id, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_contact", entityType: "contact", entityId: id, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/company/contacts/${id}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -140,12 +157,14 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_replace_contact",
-    "Replace a contact via PUT.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Replace a contact via PUT.",
     {
       id: z.number().describe("Contact ID"),
       body: z.record(z.string(), z.unknown()).describe("Full replacement body for PUT"),
+      ...sentinelParams,
     },
-    async ({ id, body }) => {
+    async ({ id, body, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_replace_contact", entityType: "contact", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("PUT", `/company/contacts/${id}`, body);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -153,11 +172,13 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_contact",
-    "Delete a contact. Destructive.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a contact. Destructive.",
     {
       id: z.number().describe("Contact ID"),
+      ...sentinelParams,
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_contact", entityType: "contact", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/company/contacts/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -199,7 +220,7 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_create_contact_communication",
-    "Add a communication item to a contact.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Add a communication item to a contact.",
     {
       contactId: z.number().describe("Contact ID"),
       typeId: z.number().describe("Communication type ID (Direct, Mobile, Email, Fax, etc.)"),
@@ -207,8 +228,10 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
       extension: z.string().optional().describe("Phone extension"),
       defaultFlag: z.boolean().optional().describe("Mark as default"),
       communicationType: z.string().optional().describe("'Phone' | 'Email' | 'Fax'"),
+      ...sentinelParams,
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_contact_communication", entityType: "contact_communication", entityId: args.contactId, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = {
         type: { id: args.typeId },
         value: args.value,
@@ -223,13 +246,15 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_contact_communication",
-    "Update a contact communication item via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a contact communication item via JSON Patch.",
     {
       contactId: z.number().describe("Contact ID"),
       communicationId: z.number().describe("Communication item ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
+      ...sentinelParams,
     },
-    async ({ contactId, communicationId, patch }) => {
+    async ({ contactId, communicationId, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_contact_communication", entityType: "contact_communication", entityId: communicationId, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/company/contacts/${contactId}/communications/${communicationId}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -237,12 +262,14 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_contact_communication",
-    "Delete a contact communication item.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a contact communication item.",
     {
       contactId: z.number().describe("Contact ID"),
       communicationId: z.number().describe("Communication item ID"),
+      ...sentinelParams,
     },
-    async ({ contactId, communicationId }) => {
+    async ({ contactId, communicationId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_contact_communication", entityType: "contact_communication", entityId: communicationId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/company/contacts/${contactId}/communications/${communicationId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -284,14 +311,16 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_create_contact_note",
-    "Add a note to a contact.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Add a note to a contact.",
     {
       contactId: z.number().describe("Contact ID"),
       text: z.string().describe("Note text"),
       typeId: z.number().optional().describe("Note type ID"),
       flagged: z.boolean().optional().describe("Flag this note for attention"),
+      ...sentinelParams,
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_contact_note", entityType: "contact_note", entityId: args.contactId, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = { text: args.text };
       if (args.typeId !== undefined) body.type = { id: args.typeId };
       if (args.flagged !== undefined) body.flagged = args.flagged;
@@ -302,13 +331,15 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_contact_note",
-    "Update a contact note via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a contact note via JSON Patch.",
     {
       contactId: z.number().describe("Contact ID"),
       noteId: z.number().describe("Contact note ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
+      ...sentinelParams,
     },
-    async ({ contactId, noteId, patch }) => {
+    async ({ contactId, noteId, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_contact_note", entityType: "contact_note", entityId: noteId, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/company/contacts/${contactId}/notes/${noteId}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -316,12 +347,14 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_contact_note",
-    "Delete a contact note.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a contact note.",
     {
       contactId: z.number().describe("Contact ID"),
       noteId: z.number().describe("Contact note ID"),
+      ...sentinelParams,
     },
-    async ({ contactId, noteId }) => {
+    async ({ contactId, noteId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_contact_note", entityType: "contact_note", entityId: noteId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/company/contacts/${contactId}/notes/${noteId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -350,13 +383,15 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_add_contact_track",
-    "Assign a marketing track to a contact.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Assign a marketing track to a contact.",
     {
       contactId: z.number().describe("Contact ID"),
       trackId: z.number().describe("Contact track ID"),
       startDate: z.string().optional().describe("Start date in [YYYY-MM-DDTHH:MM:SSZ] format"),
+      ...sentinelParams,
     },
     async (args) => {
+      await auditLog({ tool: "cw_add_contact_track", entityType: "contact_track", entityId: args.contactId, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = { track: { id: args.trackId } };
       if (args.startDate) body.startDate = args.startDate;
       const result = await client.post(`/company/contacts/${args.contactId}/tracks`, body);
@@ -366,12 +401,14 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_contact_track",
-    "Remove a track assignment from a contact.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Remove a track assignment from a contact.",
     {
       contactId: z.number().describe("Contact ID"),
       trackEntryId: z.number().describe("Contact-track row ID"),
+      ...sentinelParams,
     },
-    async ({ contactId, trackEntryId }) => {
+    async ({ contactId, trackEntryId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_contact_track", entityType: "contact_track", entityId: trackEntryId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/company/contacts/${contactId}/tracks/${trackEntryId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -411,12 +448,14 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_create_contact_type",
-    "Create a contact type.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a contact type.",
     {
       description: z.string().describe("Type name"),
       defaultFlag: z.boolean().optional().describe("Mark as default"),
+      ...sentinelParams,
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_contact_type", entityType: "contact_type", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = { description: args.description };
       if (args.defaultFlag !== undefined) body.defaultFlag = args.defaultFlag;
       const result = await client.post("/company/contacts/types", body);
@@ -426,12 +465,14 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_contact_type",
-    "Update a contact type via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a contact type via JSON Patch.",
     {
       id: z.number().describe("Contact type ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
+      ...sentinelParams,
     },
-    async ({ id, patch }) => {
+    async ({ id, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_contact_type", entityType: "contact_type", entityId: id, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/company/contacts/types/${id}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -439,11 +480,13 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_contact_type",
-    "Delete a contact type.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a contact type.",
     {
       id: z.number().describe("Contact type ID"),
+      ...sentinelParams,
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_contact_type", entityType: "contact_type", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/company/contacts/types/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
+import { auditLog } from "../audit/log.js";
 
 const patchOp = z.object({
   op: z.enum(["replace", "add", "remove"]),
@@ -66,7 +67,7 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
 
   server.tool(
     "cw_create_activity",
-    "Create a CRM activity. name and assignToId are required.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a CRM activity. name and assignToId are required.",
     {
       name: z.string().describe("Activity name (required)"),
       assignToId: z.number().describe("Member ID activity is assigned to"),
@@ -87,8 +88,18 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
       reminderId: z.number().optional().describe("Reminder ID"),
       priorityId: z.number().optional().describe("Priority ID"),
       customFields: z.array(z.object({ id: z.number(), value: z.unknown() })).optional().describe("Custom field values"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_activity", entityType: "activity", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = {
         name: args.name,
         assignTo: { id: args.assignToId },
@@ -117,12 +128,22 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
 
   server.tool(
     "cw_update_activity",
-    "Update an activity via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an activity via JSON Patch.",
     {
       id: z.number().describe("Activity ID"),
       patch: z.array(patchOp).describe("JSON Patch operations"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id, patch }) => {
+    async ({ id, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_activity", entityType: "activity", entityId: id, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/sales/activities/${id}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -130,12 +151,22 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
 
   server.tool(
     "cw_replace_activity",
-    "Replace an activity via PUT.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Replace an activity via PUT.",
     {
       id: z.number().describe("Activity ID"),
       body: z.record(z.string(), z.unknown()).describe("Full replacement body for PUT"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id, body }) => {
+    async ({ id, body, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_replace_activity", entityType: "activity", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("PUT", `/sales/activities/${id}`, body);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -143,11 +174,21 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
 
   server.tool(
     "cw_delete_activity",
-    "Delete an activity.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete an activity.",
     {
       id: z.number().describe("Activity ID"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_activity", entityType: "activity", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/sales/activities/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -177,13 +218,23 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
 
   server.tool(
     "cw_create_activity_note",
-    "Add a note to an activity.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Add a note to an activity.",
     {
       activityId: z.number().describe("Activity ID"),
       text: z.string().describe("Note text"),
       flagged: z.boolean().optional().describe("Flag the note as important"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_activity_note", entityType: "activity_note", entityId: args.activityId, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = { text: args.text };
       if (args.flagged !== undefined) body.flagged = args.flagged;
       const result = await client.post(`/sales/activities/${args.activityId}/notes`, body);
@@ -246,7 +297,7 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
 
   server.tool(
     "cw_create_activity_type",
-    "Create an activity type.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create an activity type.",
     {
       name: z.string().describe("Activity type name"),
       points: z.number().optional().describe("Sales-points value for activities of this type"),
@@ -255,8 +306,18 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
       memoFlag: z.boolean().optional().describe("Enable memo behaviour for this type"),
       historyFlag: z.boolean().optional().describe("Record this type in activity history"),
       inactiveFlag: z.boolean().optional().describe("Mark the type as inactive"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_activity_type", entityType: "activity_type", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = { name: args.name };
       if (args.points !== undefined) body.points = args.points;
       if (args.defaultFlag !== undefined) body.defaultFlag = args.defaultFlag;
@@ -271,12 +332,22 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
 
   server.tool(
     "cw_update_activity_type",
-    "Update an activity type via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an activity type via JSON Patch.",
     {
       id: z.number().describe("Activity type ID"),
       patch: z.array(patchOp).describe("JSON Patch operations"),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id, patch }) => {
+    async ({ id, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_activity_type", entityType: "activity_type", entityId: id, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/sales/activities/types/${id}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -284,11 +355,21 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
 
   server.tool(
     "cw_delete_activity_type",
-    "Delete an activity type.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete an activity type.",
     {
       id: z.number(),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_activity_type", entityType: "activity_type", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/sales/activities/types/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -328,15 +409,25 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
 
   server.tool(
     "cw_create_activity_status",
-    "Create an activity status.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create an activity status.",
     {
       name: z.string(),
       defaultFlag: z.boolean().optional(),
       inactiveFlag: z.boolean().optional(),
       spawnFollowupFlag: z.boolean().optional(),
       closedFlag: z.boolean().optional(),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_activity_status", entityType: "activity_status", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = { name: args.name };
       if (args.defaultFlag !== undefined) body.defaultFlag = args.defaultFlag;
       if (args.inactiveFlag !== undefined) body.inactiveFlag = args.inactiveFlag;
@@ -349,12 +440,22 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
 
   server.tool(
     "cw_update_activity_status",
-    "Update an activity status via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an activity status via JSON Patch.",
     {
       id: z.number(),
       patch: z.array(patchOp),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id, patch }) => {
+    async ({ id, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_activity_status", entityType: "activity_status", entityId: id, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/sales/activities/statuses/${id}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -362,11 +463,21 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
 
   server.tool(
     "cw_delete_activity_status",
-    "Delete an activity status.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete an activity status.",
     {
       id: z.number(),
+      user_intent: z.string().min(20).describe(
+        "Plain-English description of what the user asked for. " +
+          "Must be at least 20 characters. Example: " +
+          "'User asked to close ticket 12345 because they have billed it.'",
+      ),
+      user_quote: z.string().min(20).describe(
+        "Verbatim quote of the user's actual words that motivated this action. " +
+          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+      ),
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_activity_status", entityType: "activity_status", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/sales/activities/statuses/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },

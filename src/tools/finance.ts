@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
+import { auditLog } from "../audit/log.js";
 
 /**
  * Finance tools — full coverage of /finance subtree.
@@ -10,6 +11,19 @@ import { CwManageClient } from "../api-client.js";
  *
  * Register this file's `registerFinanceTools` INSTEAD OF `registerAgreementTools`.
  */
+
+const sentinelParams = {
+  user_intent: z.string().min(20).describe(
+    "Plain-English description of what the user asked for. " +
+      "Must be at least 20 characters. Example: " +
+      "'User asked to close ticket 12345 because they have billed it.'",
+  ),
+  user_quote: z.string().min(20).describe(
+    "Verbatim quote of the user's actual words that motivated this action. " +
+      "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
+  ),
+};
+
 export function registerFinanceTools(server: McpServer, client: CwManageClient) {
   // ── /finance/agreements (full CRUD + actions) ────────────────────────────
 
@@ -44,7 +58,7 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_create_agreement",
-    "Create an agreement. Required: name, type, company, contact.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create an agreement. Required: name, type, company, contact.",
     {
       name: z.string().describe("Agreement name"),
       typeId: z.number().describe("Agreement type ID"),
@@ -83,8 +97,10 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
       coverSalesTax: z.boolean().optional().describe("Cover sales tax"),
       carryOverUnused: z.boolean().optional().describe("Carry over unused"),
       allowOverruns: z.boolean().optional().describe("Allow overruns"),
+      ...sentinelParams,
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_agreement", entityType: "agreement", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = {
         name: args.name,
         type: { id: args.typeId },
@@ -132,7 +148,7 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_agreement",
-    "Update an agreement via JSON Patch. Common ops: replace endDate, replace billAmount, replace cancelledFlag.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an agreement via JSON Patch. Common ops: replace endDate, replace billAmount, replace cancelledFlag.",
     {
       id: z.number().describe("Agreement ID"),
       operations: z.array(z.object({
@@ -140,8 +156,10 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
         path: z.string(),
         value: z.unknown().optional(),
       })).describe("Array of JSON Patch operations"),
+      ...sentinelParams,
     },
-    async ({ id, operations }) => {
+    async ({ id, operations, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_agreement", entityType: "agreement", entityId: id, userIntent: user_intent, userQuote: user_quote, operations });
       const result = await client.patch(`/finance/agreements/${id}`, operations);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -149,13 +167,15 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_cancel_agreement",
-    "Cancel an agreement by patching cancelledFlag=true (DELETE on active agreement returns 400).",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Cancel an agreement by patching cancelledFlag=true (DELETE on active agreement returns 400).",
     {
       id: z.number().describe("Agreement ID"),
       dateCancelled: z.string().optional().describe("Cancellation date in CW format: [YYYY-MM-DDTHH:MM:SSZ]"),
       reasonCancelled: z.string().optional().describe("Reason text"),
+      ...sentinelParams,
     },
-    async ({ id, dateCancelled, reasonCancelled }) => {
+    async ({ id, dateCancelled, reasonCancelled, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_cancel_agreement", entityType: "agreement", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const ops: Array<{ op: string; path: string; value: unknown }> = [
         { op: "replace", path: "cancelledFlag", value: true },
       ];
@@ -168,11 +188,13 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_agreement",
-    "Delete an agreement. Note: CW returns 400 on active agreements — use cw_cancel_agreement instead unless the agreement was never activated.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete an agreement. Note: CW returns 400 on active agreements — use cw_cancel_agreement instead unless the agreement was never activated.",
     {
       id: z.number().describe("Agreement ID"),
+      ...sentinelParams,
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_agreement", entityType: "agreement", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/finance/agreements/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -180,12 +202,14 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_copy_agreement",
-    "Copy/clone an agreement. Optional 'overrides' merges onto the new agreement.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Copy/clone an agreement. Optional 'overrides' merges onto the new agreement.",
     {
       id: z.number().describe("Source agreement ID"),
       overrides: z.record(z.string(), z.unknown()).optional().describe("Optional Agreement fields to override on the copy"),
+      ...sentinelParams,
     },
-    async ({ id, overrides }) => {
+    async ({ id, overrides, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_copy_agreement", entityType: "agreement", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.post(`/finance/agreements/${id}/copy`, overrides ?? {});
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -226,7 +250,7 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_create_agreement_addition",
-    "Create an agreement addition (line item).",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create an agreement addition (line item).",
     {
       agreementId: z.number().describe("Parent agreement ID"),
       productId: z.number().describe("Catalog item / product ID"),
@@ -243,8 +267,10 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
       purchaseItemFlag: z.boolean().optional().describe("Purchase item flag"),
       specialOrderFlag: z.boolean().optional().describe("Special order flag"),
       description: z.string().optional().describe("Description override"),
+      ...sentinelParams,
     },
     async (args) => {
+      await auditLog({ tool: "cw_create_agreement_addition", entityType: "agreement_addition", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = {
         product: { id: args.productId },
         quantity: args.quantity,
@@ -269,7 +295,7 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_agreement_addition",
-    "Update an agreement addition via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an agreement addition via JSON Patch.",
     {
       agreementId: z.number().describe("Parent agreement ID"),
       additionId: z.number().describe("Addition ID"),
@@ -278,8 +304,10 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
         path: z.string(),
         value: z.unknown().optional(),
       })).describe("Array of JSON Patch operations"),
+      ...sentinelParams,
     },
-    async ({ agreementId, additionId, operations }) => {
+    async ({ agreementId, additionId, operations, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_agreement_addition", entityType: "agreement_addition", entityId: additionId, userIntent: user_intent, userQuote: user_quote, operations });
       const result = await client.patch(`/finance/agreements/${agreementId}/additions/${additionId}`, operations);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -287,12 +315,14 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_agreement_addition",
-    "Delete an agreement addition by ID.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete an agreement addition by ID.",
     {
       agreementId: z.number().describe("Parent agreement ID"),
       additionId: z.number().describe("Addition ID"),
+      ...sentinelParams,
     },
-    async ({ agreementId, additionId }) => {
+    async ({ agreementId, additionId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_agreement_addition", entityType: "agreement_addition", entityId: additionId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/finance/agreements/${agreementId}/additions/${additionId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -333,7 +363,7 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_create_agreement_workrole",
-    "Add a work role override to an agreement (rate card entry).",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Add a work role override to an agreement (rate card entry).",
     {
       agreementId: z.number().describe("Parent agreement ID"),
       workRoleId: z.number().describe("Work role ID to override"),
@@ -342,8 +372,10 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
       endingDate: z.string().optional().describe("Ending date in CW format"),
       rateType: z.string().optional().describe("Rate type ('Standard', 'Adjustment', etc.)"),
       limitTo: z.number().optional().describe("Hour limit on this rate"),
+      ...sentinelParams,
     },
-    async ({ agreementId, workRoleId, rate, effectiveDate, endingDate, rateType, limitTo }) => {
+    async ({ agreementId, workRoleId, rate, effectiveDate, endingDate, rateType, limitTo, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_create_agreement_workrole", entityType: "agreement_workrole", entityId: 0, userIntent: user_intent, userQuote: user_quote });
       const body: Record<string, unknown> = {
         workRole: { id: workRoleId },
         rate,
@@ -360,7 +392,7 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_agreement_workrole",
-    "Update an agreement work role override via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an agreement work role override via JSON Patch.",
     {
       agreementId: z.number().describe("Parent agreement ID"),
       workRoleId: z.number().describe("Work role override ID"),
@@ -369,8 +401,10 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
         path: z.string(),
         value: z.unknown().optional(),
       })).describe("Array of JSON Patch operations"),
+      ...sentinelParams,
     },
-    async ({ agreementId, workRoleId, operations }) => {
+    async ({ agreementId, workRoleId, operations, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_agreement_workrole", entityType: "agreement_workrole", entityId: workRoleId, userIntent: user_intent, userQuote: user_quote, operations });
       const result = await client.patch(`/finance/agreements/${agreementId}/workroles/${workRoleId}`, operations);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -378,12 +412,14 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_agreement_workrole",
-    "Remove a work role override from an agreement.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Remove a work role override from an agreement.",
     {
       agreementId: z.number().describe("Parent agreement ID"),
       workRoleId: z.number().describe("Work role override ID"),
+      ...sentinelParams,
     },
-    async ({ agreementId, workRoleId }) => {
+    async ({ agreementId, workRoleId, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_agreement_workrole", entityType: "agreement_workrole", entityId: workRoleId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/finance/agreements/${agreementId}/workroles/${workRoleId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -558,7 +594,7 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_invoice",
-    "Update an invoice via JSON Patch. Common ops: replace status/id, replace dueDate.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an invoice via JSON Patch. Common ops: replace status/id, replace dueDate.",
     {
       id: z.number().describe("Invoice ID"),
       operations: z.array(z.object({
@@ -566,8 +602,10 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
         path: z.string(),
         value: z.unknown().optional(),
       })).describe("Array of JSON Patch operations"),
+      ...sentinelParams,
     },
-    async ({ id, operations }) => {
+    async ({ id, operations, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_invoice", entityType: "invoice", entityId: id, userIntent: user_intent, userQuote: user_quote, operations });
       const result = await client.patch(`/finance/invoices/${id}`, operations);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -575,11 +613,13 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_delete_invoice",
-    "Delete an invoice by ID. CW may reject if posted to GL — handle 400/422.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete an invoice by ID. CW may reject if posted to GL — handle 400/422.",
     {
       id: z.number().describe("Invoice ID"),
+      ...sentinelParams,
     },
-    async ({ id }) => {
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_invoice", entityType: "invoice", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/finance/invoices/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -587,7 +627,7 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_email_invoice",
-    "Email an invoice to a recipient. POST to /finance/invoices/{id}/email.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Email an invoice to a recipient. POST to /finance/invoices/{id}/email.",
     {
       id: z.number().describe("Invoice ID"),
       to: z.string().optional().describe("Comma-separated recipient email addresses"),
@@ -595,8 +635,10 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
       bcc: z.string().optional().describe("Comma-separated BCC email addresses"),
       subject: z.string().optional().describe("Email subject override"),
       body: z.string().optional().describe("Email body override"),
+      ...sentinelParams,
     },
-    async ({ id, to, cc, bcc, subject, body: emailBody }) => {
+    async ({ id, to, cc, bcc, subject, body: emailBody, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_email_invoice", entityType: "invoice", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const body: Record<string, unknown> = {};
       if (to) body.to = to;
       if (cc) body.cc = cc;
@@ -610,7 +652,7 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_pay_invoice",
-    "Record a payment against an invoice. POST to /finance/invoices/{id}/pay.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Record a payment against an invoice. POST to /finance/invoices/{id}/pay.",
     {
       id: z.number().describe("Invoice ID"),
       amount: z.number().describe("Payment amount"),
@@ -619,8 +661,10 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
       paymentTypeId: z.number().optional().describe("Payment type ID"),
       checkNumber: z.string().optional().describe("Check / reference number"),
       memo: z.string().optional().describe("Memo / notes"),
+      ...sentinelParams,
     },
-    async ({ id, amount, paymentDate, paymentMethodId, paymentTypeId, checkNumber, memo }) => {
+    async ({ id, amount, paymentDate, paymentMethodId, paymentTypeId, checkNumber, memo, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_pay_invoice", entityType: "invoice", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const body: Record<string, unknown> = { amount };
       if (paymentDate) body.paymentDate = paymentDate;
       if (paymentMethodId) body.paymentMethod = { id: paymentMethodId };
