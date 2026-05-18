@@ -8,7 +8,7 @@ services:
     container_name: connectwise-manage-mcp-server
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "9090:8080"
     env_file:
       - .env
     environment:
@@ -20,6 +20,13 @@ services:
       - AUTH_MODE=env
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - NODE_ENV=production
+      - MCP_OAUTH_ENABLED=${MCP_OAUTH_ENABLED:-false}
+      - MCP_SERVER_URL=${MCP_SERVER_URL}
+      - AZURE_TENANT_ID=${AZURE_TENANT_ID}
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
+      - AZURE_AUDIENCE=${AZURE_AUDIENCE}
+      - AZURE_REQUIRED_ROLE=${AZURE_REQUIRED_ROLE:-CWM.Access}
+      - MCP_BEARER_TOKEN=${MCP_BEARER_TOKEN}
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 30s
