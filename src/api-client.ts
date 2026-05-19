@@ -42,6 +42,8 @@ export function getConfig(): CwManageConfig | null {
 /**
  * Low-level API client for ConnectWise Manage REST API.
  */
+import { getCorrelationId } from "./context.js";
+
 export class CwManageClient {
   private readonly authHeader: string;
   private readonly clientId: string;
@@ -116,13 +118,18 @@ export class CwManageClient {
       fetchOptions.dispatcher = this.tlsAgent;
     }
 
+    const cid = getCorrelationId();
+    const start = Date.now();
     const response = await fetch(url.toString(), fetchOptions as RequestInit);
+    const elapsed = Date.now() - start;
 
     if (!response.ok) {
       const errorBody = await response.text();
-      console.error(`[cw-api] ${method} ${path} ${response.status}: ${errorBody}`);
+      console.error(`[cw-api] cid:${cid} | ${method} ${path} → ${response.status} (${elapsed}ms) | ${errorBody}`);
       throw new Error(`ConnectWise API error ${response.status}: ${errorBody}`);
     }
+
+    console.error(`[cw-api] cid:${cid} | ${method} ${path} → ${response.status} (${elapsed}ms)`);
 
     // Some endpoints return 204 No Content
     if (response.status === 204) {

@@ -1,4 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { auditOutcome } from "../audit/log.js";
 
 /**
  * L1 helpdesk engineer profile — deep ticket management plus supporting
@@ -221,31 +222,107 @@ export function profileFromRoles(roles: string[]): string | undefined {
 }
 
 /**
- * Wraps an McpServer so that server.tool() calls whose name is not in the
- * allowlist are silently dropped. All other methods pass through unchanged.
- * This requires zero modifications to individual tool-registration files.
+ * Wraps the tool handler to catch errors and return structured MCP error
+ * responses (isError: true) instead of throwing. Also records failure
+ * outcomes in the audit log.
+ */
+function wrapHandler(
+  toolName: string,
+  handler: (...args: unknown[]) => Promise<unknown>,
+): (...args: unknown[]) => Promise<unknown> {
+  return async (...args: unknown[]) => {
+    try {
+      const result = await handler(...args);
+      return result;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[tool:${toolName}] error: ${msg}`);
+      void auditOutcome(toolName, "failure", msg);
+      return {
+        content: [{ type: "text", text: `${toolName} failed: ${msg}` }],
+        isError: true,
+      };
+    }
+  };
+}
+
+/**
+ * Wraps the Zod input schema to log the raw arg blob on parse failure.
+ * Re-throws so the SDK still returns a standard validation error to the client.
+ */
+function wrapSchema(toolName: string, schema: unknown): unknown {
+  return new Proxy(schema as object, {
+    get(target, prop, receiver) {
+      if (prop !== "parseAsync") return Reflect.get(target, prop, receiver);
+      const original = Reflect.get(target, prop, receiver) as (args: unknown) => Promise<unknown>;
+      return async (args: unknown) => {
+        try {
+          return await original.call(target, args);
+        } catch (err) {
+          let preview = "(non-serialisable)";
+          try { preview = JSON.stringify(args)?.slice(0, 500) ?? preview; } catch { /* */ }
+          console.error(`[tool:${toolName}] parse failure | ${preview}`);
+          throw err;
+        }
+      };
+    },
+  });
+}
+
+/**
+ * Wraps an McpServer so that:
+ *   - tools not in the profile allowlist are silently dropped
+ *   - all tool handlers return structured isError responses instead of throwing
+ *   - parse failures log the raw arg blob (first 500 chars) with the tool name
+ *   - handler failures are recorded as outcome entries in the audit log
+ *
+ * The proxy is always applied (even for "full" profile) so observability
+ * improvements cover all profiles. Profile filtering is a no-op when
+ * allowlist is undefined (full/unset).
  */
 export function applyToolProfile(
   server: McpServer,
   profile: string | undefined,
 ): McpServer {
-  if (!profile || profile === "full") return server;
+  const allowlist =
+    profile === "l1" ? L1_TOOLS :
+    profile === "l2" ? L2_TOOLS :
+    profile && profile !== "full" ? null :  // unknown profile → warn, allow all
+    undefined;                              // full or unset → no filtering
 
-  const allowlist = profile === "l1" ? L1_TOOLS : profile === "l2" ? L2_TOOLS : null;
-  if (!allowlist) {
+  if (allowlist === null) {
     console.warn(`[mcp] Unknown MCP_TOOL_PROFILE "${profile}", using full tool set`);
-    return server;
+  } else if (allowlist !== undefined) {
+    console.log(`[mcp] Tool profile "${profile}": exposing ${allowlist.size} tools`);
   }
-
-  console.log(`[mcp] Tool profile "${profile}": exposing ${allowlist.size} tools`);
 
   return new Proxy(server, {
     get(target, prop, receiver) {
       if (prop !== "tool") return Reflect.get(target, prop, receiver);
       return (name: string, ...rest: unknown[]) => {
-        if (allowlist.has(name)) {
-          return (target.tool as (name: string, ...args: unknown[]) => unknown)(name, ...rest);
+        if (allowlist && !allowlist.has(name)) return;
+
+        const wrappedRest = [...rest];
+
+        // Wrap handler (always last arg) for isError responses + audit outcomes
+        const handlerIdx = wrappedRest.length - 1;
+        if (typeof wrappedRest[handlerIdx] === "function") {
+          wrappedRest[handlerIdx] = wrapHandler(
+            name,
+            wrappedRest[handlerIdx] as (...a: unknown[]) => Promise<unknown>,
+          );
         }
+
+        // Wrap schema (second-to-last arg) for parse failure logging
+        const schemaIdx = wrappedRest.length - 2;
+        if (schemaIdx >= 0) {
+          const maybeSchema = wrappedRest[schemaIdx];
+          if (maybeSchema !== null && typeof maybeSchema === "object" && "parseAsync" in (maybeSchema as object)) {
+            wrappedRest[schemaIdx] = wrapSchema(name, maybeSchema);
+          }
+        }
+
+        return (target.tool as (name: string, ...args: unknown[]) => unknown)(name, ...wrappedRest);
       };
     },
   });
