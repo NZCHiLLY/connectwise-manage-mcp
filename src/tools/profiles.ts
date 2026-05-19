@@ -76,63 +76,106 @@ const L1_TOOLS = new Set([
 ]);
 
 /**
- * L2 engineer/admin profile — all tools except those that are irreversible,
- * send external communications, require human approval workflows, or have
- * unclear semantics. Future tools are automatically included in L2 unless
- * explicitly added to this denylist.
+ * L2 engineer/admin profile — deep ticket management plus supporting lookups.
+ * Capped at 70 tools to stay within Copilot Studio limits.
  */
-const L2_EXCLUDED_TOOLS = new Set([
-  // ── Member lifecycle ──────────────────────────────────────────────────────
-  "cw_deactivate_member",           // irreversible; requires HR workflow
-  "cw_create_api_member_key",       // credential creation
-  "cw_delete_api_member_key",       // credential deletion
+const L2_TOOLS = new Set([
+  // ── Tickets (full lifecycle) ──────────────────────────────────────────────
+  "cw_search_tickets",
+  "cw_get_ticket",
+  "cw_get_ticket_by_id_search",
+  "cw_count_tickets",
+  "cw_create_ticket",
+  "cw_update_ticket",
+  "cw_delete_ticket",
+  "cw_copy_ticket",
+  "cw_replace_ticket",
+  "cw_merge_tickets",
 
-  // ── Finance: irreversible or external actions ─────────────────────────────
-  "cw_cancel_agreement",            // permanent financial action
-  "cw_pay_invoice",                 // direct payment
-  "cw_email_invoice",               // external send; cannot be recalled
-  "cw_email_purchase_order",        // external send; cannot be recalled
+  // ── Ticket notes ─────────────────────────────────────────────────────────
+  "cw_add_ticket_note",
+  "cw_get_ticket_note",
+  "cw_get_ticket_notes",
+  "cw_update_ticket_note",
+  "cw_delete_ticket_note",
 
-  // ── Approval workflows (require human judgement) ──────────────────────────
-  "cw_approve_time_sheet",
-  "cw_reject_time_sheet",
-  "cw_approve_expense_report",
-  "cw_reject_expense_report",
+  // ── Ticket team / members ─────────────────────────────────────────────────
+  "cw_add_ticket_member",
+  "cw_add_ticket_team_member",
+  "cw_list_ticket_team",
+  "cw_get_ticket_team_member",
+  "cw_update_ticket_team_member",
+  "cw_remove_ticket_team_member",
 
-  // ── Time sheet pipeline (affects payroll) ─────────────────────────────────
-  "cw_submit_time_sheet",
-  "cw_reverse_time_sheet",
+  // ── Ticket tasks ─────────────────────────────────────────────────────────
+  "cw_create_ticket_task",
+  "cw_get_ticket_task",
+  "cw_list_ticket_tasks",
+  "cw_update_ticket_task",
+  "cw_delete_ticket_task",
 
-  // ── Purchase order workflow ───────────────────────────────────────────────
-  "cw_submit_purchase_order",
-  "cw_unsubmit_purchase_order",
+  // ── Ticket related lists ─────────────────────────────────────────────────
+  "cw_list_ticket_configurations",
+  "cw_attach_configuration_to_ticket",
+  "cw_detach_configuration_from_ticket",
+  "cw_list_ticket_time_entries",
+  "cw_list_ticket_activities",
+  "cw_list_ticket_documents",
+  "cw_list_ticket_products",
+  "cw_list_ticket_schedule_entries",
 
-  // ── Irreversible business-state changes ───────────────────────────────────
-  "cw_merge_companies",
-  "cw_win_opportunity",
-  "cw_lose_opportunity",
-  "cw_convert_opportunity_to_project",
-  "cw_convert_opportunity_to_ticket",
-  "cw_recalculate_opportunity_prices",
+  // ── Companies (lookup) ────────────────────────────────────────────────────
+  "cw_search_companies",
+  "cw_get_company",
+  "cw_count_companies",
+  "cw_list_company_sites",
 
-  // ── Webhook / integration management (security concern) ───────────────────
-  "cw_create_callback",
-  "cw_update_callback",
-  "cw_delete_callback",
+  // ── Contacts (lookup + create) ────────────────────────────────────────────
+  "cw_search_contacts",
+  "cw_get_contact",
+  "cw_count_contacts",
+  "cw_create_contact",
 
-  // ── Unclear / ambiguous semantics ─────────────────────────────────────────
-  "cw_convert_ticket_from_survey",
-  "cw_clear_schedule_colors",
-  "cw_reset_schedule_colors",
+  // ── Members (lookup) ─────────────────────────────────────────────────────
+  "cw_search_members",
+  "cw_get_member",
 
-  // ── Duplicate (prefer cw_list_catalog_subcategories) ─────────────────────
-  "cw_list_catalog_sub_categories",
+  // ── Time entries (create + update for ticket work) ────────────────────────
+  "cw_search_time_entries",
+  "cw_get_time_entry",
+  "cw_create_time_entry",
+  "cw_update_time_entry",
+
+  // ── Service / board metadata (valid values for ticket fields) ─────────────
+  "cw_list_service_boards",
+  "cw_get_service_board",
+  "cw_list_service_priorities",
+  "cw_get_service_priority",
+  "cw_list_board_statuses",
+  "cw_list_board_types",
+  "cw_list_board_subtypes",
+  "cw_list_board_items",
+  "cw_list_board_teams",
+  "cw_list_service_categories",
+  "cw_list_service_sources",
+  "cw_list_impacts",
+  "cw_list_severities",
+
+  // ── Configurations (assets) ───────────────────────────────────────────────
+  "cw_search_configurations",
+  "cw_get_configuration",
+
+  // ── Schedule ──────────────────────────────────────────────────────────────
+  "cw_create_schedule_entry",
+
+  // ── System / utility ──────────────────────────────────────────────────────
+  "cw_test_connection",
 ]);
 
 /**
  * Maps an Azure AD app role to a tool profile name.
  * CWM.L1  → "l1"  (frontline helpdesk, ~45 tools)
- * CWM.L2  → "l2"  (engineers/admins, all tools minus dangerous ones)
+ * CWM.L2  → "l2"  (engineers/admins, ~69 ticket-focused tools)
  * Unrecognised roles fall through to the MCP_TOOL_PROFILE env var.
  */
 const ROLE_PROFILE_MAP: Record<string, string> = {
@@ -163,26 +206,19 @@ export function applyToolProfile(
 ): McpServer {
   if (!profile || profile === "full") return server;
 
-  const allowlist = profile === "l1" ? L1_TOOLS : null;
-  const denylist = profile === "l2" ? L2_EXCLUDED_TOOLS : null;
-
-  if (!allowlist && !denylist) {
+  const allowlist = profile === "l1" ? L1_TOOLS : profile === "l2" ? L2_TOOLS : null;
+  if (!allowlist) {
     console.warn(`[mcp] Unknown MCP_TOOL_PROFILE "${profile}", using full tool set`);
     return server;
   }
 
-  if (allowlist) {
-    console.log(`[mcp] Tool profile "${profile}": exposing ${allowlist.size} tools`);
-  } else {
-    console.log(`[mcp] Tool profile "${profile}": excluding ${denylist!.size} tools`);
-  }
+  console.log(`[mcp] Tool profile "${profile}": exposing ${allowlist.size} tools`);
 
   return new Proxy(server, {
     get(target, prop, receiver) {
       if (prop !== "tool") return Reflect.get(target, prop, receiver);
       return (name: string, ...rest: unknown[]) => {
-        const allowed = allowlist ? allowlist.has(name) : !denylist!.has(name);
-        if (allowed) {
+        if (allowlist.has(name)) {
           return (target.tool as (name: string, ...args: unknown[]) => unknown)(name, ...rest);
         }
       };
