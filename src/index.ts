@@ -300,7 +300,7 @@ async function startHttpTransport(): Promise<void> {
 
     // MCP endpoints — /mcp, /mcp/l1, /mcp/l2, /mcp/full
     // Path segment overrides JWT role; JWT role overrides MCP_TOOL_PROFILE env var.
-    const mcpPathMatch = /^\/mcp(?:\/(l1|l2|full))?$/.exec(url.pathname);
+    const mcpPathMatch = /^\/mcp(?:\/(l1|l2|full))?\/?$/.exec(url.pathname);
     if (mcpPathMatch) {
       const urlProfile = mcpPathMatch[1] as string | undefined; // "l1" | "l2" | "full" | undefined
 
