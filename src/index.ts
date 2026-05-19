@@ -30,10 +30,11 @@
  *   AZURE_REQUIRED_ROLE         - App role claim required on every request (default: CWM.Access)
  *   MCP_BEARER_TOKEN            - Static bearer token for Claude Code CLI / Claude Desktop
  *
- * Tool profile selection (optional — overrides MCP_TOOL_PROFILE when JWT roles match):
- *   Azure AD app role "CWM.L1" → exposes L1 helpdesk tool surface
- *   Azure AD app role "CWM.L2" → exposes full tool surface (all ~160 tools)
- *   If no role matches, falls back to MCP_TOOL_PROFILE env var
+ * Tool profile selection — URL path takes precedence, JWT role is fallback:
+ *   /mcp/l1  → L1 helpdesk engineer profile (65 tools)
+ *   /mcp/l2  → L2 management profile (70 tools)
+ *   /mcp     → full tool set (JWT role or MCP_TOOL_PROFILE env var applies)
+ *   Azure AD app role "CWM.L1" / "CWM.L2" → profile fallback when hitting /mcp directly
  */
 
 import {
@@ -297,8 +298,12 @@ async function startHttpTransport(): Promise<void> {
       return;
     }
 
-    // MCP endpoint - stateless: fresh server + transport per request
-    if (url.pathname === "/mcp") {
+    // MCP endpoints — /mcp, /mcp/l1, /mcp/l2, /mcp/full
+    // Path segment overrides JWT role; JWT role overrides MCP_TOOL_PROFILE env var.
+    const mcpPathMatch = /^\/mcp(?:\/(l1|l2|full))?$/.exec(url.pathname);
+    if (mcpPathMatch) {
+      const urlProfile = mcpPathMatch[1] as string | undefined; // "l1" | "l2" | "full" | undefined
+
       if (req.method !== "POST") {
         res.writeHead(405, { "Content-Type": "application/json" });
         res.end(
@@ -315,7 +320,7 @@ async function startHttpTransport(): Promise<void> {
       // Entra ID auth check
       // ------------------------------------------------------------------
       const handleMcp = async () => {
-        let requestToolProfile: string | undefined;
+        let roleToolProfile: string | undefined;
 
         if (oauthEnabled && entraConfig) {
           const authHeader = req.headers.authorization;
@@ -356,7 +361,7 @@ async function startHttpTransport(): Promise<void> {
               identity = await validateToken(token, entraConfig, jwksClient!);
             }
             console.error(
-              `[audit] ${identity.oid} | ${new Date().toISOString()} | POST /mcp`,
+              `[audit] ${identity.oid} | ${new Date().toISOString()} | POST ${url.pathname}`,
             );
           } catch (err) {
             if (err instanceof AuthError) {
@@ -370,9 +375,9 @@ async function startHttpTransport(): Promise<void> {
             return;
           }
 
-          requestToolProfile = profileFromRoles(identity!.roles);
-          if (requestToolProfile) {
-            console.error(`[mcp] Role-derived tool profile: "${requestToolProfile}" (roles: [${identity!.roles.join(", ")}])`);
+          roleToolProfile = profileFromRoles(identity!.roles);
+          if (roleToolProfile) {
+            console.error(`[mcp] Role-derived tool profile: "${roleToolProfile}" (roles: [${identity!.roles.join(", ")}])`);
           }
         }
 
@@ -433,9 +438,10 @@ async function startHttpTransport(): Promise<void> {
         }
 
         // ------------------------------------------------------------------
-        // MCP handler
+        // MCP handler — URL profile takes precedence over JWT role
         // ------------------------------------------------------------------
-        const server = createMcpServer(gatewayConfig, requestToolProfile);
+        const effectiveProfile = urlProfile ?? roleToolProfile;
+        const server = createMcpServer(gatewayConfig, effectiveProfile);
         const transport = new StreamableHTTPServerTransport({
           sessionIdGenerator: undefined,
           enableJsonResponse: true,
@@ -470,16 +476,20 @@ async function startHttpTransport(): Promise<void> {
     // 404 for everything else
     res.writeHead(404, { "Content-Type": "application/json" });
     res.end(
-      JSON.stringify({ error: "Not found", endpoints: ["/mcp", "/health"] }),
+      JSON.stringify({
+        error: "Not found",
+        endpoints: ["/mcp", "/mcp/l1", "/mcp/l2", "/mcp/full", "/health"],
+      }),
     );
   });
 
   await new Promise<void>((resolve) => {
     httpServer!.listen(port, host, () => {
-      console.error(
-        `ConnectWise Manage MCP server listening on http://${host}:${port}/mcp`,
-      );
-      console.error(`Health check available at http://${host}:${port}/health`);
+      console.error(`ConnectWise Manage MCP server listening on http://${host}:${port}`);
+      console.error(`  /mcp      — full tool set`);
+      console.error(`  /mcp/l1   — L1 helpdesk engineer (65 tools)`);
+      console.error(`  /mcp/l2   — L2 management (70 tools)`);
+      console.error(`  /health   — health check`);
       console.error(
         `Authentication mode: ${isGatewayMode ? "gateway (header-based)" : "env (environment variables)"}`,
       );

@@ -1,85 +1,10 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 /**
- * L1 helpdesk profile — exposes the ~45 tools most relevant to a
- * frontline support agent. Stays well under Copilot Studio's 70-tool cap.
+ * L1 helpdesk engineer profile — deep ticket management plus supporting
+ * lookups. Capped at 70 tools for Copilot Studio compatibility.
  */
 const L1_TOOLS = new Set([
-  // ── Tickets ───────────────────────────────────────────────────────────────
-  "cw_search_tickets",
-  "cw_get_ticket",
-  "cw_count_tickets",
-  "cw_create_ticket",
-  "cw_update_ticket",
-  "cw_add_ticket_note",
-  "cw_get_ticket_notes",
-  "cw_add_ticket_member",
-  "cw_add_ticket_team_member",
-  "cw_list_ticket_team",
-  "cw_merge_tickets",
-  "cw_list_ticket_configurations",
-  "cw_list_ticket_time_entries",
-
-  // ── Companies ─────────────────────────────────────────────────────────────
-  "cw_search_companies",
-  "cw_get_company",
-  "cw_count_companies",
-  "cw_list_company_sites",
-
-  // ── Contacts ──────────────────────────────────────────────────────────────
-  "cw_search_contacts",
-  "cw_get_contact",
-  "cw_count_contacts",
-  "cw_create_contact",
-
-  // ── Members ───────────────────────────────────────────────────────────────
-  "cw_search_members",
-  "cw_get_member",
-
-  // ── Time entries ──────────────────────────────────────────────────────────
-  "cw_search_time_entries",
-  "cw_get_time_entry",
-  "cw_create_time_entry",
-  "cw_update_time_entry",
-
-  // ── Service / boards & priorities ────────────────────────────────────────
-  "cw_list_service_boards",
-  "cw_list_service_priorities",
-
-  // ── Configurations (assets) ───────────────────────────────────────────────
-  "cw_search_configurations",
-  "cw_get_configuration",
-
-  // ── Agreements ────────────────────────────────────────────────────────────
-  "cw_search_agreements",
-  "cw_get_agreement",
-  "cw_get_agreement_additions",
-
-  // ── Projects ──────────────────────────────────────────────────────────────
-  "cw_search_projects",
-  "cw_get_project",
-  "cw_list_project_tickets",
-
-  // ── Schedule ──────────────────────────────────────────────────────────────
-  "cw_create_schedule_entry",
-
-  // ── Opportunities ─────────────────────────────────────────────────────────
-  "cw_search_opportunities",
-  "cw_get_opportunity",
-
-  // ── Finance ───────────────────────────────────────────────────────────────
-  "cw_search_invoices",
-  "cw_get_invoice",
-
-  // ── System / utility ──────────────────────────────────────────────────────
-  "cw_test_connection",
-]);
-
-/**
- * L2 engineer/admin profile — deep ticket management plus supporting lookups.
- * Capped at 70 tools to stay within Copilot Studio limits.
- */
-const L2_TOOLS = new Set([
   // ── Tickets (full lifecycle) ──────────────────────────────────────────────
   "cw_search_tickets",
   "cw_get_ticket",
@@ -173,9 +98,109 @@ const L2_TOOLS = new Set([
 ]);
 
 /**
+ * L2 management profile — operational oversight across tickets, projects,
+ * time, assets, finance, and reporting. Capped at 70 tools.
+ */
+const L2_TOOLS = new Set([
+  // ── Tickets (escalation + oversight) ─────────────────────────────────────
+  "cw_search_tickets",
+  "cw_get_ticket",
+  "cw_count_tickets",
+  "cw_create_ticket",
+  "cw_update_ticket",
+  "cw_merge_tickets",
+  "cw_add_ticket_note",
+  "cw_get_ticket_notes",
+  "cw_list_ticket_team",
+  "cw_add_ticket_member",
+  "cw_list_ticket_time_entries",
+  "cw_list_ticket_configurations",
+
+  // ── Projects (oversight + management) ────────────────────────────────────
+  "cw_search_projects",
+  "cw_get_project",
+  "cw_count_projects",
+  "cw_create_project",
+  "cw_update_project",
+  "cw_list_project_tickets",
+  "cw_list_project_phases",
+  "cw_list_project_team_members",
+  "cw_list_project_statuses",
+  "cw_list_project_boards",
+
+  // ── Time / resource visibility ────────────────────────────────────────────
+  "cw_search_time_entries",
+  "cw_get_time_entry",
+  "cw_count_time_entries",
+  "cw_create_time_entry",
+  "cw_update_time_entry",
+  "cw_list_time_sheets",
+  "cw_get_time_sheet",
+
+  // ── Financial oversight (read-heavy) ──────────────────────────────────────
+  "cw_search_agreements",
+  "cw_get_agreement",
+  "cw_get_agreement_additions",
+  "cw_list_agreement_configurations",
+  "cw_list_agreement_types",
+  "cw_search_invoices",
+  "cw_get_invoice",
+  "cw_search_payments",
+  "cw_list_work_roles",
+
+  // ── Configurations / assets ───────────────────────────────────────────────
+  "cw_search_configurations",
+  "cw_get_configuration",
+  "cw_list_configuration_types",
+  "cw_get_configuration_type",
+
+  // ── Opportunities (pipeline visibility) ───────────────────────────────────
+  "cw_search_opportunities",
+  "cw_get_opportunity",
+  "cw_count_opportunities",
+  "cw_list_opportunity_statuses",
+
+  // ── Companies / contacts (lookup) ─────────────────────────────────────────
+  "cw_search_companies",
+  "cw_get_company",
+  "cw_count_companies",
+  "cw_search_contacts",
+  "cw_get_contact",
+  "cw_count_contacts",
+
+  // ── Members / team ────────────────────────────────────────────────────────
+  "cw_search_members",
+  "cw_get_member",
+  "cw_get_my_account",
+  "cw_get_my_company",
+  "cw_list_departments",
+
+  // ── Reporting / KPIs / audit ──────────────────────────────────────────────
+  "cw_list_reports",
+  "cw_run_report",
+  "cw_get_report",
+  "cw_list_kpis",
+  "cw_get_kpi",
+  "cw_list_audit_trail",
+
+  // ── Schedule ──────────────────────────────────────────────────────────────
+  "cw_create_schedule_entry",
+  "cw_search_schedule_entries",
+
+  // ── Service metadata ──────────────────────────────────────────────────────
+  "cw_list_service_boards",
+  "cw_list_service_priorities",
+  "cw_list_board_statuses",
+  "cw_list_impacts",
+
+  // ── System / utility ──────────────────────────────────────────────────────
+  "cw_test_connection",
+]);
+
+/**
  * Maps an Azure AD app role to a tool profile name.
- * CWM.L1  → "l1"  (frontline helpdesk, ~45 tools)
- * CWM.L2  → "l2"  (engineers/admins, ~69 ticket-focused tools)
+ * CWM.L1  → "l1"  (helpdesk engineer, 65 ticket-focused tools)
+ * CWM.L2  → "l2"  (management, 70 operational-oversight tools)
  * Unrecognised roles fall through to the MCP_TOOL_PROFILE env var.
  */
 const ROLE_PROFILE_MAP: Record<string, string> = {
