@@ -144,11 +144,13 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_update_ticket",
-    "Update an existing service ticket using JSON Patch operations. " +
-      "REQUIRED: you must include 'user_intent' (plain-English description of what " +
-      "the user asked for) and 'user_quote' (verbatim text from the user that " +
-      "motivated this change). These are logged for audit. If you cannot quote " +
-      "the user or articulate their intent, do not call this tool — ask the user first.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
+      "Update fields on a service ticket using JSON Patch. " +
+      "Use op='replace' for all field updates. " +
+      "Common fields: summary, status/id (numeric), priority/id (numeric), " +
+      "board/id (numeric), requiredDate (ISO 8601 e.g. '2025-06-30T00:00:00Z'), " +
+      "contactId (numeric), companyId (numeric), siteId (numeric). " +
+      "Paths must start with '/' — e.g. '/summary', '/status/id', '/requiredDate'.",
     {
       id: z.number().describe("Ticket ID"),
       user_intent: z.string().min(20).describe(
@@ -161,9 +163,13 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
       operations: z.array(z.object({
-        op: z.enum(["replace", "add", "remove"]).describe("Patch operation"),
-        path: z.string().describe("JSON path (e.g. 'status/id', 'summary')"),
-        value: z.unknown().optional().describe("New value"),
+        op: z.enum(["replace", "add", "remove"]).describe(
+          "JSON Patch operation. Use 'replace' to set a field value.",
+        ),
+        path: z.string().describe(
+          "Field path with leading slash — e.g. '/summary', '/status/id', '/requiredDate'.",
+        ),
+        value: z.unknown().optional().describe("New value for the field"),
       })).describe("Array of JSON Patch operations"),
     },
     async ({ id, user_intent, user_quote, operations }) => {
