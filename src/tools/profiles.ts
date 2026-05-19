@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 /**
- * L1 helpdesk profile — exposes the ~55 tools most relevant to a
+ * L1 helpdesk profile — exposes the ~45 tools most relevant to a
  * frontline support agent. Stays well under Copilot Studio's 70-tool cap.
  */
 const L1_TOOLS = new Set([
@@ -76,14 +76,68 @@ const L1_TOOLS = new Set([
 ]);
 
 /**
+ * L2 engineer/admin profile — all tools except those that are irreversible,
+ * send external communications, require human approval workflows, or have
+ * unclear semantics. Future tools are automatically included in L2 unless
+ * explicitly added to this denylist.
+ */
+const L2_EXCLUDED_TOOLS = new Set([
+  // ── Member lifecycle ──────────────────────────────────────────────────────
+  "cw_deactivate_member",           // irreversible; requires HR workflow
+  "cw_create_api_member_key",       // credential creation
+  "cw_delete_api_member_key",       // credential deletion
+
+  // ── Finance: irreversible or external actions ─────────────────────────────
+  "cw_cancel_agreement",            // permanent financial action
+  "cw_pay_invoice",                 // direct payment
+  "cw_email_invoice",               // external send; cannot be recalled
+  "cw_email_purchase_order",        // external send; cannot be recalled
+
+  // ── Approval workflows (require human judgement) ──────────────────────────
+  "cw_approve_time_sheet",
+  "cw_reject_time_sheet",
+  "cw_approve_expense_report",
+  "cw_reject_expense_report",
+
+  // ── Time sheet pipeline (affects payroll) ─────────────────────────────────
+  "cw_submit_time_sheet",
+  "cw_reverse_time_sheet",
+
+  // ── Purchase order workflow ───────────────────────────────────────────────
+  "cw_submit_purchase_order",
+  "cw_unsubmit_purchase_order",
+
+  // ── Irreversible business-state changes ───────────────────────────────────
+  "cw_merge_companies",
+  "cw_win_opportunity",
+  "cw_lose_opportunity",
+  "cw_convert_opportunity_to_project",
+  "cw_convert_opportunity_to_ticket",
+  "cw_recalculate_opportunity_prices",
+
+  // ── Webhook / integration management (security concern) ───────────────────
+  "cw_create_callback",
+  "cw_update_callback",
+  "cw_delete_callback",
+
+  // ── Unclear / ambiguous semantics ─────────────────────────────────────────
+  "cw_convert_ticket_from_survey",
+  "cw_clear_schedule_colors",
+  "cw_reset_schedule_colors",
+
+  // ── Duplicate (prefer cw_list_catalog_subcategories) ─────────────────────
+  "cw_list_catalog_sub_categories",
+]);
+
+/**
  * Maps an Azure AD app role to a tool profile name.
- * CWM.L1  → "l1"  (frontline helpdesk, limited surface)
- * CWM.L2  → "full" (engineers/admins, all tools)
+ * CWM.L1  → "l1"  (frontline helpdesk, ~45 tools)
+ * CWM.L2  → "l2"  (engineers/admins, all tools minus dangerous ones)
  * Unrecognised roles fall through to the MCP_TOOL_PROFILE env var.
  */
 const ROLE_PROFILE_MAP: Record<string, string> = {
   "CWM.L1": "l1",
-  "CWM.L2": "full",
+  "CWM.L2": "l2",
 };
 
 /**
@@ -110,18 +164,25 @@ export function applyToolProfile(
   if (!profile || profile === "full") return server;
 
   const allowlist = profile === "l1" ? L1_TOOLS : null;
-  if (!allowlist) {
+  const denylist = profile === "l2" ? L2_EXCLUDED_TOOLS : null;
+
+  if (!allowlist && !denylist) {
     console.warn(`[mcp] Unknown MCP_TOOL_PROFILE "${profile}", using full tool set`);
     return server;
   }
 
-  console.log(`[mcp] Tool profile "${profile}": exposing ${allowlist.size} tools`);
+  if (allowlist) {
+    console.log(`[mcp] Tool profile "${profile}": exposing ${allowlist.size} tools`);
+  } else {
+    console.log(`[mcp] Tool profile "${profile}": excluding ${denylist!.size} tools`);
+  }
 
   return new Proxy(server, {
     get(target, prop, receiver) {
       if (prop !== "tool") return Reflect.get(target, prop, receiver);
       return (name: string, ...rest: unknown[]) => {
-        if (allowlist.has(name)) {
+        const allowed = allowlist ? allowlist.has(name) : !denylist!.has(name);
+        if (allowed) {
           return (target.tool as (name: string, ...args: unknown[]) => unknown)(name, ...rest);
         }
       };
