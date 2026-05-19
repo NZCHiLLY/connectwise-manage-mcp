@@ -99,7 +99,7 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
           "Must be at least 20 characters. Example: " +
           "'User asked to close ticket 12345 because they have billed it.'",
       ),
-      user_quote: z.string().min(20).describe(
+      user_quote: z.string().min(1).describe(
         "Verbatim quote of the user's actual words that motivated this action. " +
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
@@ -156,7 +156,7 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
           "Must be at least 20 characters. Example: " +
           "'User asked to update the phone number for Acme Corp.'",
       ),
-      user_quote: z.string().min(20).describe(
+      user_quote: z.string().min(1).describe(
         "Verbatim quote of the user's actual words that motivated this update. " +
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
@@ -185,7 +185,7 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
           "Must be at least 20 characters. Example: " +
           "'User asked to close ticket 12345 because they have billed it.'",
       ),
-      user_quote: z.string().min(20).describe(
+      user_quote: z.string().min(1).describe(
         "Verbatim quote of the user's actual words that motivated this action. " +
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
@@ -208,7 +208,7 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
           "Must be at least 20 characters. Example: " +
           "'User asked to close ticket 12345 because they have billed it.'",
       ),
-      user_quote: z.string().min(20).describe(
+      user_quote: z.string().min(1).describe(
         "Verbatim quote of the user's actual words that motivated this action. " +
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
@@ -232,7 +232,7 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
           "Must be at least 20 characters. Example: " +
           "'User asked to close ticket 12345 because they have billed it.'",
       ),
-      user_quote: z.string().min(20).describe(
+      user_quote: z.string().min(1).describe(
         "Verbatim quote of the user's actual words that motivated this action. " +
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
@@ -308,7 +308,7 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
           "Must be at least 20 characters. Example: " +
           "'User asked to close ticket 12345 because they have billed it.'",
       ),
-      user_quote: z.string().min(20).describe(
+      user_quote: z.string().min(1).describe(
         "Verbatim quote of the user's actual words that motivated this action. " +
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
@@ -348,7 +348,7 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
           "Must be at least 20 characters. Example: " +
           "'User asked to close ticket 12345 because they have billed it.'",
       ),
-      user_quote: z.string().min(20).describe(
+      user_quote: z.string().min(1).describe(
         "Verbatim quote of the user's actual words that motivated this action. " +
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
@@ -372,7 +372,7 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
           "Must be at least 20 characters. Example: " +
           "'User asked to close ticket 12345 because they have billed it.'",
       ),
-      user_quote: z.string().min(20).describe(
+      user_quote: z.string().min(1).describe(
         "Verbatim quote of the user's actual words that motivated this action. " +
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
@@ -433,7 +433,7 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
           "Must be at least 20 characters. Example: " +
           "'User asked to close ticket 12345 because they have billed it.'",
       ),
-      user_quote: z.string().min(20).describe(
+      user_quote: z.string().min(1).describe(
         "Verbatim quote of the user's actual words that motivated this action. " +
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
@@ -462,7 +462,7 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
           "Must be at least 20 characters. Example: " +
           "'User asked to close ticket 12345 because they have billed it.'",
       ),
-      user_quote: z.string().min(20).describe(
+      user_quote: z.string().min(1).describe(
         "Verbatim quote of the user's actual words that motivated this action. " +
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
@@ -486,7 +486,7 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
           "Must be at least 20 characters. Example: " +
           "'User asked to close ticket 12345 because they have billed it.'",
       ),
-      user_quote: z.string().min(20).describe(
+      user_quote: z.string().min(1).describe(
         "Verbatim quote of the user's actual words that motivated this action. " +
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
@@ -549,7 +549,7 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
           "Must be at least 20 characters. Example: " +
           "'User asked to close ticket 12345 because they have billed it.'",
       ),
-      user_quote: z.string().min(20).describe(
+      user_quote: z.string().min(1).describe(
         "Verbatim quote of the user's actual words that motivated this action. " +
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
@@ -580,7 +580,7 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
           "Must be at least 20 characters. Example: " +
           "'User asked to close ticket 12345 because they have billed it.'",
       ),
-      user_quote: z.string().min(20).describe(
+      user_quote: z.string().min(1).describe(
         "Verbatim quote of the user's actual words that motivated this action. " +
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
@@ -604,7 +604,7 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
           "Must be at least 20 characters. Example: " +
           "'User asked to close ticket 12345 because they have billed it.'",
       ),
-      user_quote: z.string().min(20).describe(
+      user_quote: z.string().min(1).describe(
         "Verbatim quote of the user's actual words that motivated this action. " +
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
@@ -707,7 +707,7 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
           "Must be at least 20 characters. Example: " +
           "'User asked to close ticket 12345 because they have billed it.'",
       ),
-      user_quote: z.string().min(20).describe(
+      user_quote: z.string().min(1).describe(
         "Verbatim quote of the user's actual words that motivated this action. " +
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
@@ -739,7 +739,7 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
           "Must be at least 20 characters. Example: " +
           "'User asked to close ticket 12345 because they have billed it.'",
       ),
-      user_quote: z.string().min(20).describe(
+      user_quote: z.string().min(1).describe(
         "Verbatim quote of the user's actual words that motivated this action. " +
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
@@ -762,7 +762,7 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
           "Must be at least 20 characters. Example: " +
           "'User asked to close ticket 12345 because they have billed it.'",
       ),
-      user_quote: z.string().min(20).describe(
+      user_quote: z.string().min(1).describe(
         "Verbatim quote of the user's actual words that motivated this action. " +
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
@@ -821,7 +821,7 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
           "Must be at least 20 characters. Example: " +
           "'User asked to close ticket 12345 because they have billed it.'",
       ),
-      user_quote: z.string().min(20).describe(
+      user_quote: z.string().min(1).describe(
         "Verbatim quote of the user's actual words that motivated this action. " +
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
@@ -850,7 +850,7 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
           "Must be at least 20 characters. Example: " +
           "'User asked to close ticket 12345 because they have billed it.'",
       ),
-      user_quote: z.string().min(20).describe(
+      user_quote: z.string().min(1).describe(
         "Verbatim quote of the user's actual words that motivated this action. " +
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
@@ -873,7 +873,7 @@ export function registerCompanyTools(server: McpServer, client: CwManageClient) 
           "Must be at least 20 characters. Example: " +
           "'User asked to close ticket 12345 because they have billed it.'",
       ),
-      user_quote: z.string().min(20).describe(
+      user_quote: z.string().min(1).describe(
         "Verbatim quote of the user's actual words that motivated this action. " +
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
