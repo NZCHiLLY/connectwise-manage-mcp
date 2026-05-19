@@ -174,11 +174,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     },
     async ({ id, user_intent, user_quote, operations }) => {
       await auditLog({ tool: "cw_update_ticket", entityType: "ticket", entityId: id, userIntent: user_intent, userQuote: user_quote, operations });
-      const normalized = operations.map(op => ({
-        ...op,
-        path: op.path.startsWith("/") ? op.path : `/${op.path}`,
-      }));
-      const result = await client.patch(`/service/tickets/${id}`, normalized);
+      const result = await client.patch(`/service/tickets/${id}`, operations);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
