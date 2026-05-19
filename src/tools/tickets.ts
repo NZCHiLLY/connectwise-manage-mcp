@@ -186,6 +186,9 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       if (fields.companyId !== undefined)   ops.push({ op: "replace", path: "/company/id",   value: fields.companyId });
       if (fields.siteId !== undefined)      ops.push({ op: "replace", path: "/site/id",      value: fields.siteId });
       if (fields.requiredDate !== undefined) ops.push({ op: "replace", path: "/requiredDate", value: fields.requiredDate });
+      if (ops.length === 0) {
+        return { content: [{ type: "text", text: "cw_update_ticket: no fields to update were provided. Specify at least one of: summary, statusId, priorityId, boardId, typeId, subTypeId, itemId, ownerId, teamId, contactId, companyId, siteId, requiredDate." }], isError: true };
+      }
       await auditLog({ tool: "cw_update_ticket", entityType: "ticket", entityId: id, userIntent: user_intent, userQuote: user_quote, operations: ops });
       const result = await client.patch(`/service/tickets/${id}`, ops);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };

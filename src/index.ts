@@ -62,6 +62,7 @@ import { createRequire } from "node:module";
 const _require = createRequire(import.meta.url);
 const _pkg = _require("../package.json") as { version: string };
 import { applyToolProfile, profileFromRoles } from "./tools/profiles.js";
+import { requestContext, newCorrelationId } from "./context.js";
 import { registerActivityTools }      from "./tools/activities.js";
 import { registerCatalogTools }       from "./tools/catalog.js";
 import { registerCompanyTools }       from "./tools/companies.js";
@@ -231,6 +232,7 @@ async function startHttpTransport(): Promise<void> {
   }
 
   httpServer = createServer((req: IncomingMessage, res: ServerResponse) => {
+    requestContext.run({ correlationId: newCorrelationId() }, () => {
     applySecurityHeaders(res);
     const url = new URL(
       req.url || "/",
@@ -369,7 +371,7 @@ async function startHttpTransport(): Promise<void> {
               identity = await validateToken(token, entraConfig, jwksClient!);
             }
             console.error(
-              `[audit] ${identity.oid} | ${new Date().toISOString()} | POST ${url.pathname}`,
+              `[audit] ${identity.oid} | ${new Date().toISOString()} | POST ${url.pathname} | cid:${requestContext.getStore()?.correlationId ?? "-"}`,
             );
           } catch (err) {
             if (err instanceof AuthError) {
@@ -489,6 +491,7 @@ async function startHttpTransport(): Promise<void> {
         endpoints: ["/mcp", "/mcp/l1", "/mcp/l2", "/mcp/full", "/health"],
       }),
     );
+    }); // end requestContext.run
   });
 
   await new Promise<void>((resolve) => {
