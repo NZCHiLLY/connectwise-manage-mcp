@@ -145,12 +145,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
   server.tool(
     "cw_update_ticket",
     "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. " +
-      "Update fields on a service ticket using JSON Patch. " +
-      "Use op='replace' for all field updates. " +
-      "Common fields: summary, status/id (numeric), priority/id (numeric), " +
-      "board/id (numeric), requiredDate (ISO 8601 e.g. '2025-06-30T00:00:00Z'), " +
-      "contactId (numeric), companyId (numeric), siteId (numeric). " +
-      "Paths must start with '/' — e.g. '/summary', '/status/id', '/requiredDate'.",
+      "Update one or more fields on a service ticket. Supply only the fields you want to change.",
     {
       id: z.number().describe("Ticket ID"),
       user_intent: z.string().min(20).describe(
@@ -162,19 +157,37 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
         "Verbatim quote of the user's actual words that motivated this update. " +
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
-      operations: z.array(z.object({
-        op: z.enum(["replace", "add", "remove"]).describe(
-          "JSON Patch operation. Use 'replace' to set a field value.",
-        ),
-        path: z.string().describe(
-          "Field path with leading slash — e.g. '/summary', '/status/id', '/requiredDate'.",
-        ),
-        value: z.unknown().optional().describe("New value for the field"),
-      })).describe("Array of JSON Patch operations"),
+      summary: z.string().optional().describe("New ticket summary / title"),
+      statusId: z.number().optional().describe("New status ID (use cw_list_board_statuses to find valid IDs)"),
+      priorityId: z.number().optional().describe("New priority ID (use cw_list_service_priorities)"),
+      boardId: z.number().optional().describe("New service board ID (use cw_list_service_boards)"),
+      typeId: z.number().optional().describe("New ticket type ID"),
+      subTypeId: z.number().optional().describe("New ticket sub-type ID"),
+      itemId: z.number().optional().describe("New board item ID"),
+      ownerId: z.number().optional().describe("Member ID to assign as owner"),
+      teamId: z.number().optional().describe("Team ID"),
+      contactId: z.number().optional().describe("Contact ID"),
+      companyId: z.number().optional().describe("Company ID"),
+      siteId: z.number().optional().describe("Site ID"),
+      requiredDate: z.string().optional().describe("Due date in ISO 8601 format, e.g. '2025-06-30T00:00:00Z'"),
     },
-    async ({ id, user_intent, user_quote, operations }) => {
-      await auditLog({ tool: "cw_update_ticket", entityType: "ticket", entityId: id, userIntent: user_intent, userQuote: user_quote, operations });
-      const result = await client.patch(`/service/tickets/${id}`, operations);
+    async ({ id, user_intent, user_quote, ...fields }) => {
+      const ops: { op: string; path: string; value: unknown }[] = [];
+      if (fields.summary !== undefined)     ops.push({ op: "replace", path: "/summary",      value: fields.summary });
+      if (fields.statusId !== undefined)    ops.push({ op: "replace", path: "/status/id",    value: fields.statusId });
+      if (fields.priorityId !== undefined)  ops.push({ op: "replace", path: "/priority/id",  value: fields.priorityId });
+      if (fields.boardId !== undefined)     ops.push({ op: "replace", path: "/board/id",     value: fields.boardId });
+      if (fields.typeId !== undefined)      ops.push({ op: "replace", path: "/type/id",      value: fields.typeId });
+      if (fields.subTypeId !== undefined)   ops.push({ op: "replace", path: "/subType/id",   value: fields.subTypeId });
+      if (fields.itemId !== undefined)      ops.push({ op: "replace", path: "/item/id",      value: fields.itemId });
+      if (fields.ownerId !== undefined)     ops.push({ op: "replace", path: "/owner/id",     value: fields.ownerId });
+      if (fields.teamId !== undefined)      ops.push({ op: "replace", path: "/team/id",      value: fields.teamId });
+      if (fields.contactId !== undefined)   ops.push({ op: "replace", path: "/contact/id",   value: fields.contactId });
+      if (fields.companyId !== undefined)   ops.push({ op: "replace", path: "/company/id",   value: fields.companyId });
+      if (fields.siteId !== undefined)      ops.push({ op: "replace", path: "/site/id",      value: fields.siteId });
+      if (fields.requiredDate !== undefined) ops.push({ op: "replace", path: "/requiredDate", value: fields.requiredDate });
+      await auditLog({ tool: "cw_update_ticket", entityType: "ticket", entityId: id, userIntent: user_intent, userQuote: user_quote, operations: ops });
+      const result = await client.patch(`/service/tickets/${id}`, ops);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
