@@ -76,6 +76,29 @@ const L1_TOOLS = new Set([
 ]);
 
 /**
+ * Maps an Azure AD app role to a tool profile name.
+ * CWM.L1  → "l1"  (frontline helpdesk, limited surface)
+ * CWM.L2  → "full" (engineers/admins, all tools)
+ * Unrecognised roles fall through to the MCP_TOOL_PROFILE env var.
+ */
+const ROLE_PROFILE_MAP: Record<string, string> = {
+  "CWM.L1": "l1",
+  "CWM.L2": "full",
+};
+
+/**
+ * Returns the tool profile for the first matching role, or undefined if none
+ * of the caller's roles appear in ROLE_PROFILE_MAP.
+ */
+export function profileFromRoles(roles: string[]): string | undefined {
+  for (const role of roles) {
+    const profile = ROLE_PROFILE_MAP[role];
+    if (profile !== undefined) return profile;
+  }
+  return undefined;
+}
+
+/**
  * Wraps an McpServer so that server.tool() calls whose name is not in the
  * allowlist are silently dropped. All other methods pass through unchanged.
  * This requires zero modifications to individual tool-registration files.

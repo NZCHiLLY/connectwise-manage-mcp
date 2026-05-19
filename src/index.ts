@@ -29,6 +29,11 @@
  *   AZURE_AUDIENCE              - Token audience, typically api://<AZURE_CLIENT_ID>
  *   AZURE_REQUIRED_ROLE         - App role claim required on every request (default: CWM.Access)
  *   MCP_BEARER_TOKEN            - Static bearer token for Claude Code CLI / Claude Desktop
+ *
+ * Tool profile selection (optional — overrides MCP_TOOL_PROFILE when JWT roles match):
+ *   Azure AD app role "CWM.L1" → exposes L1 helpdesk tool surface
+ *   Azure AD app role "CWM.L2" → exposes full tool surface (all ~160 tools)
+ *   If no role matches, falls back to MCP_TOOL_PROFILE env var
  */
 
 import {
@@ -55,7 +60,7 @@ import { AuthError } from "./auth/types.js";
 import { createRequire } from "node:module";
 const _require = createRequire(import.meta.url);
 const _pkg = _require("../package.json") as { version: string };
-import { applyToolProfile }           from "./tools/profiles.js";
+import { applyToolProfile, profileFromRoles } from "./tools/profiles.js";
 import { registerActivityTools }      from "./tools/activities.js";
 import { registerCatalogTools }       from "./tools/catalog.js";
 import { registerCompanyTools }       from "./tools/companies.js";
@@ -115,7 +120,7 @@ function validateCwBaseUrl(rawUrl: string): string {
 // Server factory
 // ---------------------------------------------------------------------------
 
-function createMcpServer(config?: CwManageConfig): McpServer {
+function createMcpServer(config?: CwManageConfig, toolProfile?: string): McpServer {
   const server = new McpServer({
     name: "connectwise-manage-mcp",
     version: _pkg.version,
@@ -159,7 +164,7 @@ function createMcpServer(config?: CwManageConfig): McpServer {
   }
 
   const client = new CwManageClient(resolvedConfig);
-  const toolServer = applyToolProfile(server, process.env.MCP_TOOL_PROFILE);
+  const toolServer = applyToolProfile(server, toolProfile ?? process.env.MCP_TOOL_PROFILE);
 
   registerActivityTools(toolServer, client);
   registerCatalogTools(toolServer, client);
@@ -310,6 +315,8 @@ async function startHttpTransport(): Promise<void> {
       // Entra ID auth check
       // ------------------------------------------------------------------
       const handleMcp = async () => {
+        let requestToolProfile: string | undefined;
+
         if (oauthEnabled && entraConfig) {
           const authHeader = req.headers.authorization;
 
@@ -329,8 +336,8 @@ async function startHttpTransport(): Promise<void> {
 
           const token = authHeader.slice(7);
 
+          let identity: { upn: string; roles: string[]; oid: string } | undefined;
           try {
-            let identity;
             // Static bearer token check (Claude Code CLI / Claude Desktop)
             // Use timing-safe comparison to prevent token length oracle attacks
             const staticTokenMatch =
@@ -361,6 +368,11 @@ async function startHttpTransport(): Promise<void> {
               res.end(JSON.stringify({ error: "internal_error" }));
             }
             return;
+          }
+
+          requestToolProfile = profileFromRoles(identity!.roles);
+          if (requestToolProfile) {
+            console.error(`[mcp] Role-derived tool profile: "${requestToolProfile}" (roles: [${identity!.roles.join(", ")}])`);
           }
         }
 
@@ -423,7 +435,7 @@ async function startHttpTransport(): Promise<void> {
         // ------------------------------------------------------------------
         // MCP handler
         // ------------------------------------------------------------------
-        const server = createMcpServer(gatewayConfig);
+        const server = createMcpServer(gatewayConfig, requestToolProfile);
         const transport = new StreamableHTTPServerTransport({
           sessionIdGenerator: undefined,
           enableJsonResponse: true,
