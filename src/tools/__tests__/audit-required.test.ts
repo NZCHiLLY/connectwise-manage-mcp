@@ -82,7 +82,7 @@ describe("cw_update_ticket", () => {
     id: 1,
     user_intent: "Close ticket because customer has been billed",
     user_quote: "Please close this ticket, I've billed it",
-    operations: [{ op: "replace", path: "/status/name", value: "Closed" }],
+    summary: "Updated summary for billing closure",
   };
 
   beforeEach(() => {
@@ -119,25 +119,24 @@ describe("cw_update_ticket", () => {
     const result = await handler(VALID, {});
 
     expect(auditLog).toHaveBeenCalledOnce();
-    expect(auditLog).toHaveBeenCalledWith({
+    expect(auditLog).toHaveBeenCalledWith(expect.objectContaining({
       tool: "cw_update_ticket",
       entityType: "ticket",
       entityId: VALID.id,
       userIntent: VALID.user_intent,
       userQuote: VALID.user_quote,
-      operations: VALID.operations,
-    });
+    }));
     expect(result).toMatchObject({ content: [{ type: "text" }] });
   });
 
-  it("calls client.patch with correct endpoint and operations, after auditLog", async () => {
+  it("calls client.patch with correct endpoint and derived operations, after auditLog", async () => {
     const { handler } = getTool(server, "cw_update_ticket");
     await handler(VALID, {});
 
     expect(mockClient.patch).toHaveBeenCalledOnce();
     expect(mockClient.patch).toHaveBeenCalledWith(
       `/service/tickets/${VALID.id}`,
-      VALID.operations,
+      [{ op: "replace", path: "/summary", value: VALID.summary }],
     );
     const auditOrder = vi.mocked(auditLog).mock.invocationCallOrder[0];
     const patchOrder = vi.mocked(mockClient.patch).mock.invocationCallOrder[0];
