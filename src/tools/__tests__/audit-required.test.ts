@@ -109,11 +109,9 @@ describe("cw_update_ticket", () => {
     });
   });
 
-  it("rejects when user_quote is shorter than 20 chars", async () => {
-    await expectValidationError(server, "cw_update_ticket", {
-      ...VALID,
-      user_quote: "yes",
-    });
+  it("accepts short user_quote (e.g. 'yes')", async () => {
+    const { inputSchema } = getTool(server, "cw_update_ticket");
+    await expect(inputSchema.parseAsync({ ...VALID, user_quote: "yes" })).resolves.toMatchObject({ user_quote: "yes" });
   });
 
   it("calls auditLog with correct shape on a valid call", async () => {
@@ -185,11 +183,9 @@ describe("cw_update_company", () => {
     });
   });
 
-  it("rejects when user_quote is shorter than 20 chars", async () => {
-    await expectValidationError(server, "cw_update_company", {
-      ...VALID,
-      user_quote: "yes",
-    });
+  it("accepts short user_quote (e.g. 'yes')", async () => {
+    const { inputSchema } = getTool(server, "cw_update_company");
+    await expect(inputSchema.parseAsync({ ...VALID, user_quote: "yes" })).resolves.toMatchObject({ user_quote: "yes" });
   });
 
   it("calls auditLog with correct shape on a valid call", async () => {
@@ -261,11 +257,9 @@ describe("cw_update_catalog_item", () => {
     });
   });
 
-  it("rejects when user_quote is shorter than 20 chars", async () => {
-    await expectValidationError(server, "cw_update_catalog_item", {
-      ...VALID,
-      user_quote: "yes",
-    });
+  it("accepts short user_quote (e.g. 'yes')", async () => {
+    const { inputSchema } = getTool(server, "cw_update_catalog_item");
+    await expect(inputSchema.parseAsync({ ...VALID, user_quote: "yes" })).resolves.toMatchObject({ user_quote: "yes" });
   });
 
   it("calls auditLog with correct shape on a valid call", async () => {
