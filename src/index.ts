@@ -52,6 +52,9 @@ import {
   handleToken,
 } from "./auth/routes.js";
 import { AuthError } from "./auth/types.js";
+import { createRequire } from "node:module";
+const _require = createRequire(import.meta.url);
+const _pkg = _require("../package.json") as { version: string };
 import { applyToolProfile }           from "./tools/profiles.js";
 import { registerActivityTools }      from "./tools/activities.js";
 import { registerCatalogTools }       from "./tools/catalog.js";
@@ -115,7 +118,7 @@ function validateCwBaseUrl(rawUrl: string): string {
 function createMcpServer(config?: CwManageConfig): McpServer {
   const server = new McpServer({
     name: "connectwise-manage-mcp",
-    version: "1.1.5",
+    version: _pkg.version,
   });
 
   const resolvedConfig = config ?? getConfig();

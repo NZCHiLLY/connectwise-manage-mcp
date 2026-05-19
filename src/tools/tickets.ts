@@ -862,6 +862,9 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     {
       id: z.number().describe("Ticket ID"),
       memberIdentifier: z.string().describe("Member username/identifier to assign (e.g. 'jsmith')"),
+      scheduleTypeId: z.number().optional().describe(
+        "Schedule entry type ID for service tickets (default: 4). Verify against GET /schedule/types for your CWM instance — IDs are instance-specific.",
+      ),
       user_intent: z.string().min(20).describe(
         "Plain-English description of what the user asked for. " +
           "Must be at least 20 characters. Example: " +
@@ -872,10 +875,10 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
     },
-    async ({ id, memberIdentifier, user_intent, user_quote }) => {
+    async ({ id, memberIdentifier, scheduleTypeId, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_add_ticket_member", entityType: "ticket_member", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const result = await client.post(`/schedule/entries`, {
-        type: { id: 4 },
+        type: { id: scheduleTypeId ?? 4 },
         objectId: id,
         member: { identifier: memberIdentifier },
       });

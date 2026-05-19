@@ -99,7 +99,7 @@ export function applyToolProfile(
       if (prop !== "tool") return Reflect.get(target, prop, receiver);
       return (name: string, ...rest: unknown[]) => {
         if (allowlist.has(name)) {
-          return (target.tool as Function)(name, ...rest);
+          return (target.tool as (name: string, ...args: unknown[]) => unknown)(name, ...rest);
         }
       };
     },
