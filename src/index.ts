@@ -42,7 +42,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
-import { getConfig, CwManageClient } from "./api-client.js";
+import { getConfig, CwManageClient, CwManageConfig } from "./api-client.js";
 import { getEntraConfig, createJwksClient, validateToken } from "./auth/middleware.js";
 import {
   handleProtectedResource,
@@ -52,6 +52,9 @@ import {
   handleToken,
 } from "./auth/routes.js";
 import { AuthError } from "./auth/types.js";
+import { createRequire } from "node:module";
+const _require = createRequire(import.meta.url);
+const _pkg = _require("../package.json") as { version: string };
 import { applyToolProfile }           from "./tools/profiles.js";
 import { registerActivityTools }      from "./tools/activities.js";
 import { registerCatalogTools }       from "./tools/catalog.js";
@@ -112,15 +115,15 @@ function validateCwBaseUrl(rawUrl: string): string {
 // Server factory
 // ---------------------------------------------------------------------------
 
-function createMcpServer(): McpServer {
+function createMcpServer(config?: CwManageConfig): McpServer {
   const server = new McpServer({
     name: "connectwise-manage-mcp",
-    version: "1.1.5",
+    version: _pkg.version,
   });
 
-  const config = getConfig();
+  const resolvedConfig = config ?? getConfig();
 
-  if (!config) {
+  if (!resolvedConfig) {
     // Register a single diagnostic tool so the client gets a clear error
     server.tool(
       "cw_test_connection",
@@ -155,7 +158,7 @@ function createMcpServer(): McpServer {
     return server;
   }
 
-  const client = new CwManageClient(config);
+  const client = new CwManageClient(resolvedConfig);
   const toolServer = applyToolProfile(server, process.env.MCP_TOOL_PROFILE);
 
   registerActivityTools(toolServer, client);
@@ -364,6 +367,7 @@ async function startHttpTransport(): Promise<void> {
         // ------------------------------------------------------------------
         // Gateway mode: extract CW credentials from headers
         // ------------------------------------------------------------------
+        let gatewayConfig: CwManageConfig | undefined;
         if (isGatewayMode) {
           const headers = req.headers as Record<
             string,
@@ -393,25 +397,33 @@ async function startHttpTransport(): Promise<void> {
             return;
           }
 
-          process.env.CW_MANAGE_COMPANY_ID = companyId;
-          process.env.CW_MANAGE_PUBLIC_KEY = publicKey;
-          process.env.CW_MANAGE_PRIVATE_KEY = privateKey;
-          process.env.CW_MANAGE_CLIENT_ID = clientId;
+          // Build config directly — do not route through process.env (race condition)
+          let validatedBaseUrl: string;
           if (baseUrl) {
             try {
-              process.env.CW_MANAGE_URL = validateCwBaseUrl(baseUrl);
+              validatedBaseUrl = validateCwBaseUrl(baseUrl);
             } catch (err) {
               res.writeHead(400, { "Content-Type": "application/json" });
               res.end(JSON.stringify({ error: "invalid_url", message: (err as Error).message }));
               return;
             }
+          } else {
+            validatedBaseUrl = (process.env.CW_MANAGE_URL || "https://api-na.myconnectwise.net").replace(/\/+$/, "");
           }
+
+          gatewayConfig = {
+            companyId,
+            publicKey,
+            privateKey,
+            clientId,
+            baseUrl: validatedBaseUrl,
+          };
         }
 
         // ------------------------------------------------------------------
         // MCP handler
         // ------------------------------------------------------------------
-        const server = createMcpServer();
+        const server = createMcpServer(gatewayConfig);
         const transport = new StreamableHTTPServerTransport({
           sessionIdGenerator: undefined,
           enableJsonResponse: true,

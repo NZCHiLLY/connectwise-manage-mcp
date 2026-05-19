@@ -2,24 +2,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
 import { auditLog } from "../audit/log.js";
-
-const patchOp = z.object({
-  op: z.enum(["replace", "add", "remove"]),
-  path: z.string(),
-  value: z.unknown().optional(),
-});
-
-const sentinelParams = {
-  user_intent: z.string().min(20).describe(
-    "Plain-English description of what the user asked for. " +
-      "Must be at least 20 characters. Example: " +
-      "'User asked to close ticket 12345 because they have billed it.'",
-  ),
-  user_quote: z.string().min(20).describe(
-    "Verbatim quote of the user's actual words that motivated this action. " +
-      "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
-  ),
-};
+import { patchOp, sentinelParams } from "./shared.js";
 
 export function registerOpportunityTools(server: McpServer, client: CwManageClient) {
   // ── Opportunities ─────────────────────────────────────────────────────────────────
@@ -169,7 +152,7 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     },
     async ({ id, body, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_replace_opportunity", entityType: "opportunity", entityId: id, userIntent: user_intent, userQuote: user_quote });
-      const result = await client.request("PUT", `/sales/opportunities/${id}`, body);
+      const result = await client.put(`/sales/opportunities/${id}`, body);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );

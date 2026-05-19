@@ -149,4 +149,9 @@ export class CwManageClient {
   async patch<T = unknown>(path: string, body: unknown): Promise<T> {
     return this.request<T>("PATCH", path, { body });
   }
+
+  /** PUT helper */
+  async put<T = unknown>(path: string, body: unknown): Promise<T> {
+    return this.request<T>("PUT", path, { body });
+  }
 }

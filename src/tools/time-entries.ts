@@ -2,12 +2,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
 import { auditLog } from "../audit/log.js";
-
-const patchOp = z.object({
-  op: z.enum(["replace", "add", "remove"]),
-  path: z.string(),
-  value: z.unknown().optional(),
-});
+import { patchOp } from "./shared.js";
 
 export function registerTimeEntryTools(server: McpServer, client: CwManageClient) {
   // ── Time entries ─────────────────────────────────────────────────────────────────
@@ -202,7 +197,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     },
     async ({ id, body, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_replace_time_entry", entityType: "time_entry", entityId: id, userIntent: user_intent, userQuote: user_quote });
-      const result = await client.request("PUT", `/time/entries/${id}`, body);
+      const result = await client.put(`/time/entries/${id}`, body);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );

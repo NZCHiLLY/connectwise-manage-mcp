@@ -2,12 +2,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
 import { auditLog } from "../audit/log.js";
-
-const patchOp = z.object({
-  op: z.enum(["replace", "add", "remove"]),
-  path: z.string(),
-  value: z.unknown().optional(),
-});
+import { patchOp } from "./shared.js";
 
 export function registerCatalogTools(server: McpServer, client: CwManageClient) {
   // ===== Catalog items =====
@@ -197,7 +192,7 @@ export function registerCatalogTools(server: McpServer, client: CwManageClient) 
     },
     async ({ id, user_intent, user_quote, body }) => {
       await auditLog({ tool: "cw_replace_catalog_item", entityType: "catalog_item", entityId: id, userIntent: user_intent, userQuote: user_quote });
-      const result = await client.request("PUT", `/procurement/catalog/${id}`, body);
+      const result = await client.put(`/procurement/catalog/${id}`, body);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
