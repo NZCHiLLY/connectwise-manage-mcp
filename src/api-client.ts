@@ -121,7 +121,7 @@ export class CwManageClient {
     if (!response.ok) {
       const errorBody = await response.text();
       console.error(`[cw-api] ${method} ${path} ${response.status}: ${errorBody}`);
-      throw new Error(`ConnectWise API error ${response.status}`);
+      throw new Error(`ConnectWise API error ${response.status}: ${errorBody}`);
     }
 
     // Some endpoints return 204 No Content
@@ -145,9 +145,17 @@ export class CwManageClient {
     return this.request<T>("POST", path, { body });
   }
 
-  /** PATCH helper */
+  /** PATCH helper — normalises JSON Patch op paths to ensure leading '/' */
   async patch<T = unknown>(path: string, body: unknown): Promise<T> {
-    return this.request<T>("PATCH", path, { body });
+    const normalised = Array.isArray(body)
+      ? body.map((op: Record<string, unknown>) => ({
+          ...op,
+          path: typeof op.path === "string" && !op.path.startsWith("/")
+            ? `/${op.path}`
+            : op.path,
+        }))
+      : body;
+    return this.request<T>("PATCH", path, { body: normalised });
   }
 
   /** PUT helper */

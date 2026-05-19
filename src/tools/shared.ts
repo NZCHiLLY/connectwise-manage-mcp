@@ -1,9 +1,13 @@
 import { z } from "zod";
 
 export const patchOp = z.object({
-  op: z.enum(["replace", "add", "remove"]),
-  path: z.string(),
-  value: z.unknown().optional(),
+  op: z.enum(["replace", "add", "remove"]).describe(
+    "JSON Patch operation. Use 'replace' to set a field value.",
+  ),
+  path: z.string().describe(
+    "Field path with leading slash — e.g. '/summary', '/status/id'.",
+  ),
+  value: z.unknown().optional().describe("New value for the field"),
 });
 
 export const sentinelParams = {
