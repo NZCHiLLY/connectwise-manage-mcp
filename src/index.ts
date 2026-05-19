@@ -298,9 +298,17 @@ async function startHttpTransport(): Promise<void> {
       return;
     }
 
-    // MCP endpoints — /mcp, /mcp/l1, /mcp/l2, /mcp/full
+    // MCP endpoints — Copilot Studio appends /mcp to whatever Server URL is set.
+    // Configure Server URL in Copilot Studio as: https://<domain>/<profile>
+    // e.g. https://domain/l1  →  Copilot Studio hits /l1/mcp  →  L1 profile
+    //      https://domain/l2  →  Copilot Studio hits /l2/mcp  →  L2 profile
+    //      https://domain     →  Copilot Studio hits /mcp      →  full/role fallback
+    // Direct (non-Copilot-Studio) patterns also supported: /mcp/l1, /mcp/l2, /mcp/full
     // Path segment overrides JWT role; JWT role overrides MCP_TOOL_PROFILE env var.
-    const mcpPathMatch = /^\/mcp(?:\/(l1|l2|full))?\/?$/.exec(url.pathname);
+    const mcpDirect   = /^\/mcp(?:\/(l1|l2|full))?\/?$/.exec(url.pathname);       // /mcp /mcp/l1
+    const mcpPrefixed = /^\/(l1|l2|full)\/mcp\/?$/.exec(url.pathname);            // /l1/mcp
+    const mcpNested   = /^\/mcp\/(l1|l2|full)\/mcp\/?$/.exec(url.pathname);       // /mcp/l1/mcp
+    const mcpPathMatch = mcpDirect ?? mcpPrefixed ?? mcpNested;
     if (mcpPathMatch) {
       const urlProfile = mcpPathMatch[1] as string | undefined; // "l1" | "l2" | "full" | undefined
 
@@ -486,10 +494,11 @@ async function startHttpTransport(): Promise<void> {
   await new Promise<void>((resolve) => {
     httpServer!.listen(port, host, () => {
       console.error(`ConnectWise Manage MCP server listening on http://${host}:${port}`);
-      console.error(`  /mcp      — full tool set`);
-      console.error(`  /mcp/l1   — L1 helpdesk engineer (65 tools)`);
-      console.error(`  /mcp/l2   — L2 management (70 tools)`);
-      console.error(`  /health   — health check`);
+      console.error(`  Copilot Studio Server URL → profile:`);
+      console.error(`    https://<domain>/l1  →  L1 helpdesk engineer (65 tools)`);
+      console.error(`    https://<domain>/l2  →  L2 management (70 tools)`);
+      console.error(`    https://<domain>     →  full tool set (JWT role / env fallback)`);
+      console.error(`  /health — health check`);
       console.error(
         `Authentication mode: ${isGatewayMode ? "gateway (header-based)" : "env (environment variables)"}`,
       );
