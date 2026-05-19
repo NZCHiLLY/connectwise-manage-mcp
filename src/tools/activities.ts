@@ -2,12 +2,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
 import { auditLog } from "../audit/log.js";
-
-const patchOp = z.object({
-  op: z.enum(["replace", "add", "remove"]),
-  path: z.string(),
-  value: z.unknown().optional(),
-});
+import { patchOp } from "./shared.js";
 
 export function registerActivityTools(server: McpServer, client: CwManageClient) {
   // ── Core Activities ──────────────────────────────────────────────────────
@@ -167,7 +162,7 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
     },
     async ({ id, body, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_replace_activity", entityType: "activity", entityId: id, userIntent: user_intent, userQuote: user_quote });
-      const result = await client.request("PUT", `/sales/activities/${id}`, body);
+      const result = await client.put(`/sales/activities/${id}`, body);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
