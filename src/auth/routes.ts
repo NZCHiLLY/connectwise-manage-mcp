@@ -178,6 +178,9 @@ export async function handleToken(
   // Override client_id; drop resource (Azure AD v2 uses scope, not resource —
   // sending both causes AADSTS9010010 when they don't match)
   params.set("client_id", config.clientId);
+  if (config.clientSecret) {
+    params.set("client_secret", config.clientSecret);
+  }
   params.delete("resource");
 
   // If scope is present (e.g. sent by Claude.ai), replace it with our API scope

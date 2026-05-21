@@ -1,6 +1,7 @@
 export interface EntraConfig {
   tenantId: string;
   clientId: string;
+  clientSecret?: string; // confidential client — included in token proxy to Entra
   audience: string; // api://<clientId>
   requiredRole: string; // e.g. "CWM.Access"
   serverUrl: string; // https://mcp.yourdomain.com (no trailing slash)

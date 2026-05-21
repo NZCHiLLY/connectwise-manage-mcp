@@ -20,6 +20,7 @@ export function getEntraConfig(): EntraConfig {
   return {
     tenantId,
     clientId,
+    clientSecret: process.env.AZURE_CLIENT_SECRET || undefined,
     audience,
     requiredRole: process.env.AZURE_REQUIRED_ROLE ?? "CWM.Access",
     serverUrl: serverUrl.replace(/\/$/, ""),
