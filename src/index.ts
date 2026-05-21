@@ -307,9 +307,9 @@ async function startHttpTransport(): Promise<void> {
     //      https://domain     →  Copilot Studio hits /mcp      →  full/role fallback
     // Direct (non-Copilot-Studio) patterns also supported: /mcp/l1, /mcp/l2, /mcp/full
     // Path segment overrides JWT role; JWT role overrides MCP_TOOL_PROFILE env var.
-    const mcpDirect   = /^\/mcp(?:\/(l1|l2|full))?\/?$/.exec(url.pathname);       // /mcp /mcp/l1
-    const mcpPrefixed = /^\/(l1|l2|full)\/mcp\/?$/.exec(url.pathname);            // /l1/mcp
-    const mcpNested   = /^\/mcp\/(l1|l2|full)\/mcp\/?$/.exec(url.pathname);       // /mcp/l1/mcp
+    const mcpDirect   = /^\/mcp(?:\/([a-z0-9-]+))?\/?$/.exec(url.pathname);        // /mcp /mcp/l1 /mcp/tickets
+    const mcpPrefixed = /^\/([a-z0-9-]+)\/mcp\/?$/.exec(url.pathname);            // /l1/mcp /tickets/mcp
+    const mcpNested   = /^\/mcp\/([a-z0-9-]+)\/mcp\/?$/.exec(url.pathname);       // /mcp/l1/mcp /mcp/tickets/mcp
     const mcpPathMatch = mcpDirect ?? mcpPrefixed ?? mcpNested;
     if (mcpPathMatch) {
       const urlProfile = mcpPathMatch[1] as string | undefined; // "l1" | "l2" | "full" | undefined
