@@ -1,0 +1,91 @@
+<ImportExportXml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.26042.168" OrganizationSchemaType="Standard" CRMServerServiceabilityVersion="9.2.26042.00168">
+  <Entities></Entities>
+  <Roles></Roles>
+  <Workflows></Workflows>
+  <FieldSecurityProfiles></FieldSecurityProfiles>
+  <Templates />
+  <EntityMaps />
+  <EntityRelationships />
+  <OrganizationSettings />
+  <optionsets />
+  <CustomControls />
+  <EntityDataProviders />
+  <Connectors>
+    <Connector>
+      <connectorid>YOUR-CONNECTOR-GUID</connectorid>
+      <description>MCP server for internal proof of concept for ConnectWise PSA integration</description>
+      <displayname>cw-psa-mcp-server</displayname>
+      <iconbrandcolor>#007ee5</iconbrandcolor>
+      <name>crc0e_5Fcw-2Dpsa-2Dmcp-2Dserver</name>
+      <connectortype>1</connectortype>
+      <openapidefinition>/Connector/crc0e_5Fcw-2Dpsa-2Dmcp-2Dserver_openapidefinition.json</openapidefinition>
+      <connectionparameters>/Connector/crc0e_5Fcw-2Dpsa-2Dmcp-2Dserver_connectionparameters.json</connectionparameters>
+      <connectionparametersets>/Connector/crc0e_5Fcw-2Dpsa-2Dmcp-2Dserver_connectionparametersets.json</connectionparametersets>
+      <policytemplateinstances>/Connector/crc0e_5Fcw-2Dpsa-2Dmcp-2Dserver_policytemplateinstances.json</policytemplateinstances>
+      <iconblob>/Connector/crc0e_5Fcw-2Dpsa-2Dmcp-2Dserver_iconblob.Png</iconblob>
+    </Connector>
+    <Connector>
+      <connectorid>YOUR-LEGACY-CONNECTOR-GUID-2</connectorid>
+      <description>ConnectWise Opportunity API endpoints</description>
+      <displayname>opportunities_api</displayname>
+      <iconbrandcolor>#ffffff</iconbrandcolor>
+      <name>tz_5Fopportunities-5Fapi</name>
+      <connectortype>1</connectortype>
+      <openapidefinition>/Connector/tz_5Fopportunities-5Fapi_openapidefinition.json</openapidefinition>
+      <connectionparameters>/Connector/tz_5Fopportunities-5Fapi_connectionparameters.json</connectionparameters>
+      <policytemplateinstances>/Connector/tz_5Fopportunities-5Fapi_policytemplateinstances.json</policytemplateinstances>
+      <iconblob>/Connector/tz_5Fopportunities-5Fapi_iconblob.Png</iconblob>
+    </Connector>
+    <Connector>
+      <connectorid>YOUR-LEGACY-CONNECTOR-GUID-1</connectorid>
+      <description>ConnectWise PSA API endpoints</description>
+      <displayname>ConnectWiseSales</displayname>
+      <iconbrandcolor>#ffffff</iconbrandcolor>
+      <name>tz_5Fconnectwisesales</name>
+      <connectortype>1</connectortype>
+      <openapidefinition>/Connector/tz_5Fconnectwisesales_openapidefinition.json</openapidefinition>
+      <connectionparameters>/Connector/tz_5Fconnectwisesales_connectionparameters.json</connectionparameters>
+      <policytemplateinstances>/Connector/tz_5Fconnectwisesales_policytemplateinstances.json</policytemplateinstances>
+      <iconblob>/Connector/tz_5Fconnectwisesales_iconblob.Png</iconblob>
+    </Connector>
+  </Connectors>
+  <connectionreferences>
+    <connectionreference connectionreferencelogicalname="tz_ConnectWisePSAHelper.cr.sNnSu-fV">
+      <connectorid>/providers/Microsoft.PowerApps/apis/shared_sharepointonline</connectorid>
+      <iscustomizable>0</iscustomizable>
+      <promptingbehavior>0</promptingbehavior>
+      <statecode>0</statecode>
+      <statuscode>1</statuscode>
+    </connectionreference>
+    <connectionreference connectionreferencelogicalname="tz_ConnectWisePSAHelper.shared_a365copilotchatmcp.shared-a365copilotch-1d87e9e8-29d7-4f20-83dc-2dc02efd90c6">
+      <connectionreferencedisplayname>tz_ConnectWisePSAHelper.shared_a365copilotchatmcp.shared-a365copilotch-1d87e9e8-29d7-4f20-83dc-2dc02efd90c6</connectionreferencedisplayname>
+      <connectorid>/providers/Microsoft.PowerApps/apis/shared_a365copilotchatmcp</connectorid>
+      <iscustomizable>0</iscustomizable>
+      <promptingbehavior>0</promptingbehavior>
+      <statecode>0</statecode>
+      <statuscode>1</statuscode>
+    </connectionreference>
+    <connectionreference connectionreferencelogicalname="tz_ConnectWisePSAHelper.shared_a365memcp.shared-a365memcp-f2e06d66-546a-4e4e-a647-04eb697393e5">
+      <connectionreferencedisplayname>tz_ConnectWisePSAHelper.shared_a365memcp.shared-a365memcp-f2e06d66-546a-4e4e-a647-04eb697393e5</connectionreferencedisplayname>
+      <connectorid>/providers/Microsoft.PowerApps/apis/shared_a365memcp</connectorid>
+      <iscustomizable>0</iscustomizable>
+      <promptingbehavior>0</promptingbehavior>
+      <statecode>0</statecode>
+      <statuscode>1</statuscode>
+    </connectionreference>
+    <connectionreference connectionreferencelogicalname="tz_ConnectWisePSAHelper.shared_crc0e-5fcw-2dpsa-2dmcp-2dserver-5fc458ef7842d9bb4b.622b150dec194d6a9d571b4e4da8ce7f">
+      <connectionreferencedisplayname>tz_ConnectWisePSAHelper.shared_crc0e-5fcw-2dpsa-2dmcp-2dserver-5fc458ef7842d9bb4b.622b150dec194d6a9d571b4e4da8ce7f</connectionreferencedisplayname>
+      <connectorid>/providers/Microsoft.PowerApps/apis/shared_crc0e-5fcw-2dpsa-2dmcp-2dserver-5fc458ef7842d9bb4b</connectorid>
+      <customconnectorid>
+        <connectorid>YOUR-CONNECTOR-GUID</connectorid>
+      </customconnectorid>
+      <iscustomizable>0</iscustomizable>
+      <promptingbehavior>0</promptingbehavior>
+      <statecode>0</statecode>
+      <statuscode>1</statuscode>
+    </connectionreference>
+  </connectionreferences>
+  <Languages>
+    <Language>1033</Language>
+  </Languages>
+</ImportExportXml>

@@ -75,8 +75,15 @@ cowork-output-tmp/
 *.zip
 connectwise-manage-mcp-security-review.md
 connectwise-manage-mcp-whitepaper.md
+connectwise-manage-mcp-whitepaper-v2.md
 cw-mcp-sentinel-plan.md
 project-review-next-steps.md
 copilot-studio-multi-agent-plan.md
-copilot-agents/
 aca-deploy.ps1
+kickStartTemplate-1.0.0.json
+pac-work/
+
+# ─────────────────────────────────────────────
+# Copilot Studio agents — build artefacts only
+# ─────────────────────────────────────────────
+copilot-agents/solutions/

@@ -1,0 +1,7 @@
+kind: KnowledgeSourceConfiguration
+source:
+  kind: FederatedStructuredSearchSource
+  connectionProperties:
+    mode: Invoker
+
+  skillConfiguration: ITSharedDocuments_Zg1LVrGGVWYh7uRI20lwk

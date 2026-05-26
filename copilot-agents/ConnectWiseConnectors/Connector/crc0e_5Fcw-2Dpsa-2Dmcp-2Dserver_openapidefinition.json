@@ -1,0 +1,201 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "cw-psa-mcp-server",
+    "description": "MCP server for ConnectWise PSA integration",
+    "version": "1.0.0"
+  },
+  "host": "YOUR-ACA-APP.YOUR-ENV-ID.australiaeast.azurecontainerapps.io",
+  "basePath": "/",
+  "schemes": ["https"],
+  "consumes": [],
+  "produces": [],
+  "paths": {
+    "/mcp/tickets": {
+      "post": {
+        "summary": "Tickets",
+        "description": "Service ticket management",
+        "operationId": "InvokeTickets",
+        "x-ms-agentic-protocol": "mcp-streamable-1.0",
+        "x-ms-visibility": "important",
+        "responses": { "200": { "description": "Immediate Response" } }
+      }
+    },
+    "/mcp/time-entries": {
+      "post": {
+        "summary": "Time Entries",
+        "description": "Time logging, timesheets and stopwatch management",
+        "operationId": "InvokeTimeEntries",
+        "x-ms-agentic-protocol": "mcp-streamable-1.0",
+        "x-ms-visibility": "important",
+        "responses": { "200": { "description": "Immediate Response" } }
+      }
+    },
+    "/mcp/companies": {
+      "post": {
+        "summary": "Companies",
+        "description": "Company records, sites and team management",
+        "operationId": "InvokeCompanies",
+        "x-ms-agentic-protocol": "mcp-streamable-1.0",
+        "x-ms-visibility": "important",
+        "responses": { "200": { "description": "Immediate Response" } }
+      }
+    },
+    "/mcp/contacts": {
+      "post": {
+        "summary": "Contacts",
+        "description": "Contact records and communications management",
+        "operationId": "InvokeContacts",
+        "x-ms-agentic-protocol": "mcp-streamable-1.0",
+        "x-ms-visibility": "important",
+        "responses": { "200": { "description": "Immediate Response" } }
+      }
+    },
+    "/mcp/configurations": {
+      "post": {
+        "summary": "Configurations",
+        "description": "Deployed asset and configuration type management",
+        "operationId": "InvokeConfigurations",
+        "x-ms-agentic-protocol": "mcp-streamable-1.0",
+        "x-ms-visibility": "important",
+        "responses": { "200": { "description": "Immediate Response" } }
+      }
+    },
+    "/mcp/service-boards": {
+      "post": {
+        "summary": "Service Boards",
+        "description": "Service board configuration: statuses, types and teams",
+        "operationId": "InvokeServiceBoards",
+        "x-ms-agentic-protocol": "mcp-streamable-1.0",
+        "x-ms-visibility": "important",
+        "responses": { "200": { "description": "Immediate Response" } }
+      }
+    },
+    "/mcp/service-config": {
+      "post": {
+        "summary": "Service Config",
+        "description": "Priorities, SLAs, impacts, KB and service configuration",
+        "operationId": "InvokeServiceConfig",
+        "x-ms-agentic-protocol": "mcp-streamable-1.0",
+        "x-ms-visibility": "important",
+        "responses": { "200": { "description": "Immediate Response" } }
+      }
+    },
+    "/mcp/sales": {
+      "post": {
+        "summary": "Sales",
+        "description": "Sales quotes, forecasts, pipeline and territories",
+        "operationId": "InvokeSales",
+        "x-ms-agentic-protocol": "mcp-streamable-1.0",
+        "x-ms-visibility": "important",
+        "responses": { "200": { "description": "Immediate Response" } }
+      }
+    },
+    "/mcp/opportunities": {
+      "post": {
+        "summary": "Opportunities",
+        "description": "Opportunity pipeline, activities and products",
+        "operationId": "InvokeOpportunities",
+        "x-ms-agentic-protocol": "mcp-streamable-1.0",
+        "x-ms-visibility": "important",
+        "responses": { "200": { "description": "Immediate Response" } }
+      }
+    },
+    "/mcp/finance-agreements": {
+      "post": {
+        "summary": "Finance Agreements",
+        "description": "Recurring revenue contracts, additions and GL management",
+        "operationId": "InvokeFinanceAgreements",
+        "x-ms-agentic-protocol": "mcp-streamable-1.0",
+        "x-ms-visibility": "important",
+        "responses": { "200": { "description": "Immediate Response" } }
+      }
+    },
+    "/mcp/finance-invoices": {
+      "post": {
+        "summary": "Finance Invoices",
+        "description": "Invoices, payments, billing setups and accounting",
+        "operationId": "InvokeFinanceInvoices",
+        "x-ms-agentic-protocol": "mcp-streamable-1.0",
+        "x-ms-visibility": "important",
+        "responses": { "200": { "description": "Immediate Response" } }
+      }
+    },
+    "/mcp/catalog": {
+      "post": {
+        "summary": "Catalog",
+        "description": "Product catalog, bundles, components and pricing",
+        "operationId": "InvokeCatalog",
+        "x-ms-agentic-protocol": "mcp-streamable-1.0",
+        "x-ms-visibility": "important",
+        "responses": { "200": { "description": "Immediate Response" } }
+      }
+    },
+    "/mcp/procurement-orders": {
+      "post": {
+        "summary": "Procurement Orders",
+        "description": "Purchase orders, PO lines and RMA management",
+        "operationId": "InvokeProcurementOrders",
+        "x-ms-agentic-protocol": "mcp-streamable-1.0",
+        "x-ms-visibility": "important",
+        "responses": { "200": { "description": "Immediate Response" } }
+      }
+    },
+    "/mcp/procurement-inventory": {
+      "post": {
+        "summary": "Procurement Inventory",
+        "description": "Warehouses, bins, pricing schedules and adjustments",
+        "operationId": "InvokeProcurementInventory",
+        "x-ms-agentic-protocol": "mcp-streamable-1.0",
+        "x-ms-visibility": "important",
+        "responses": { "200": { "description": "Immediate Response" } }
+      }
+    },
+    "/mcp/system-members": {
+      "post": {
+        "summary": "System Members",
+        "description": "Members, API keys, security roles and departments",
+        "operationId": "InvokeSystemMembers",
+        "x-ms-agentic-protocol": "mcp-streamable-1.0",
+        "x-ms-visibility": "important",
+        "responses": { "200": { "description": "Immediate Response" } }
+      }
+    },
+    "/mcp/system-admin": {
+      "post": {
+        "summary": "System Admin",
+        "description": "Audit trail, reports, KPIs, workflows and system info",
+        "operationId": "InvokeSystemAdmin",
+        "x-ms-agentic-protocol": "mcp-streamable-1.0",
+        "x-ms-visibility": "important",
+        "responses": { "200": { "description": "Immediate Response" } }
+      }
+    },
+    "/mcp/schedule-expenses": {
+      "post": {
+        "summary": "Schedule and Expenses",
+        "description": "Schedule entries, calendars and expense management",
+        "operationId": "InvokeScheduleExpenses",
+        "x-ms-agentic-protocol": "mcp-streamable-1.0",
+        "x-ms-visibility": "important",
+        "responses": { "200": { "description": "Immediate Response" } }
+      }
+    }
+  },
+  "definitions": {},
+  "parameters": {},
+  "responses": {},
+  "securityDefinitions": {
+    "oauth2-auth": {
+      "type": "oauth2",
+      "flow": "accessCode",
+      "tokenUrl": "https://YOUR-ACA-APP.YOUR-ENV-ID.australiaeast.azurecontainerapps.io/token",
+      "scopes": {
+        "access_as_user": "Access ConnectWise PSA MCP server"
+      },
+      "authorizationUrl": "https://YOUR-ACA-APP.YOUR-ENV-ID.australiaeast.azurecontainerapps.io/authorize"
+    }
+  },
+  "security": [{ "oauth2-auth": ["access_as_user"] }],
+  "tags": []
+}

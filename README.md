@@ -197,6 +197,73 @@ npm test
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
+## Copilot Studio Agents
+
+The `copilot-agents/` directory contains a ready-to-import Microsoft Copilot Studio solution: **18 agents** (1 orchestrator + 17 domain agents) that front-end this MCP server for use in Microsoft Teams and Microsoft 365.
+
+### Architecture
+
+```
+CW PSA Orchestrator
+├── CW Tickets Agent          → /mcp/tickets
+├── CW Time Entries Agent     → /mcp/time-entries
+├── CW Companies Agent        → /mcp/companies
+├── CW Contacts Agent         → /mcp/contacts
+├── CW Configurations Agent   → /mcp/configurations
+├── CW Service Boards Agent   → /mcp/service-boards
+├── CW Service Config Agent   → /mcp/service-config
+├── CW Sales Agent            → /mcp/sales
+├── CW Opportunities Agent    → /mcp/opportunities
+├── CW Finance Agreements Agent → /mcp/finance-agreements
+├── CW Finance Invoices Agent → /mcp/finance-invoices
+├── CW Catalog Agent          → /mcp/catalog
+├── CW Procurement Orders Agent → /mcp/procurement-orders
+├── CW Procurement Inventory Agent → /mcp/procurement-inventory
+├── CW System Members Agent   → /mcp/system-members
+├── CW System Admin Agent     → /mcp/system-admin
+└── CW Schedule and Expenses Agent → /mcp/schedule-expenses
+```
+
+Each domain endpoint exposes 20–38 tools, staying within the Copilot Studio 70-tool-per-connector cap.
+
+### Prerequisites
+
+1. **Deploy the MCP server** to Azure Container Apps with Entra ID OAuth enabled (see `AZURE_ACA_DEPLOYMENT.md`).
+2. **Register an Entra ID app** for the connector with `access_as_user` scope.
+3. **Create a custom connector** in your Power Platform environment using the files in `copilot-agents/ConnectWiseConnectors/Connector/`.
+4. **Create a connection** from the custom connector (authenticated with your Entra ID app).
+
+### Configuration — replace placeholders before deploying
+
+Before running `create-agents.ps1`, replace the following placeholders in these files:
+
+| Placeholder | Replace with | Files |
+|---|---|---|
+| `YOUR-ACA-APP.YOUR-ENV-ID.australiaeast.azurecontainerapps.io` | Your ACA FQDN | `create-agents.ps1`, `Connector/apiProperties.json`, `Connector/crc0e_..._connectionparameters.json`, `Connector/crc0e_..._openapidefinition.json` |
+| `YOUR-CLIENT-ID` | Entra ID app registration client ID | `Connector/apiProperties.json`, `Connector/crc0e_..._connectionparameters.json` |
+| `YOUR-ORG` | Dataverse org ID (e.g. `org1a2b3c4d`) | `create-agents.ps1` (`$dvUrl`) |
+| `YOUR-CONNECTION-ID` | Connection instance GUID from Power Platform | `create-agents.ps1` |
+| `YOUR-CONNECTOR-GUID` | Custom connector entity GUID from Dataverse | `create-agents.ps1`, `ConnectWiseConnectors/customizations.xml` |
+| `YOUR-CW-CLIENT-ID` | ConnectWise Developer Portal client ID | `Connector/tz_5F*_openapidefinition.json` (legacy connectors only) |
+| `YOUR-TENANT.sharepoint.com` | SharePoint tenant URL | `dvtablesearchs/*/dvtablesearch.xml` (if using SharePoint knowledge) |
+
+### Deploy
+
+```powershell
+cd copilot-agents
+.\create-agents.ps1
+```
+
+The script builds the solution ZIP, pre-creates bot entities in Dataverse, imports the solution, patches agent instructions, and publishes all agents.
+
+### Post-deployment (manual step required)
+
+After every fresh import, connection references must be bound via the Power Platform UI — the Dataverse API alone is insufficient:
+
+1. Go to `make.powerapps.com` → **Solutions** → **ConnectWise Connectors**
+2. Select **Connection References**
+3. Edit each connection reference → select your connection → **Save**
+
 ## License
 
 Apache-2.0

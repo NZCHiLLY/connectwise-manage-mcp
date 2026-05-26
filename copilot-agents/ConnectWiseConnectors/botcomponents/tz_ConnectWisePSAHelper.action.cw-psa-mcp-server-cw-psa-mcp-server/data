@@ -1,0 +1,12 @@
+kind: TaskDialog
+modelDisplayName: cw-psa-mcp-server
+modelDescription: MCP server for internal proof of concept for ConnectWise PSA integration
+action:
+  kind: InvokeExternalAgentTaskAction
+  connectionReference: tz_ConnectWisePSAHelper.shared_crc0e-5fcw-2dpsa-2dmcp-2dserver-5fc458ef7842d9bb4b.622b150dec194d6a9d571b4e4da8ce7f
+  connectionProperties:
+    mode: Invoker
+
+  operationDetails:
+    kind: ModelContextProtocolMetadata
+    operationId: InvokeServer
