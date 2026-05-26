@@ -1,0 +1,11 @@
+<botcomponent schemaname="cwmcp_ConnectWisePSAHelper.topic.KnowledgeLibrary_jh4PHqViJdxckm2pO9RMj">
+  <componenttype>16</componenttype>
+  <description>Shared documents library used as a knowledge source.</description>
+  <iscustomizable>0</iscustomizable>
+  <name>Knowledge Library</name>
+  <parentbotid>
+    <schemaname>cwmcp_ConnectWisePSAHelper</schemaname>
+  </parentbotid>
+  <statecode>0</statecode>
+  <statuscode>1</statuscode>
+</botcomponent>
