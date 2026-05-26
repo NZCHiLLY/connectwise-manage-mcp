@@ -1,0 +1,11 @@
+<botcomponent_connectionreferenceset>
+  <botcomponent_connectionreference botcomponentid.schemaname="tz_ConnectWisePSAHelper.action.cw-psa-mcp-server-cw-psa-mcp-server" connectionreferenceid.connectionreferencelogicalname="tz_ConnectWisePSAHelper.shared_crc0e-5fcw-2dpsa-2dmcp-2dserver-5fc458ef7842d9bb4b.622b150dec194d6a9d571b4e4da8ce7f">
+    <iscustomizable>1</iscustomizable>
+  </botcomponent_connectionreference>
+  <botcomponent_connectionreference botcomponentid.schemaname="tz_ConnectWisePSAHelper.topic.WorkIQCopilotPreview" connectionreferenceid.connectionreferencelogicalname="tz_ConnectWisePSAHelper.shared_a365copilotchatmcp.shared-a365copilotch-00000000-0000-0000-0000-000000000001">
+    <iscustomizable>1</iscustomizable>
+  </botcomponent_connectionreference>
+  <botcomponent_connectionreference botcomponentid.schemaname="tz_ConnectWisePSAHelper.topic.WorkIQUserPreview" connectionreferenceid.connectionreferencelogicalname="tz_ConnectWisePSAHelper.shared_a365memcp.shared-a365memcp-00000000-0000-0000-0000-000000000005">
+    <iscustomizable>1</iscustomizable>
+  </botcomponent_connectionreference>
+</botcomponent_connectionreferenceset>

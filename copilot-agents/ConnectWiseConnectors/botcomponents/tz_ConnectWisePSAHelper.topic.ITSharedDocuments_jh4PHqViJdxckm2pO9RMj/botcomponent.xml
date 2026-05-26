@@ -1,0 +1,11 @@
+<botcomponent schemaname="tz_ConnectWisePSAHelper.topic.ITSharedDocuments_jh4PHqViJdxckm2pO9RMj">
+  <componenttype>16</componenttype>
+  <description>Shared documents library. Used for document templates, sales pipeline, client documents, and prospect documents.</description>
+  <iscustomizable>0</iscustomizable>
+  <name>IT Shared Documents</name>
+  <parentbotid>
+    <schemaname>tz_ConnectWisePSAHelper</schemaname>
+  </parentbotid>
+  <statecode>0</statecode>
+  <statuscode>1</statuscode>
+</botcomponent>

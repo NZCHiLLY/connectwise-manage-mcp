@@ -1,0 +1,10 @@
+<botcomponent schemaname="tz_ConnectWisePSAHelper.action.cw-psa-mcp-server-cw-psa-mcp-server">
+  <componenttype>9</componenttype>
+  <iscustomizable>0</iscustomizable>
+  <name>cw-psa-mcp-server - cw-psa-mcp-server</name>
+  <parentbotid>
+    <schemaname>tz_ConnectWisePSAHelper</schemaname>
+  </parentbotid>
+  <statecode>0</statecode>
+  <statuscode>1</statuscode>
+</botcomponent>

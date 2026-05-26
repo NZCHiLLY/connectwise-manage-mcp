@@ -1,0 +1,11 @@
+kind: TaskDialog
+modelDisplayName: Work IQ User (Preview)
+action:
+  kind: InvokeExternalAgentTaskAction
+  connectionReference: tz_ConnectWisePSAHelper.shared_a365memcp.shared-a365memcp-00000000-0000-0000-0000-000000000005
+  connectionProperties:
+    mode: Invoker
+
+  operationDetails:
+    kind: ModelContextProtocolMetadata
+    operationId: mcp_MeServer

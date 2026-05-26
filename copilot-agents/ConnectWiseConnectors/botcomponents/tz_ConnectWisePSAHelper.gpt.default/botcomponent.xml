@@ -1,0 +1,11 @@
+<botcomponent schemaname="tz_ConnectWisePSAHelper.gpt.default">
+  <componenttype>15</componenttype>
+  <description>Run ConnectWise PSA from chat. Work on tickets, notes, time, and opportunities, with relevant email, Teams, and SharePoint context pulled in automatically.</description>
+  <iscustomizable>0</iscustomizable>
+  <name>ConnectWise PSA Helper</name>
+  <parentbotid>
+    <schemaname>tz_ConnectWisePSAHelper</schemaname>
+  </parentbotid>
+  <statecode>0</statecode>
+  <statuscode>1</statuscode>
+</botcomponent>

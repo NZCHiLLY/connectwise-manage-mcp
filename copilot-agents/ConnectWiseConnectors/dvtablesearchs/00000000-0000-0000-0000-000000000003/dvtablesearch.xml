@@ -1,0 +1,29 @@
+<dvtablesearch dvtablesearchid="00000000-0000-0000-0000-000000000003">
+  <connectionreference>
+    <connectionreferencelogicalname>tz_ConnectWisePSAHelper.cr.sNnSu-fV</connectionreferencelogicalname>
+  </connectionreference>
+  <iscustomizable>0</iscustomizable>
+  <knowledgeconfig>{
+  "$kind": "IngestionBasedGraphSearchConfiguration",
+  "driveItems": [
+    {
+      "$kind": "GraphDriveItemSyncDetails",
+      "displayName": "IT Shared Documents",
+      "webUrl": "https://YOUR-TENANT.sharepoint.com/Shared%20Documents/IT%20Shared%20Documents",
+      "driveId": "",
+      "itemId": "YOUR-SHAREPOINT-ITEM-ID",
+      "sharepointIds": {
+        "$kind": "SharepointIds",
+        "webId": "YOUR-WEB-ID",
+        "listId": "YOUR-LIST-ID",
+        "siteId": "YOUR-SITE-ID",
+        "siteUrl": "https://YOUR-TENANT.sharepoint.com"
+      }
+    }
+  ]
+}</knowledgeconfig>
+  <name>ITSharedDocuments_Zg1LVrGGVWYh7uRI20lwk</name>
+  <searchtype>1</searchtype>
+  <statecode>0</statecode>
+  <statuscode>1</statuscode>
+</dvtablesearch>

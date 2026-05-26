@@ -1,0 +1,11 @@
+kind: TaskDialog
+modelDisplayName: Work IQ Copilot (Preview)
+action:
+  kind: InvokeExternalAgentTaskAction
+  connectionReference: tz_ConnectWisePSAHelper.shared_a365copilotchatmcp.shared-a365copilotch-00000000-0000-0000-0000-000000000001
+  connectionProperties:
+    mode: Invoker
+
+  operationDetails:
+    kind: ModelContextProtocolMetadata
+    operationId: mcp_m365copilot
