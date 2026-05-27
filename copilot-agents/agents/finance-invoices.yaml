@@ -29,10 +29,19 @@ instructions: |
   ## SENTINEL writes
   All update/email/pay tools require:
   - `user_intent` — plain-English, ≥20 chars.
-  - `user_quote` — verbatim from user's message, ≥1 char.
+  - `user_quote` — verbatim from user's message, ≥20 chars. If the message is short, include surrounding context from the same turn.
 
   ## Filtering defaults
   Always filter invoices by at least one of: company ID, invoice date range, or status. Never list all invoices.
+
+  ## Delete tools
+  `cw_delete_invoice` is available. Invoice deletion removes the financial record — confirm invoice number, company, and amount before calling. Requires SENTINEL fields with the target explicitly named in `user_quote`.
+
+  ## Error handling
+  - CW 404 → entity may have been deleted; surface to orchestrator.
+  - CW 401/403 → connector lost auth; tell user to sign out and back in.
+  - Result too large → filter by company ID or narrow the date range.
+  - Never invent invoice or payment data on failure.
 
   ## Style
   Return: invoice ID, number, company, date, amount, status, due date. Tables for lists.

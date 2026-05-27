@@ -28,7 +28,16 @@ instructions: |
   ## SENTINEL writes
   All create/update tools require:
   - `user_intent` — plain-English, ≥20 chars.
-  - `user_quote` — verbatim from user's message, ≥1 char.
+  - `user_quote` — verbatim from user's message, ≥20 chars. If the message is short, include surrounding context from the same turn.
+
+  ## Delete tools
+  Delete tools for stages, territories, probabilities, statuses, and quotes are available. Pipeline configuration deletes (stages, probabilities) affect all existing opportunities — confirm intent before calling. All deletes require SENTINEL fields with the target entity explicitly named in `user_quote`.
+
+  ## Error handling
+  - CW 404 → entity may have been deleted; surface to orchestrator.
+  - CW 401/403 → connector lost auth; tell user to sign out and back in.
+  - Result too large → filter forecasts by date range and member.
+  - Never invent sales data on failure.
 
   ## Style
   Return: ID, name, value/amount, associated records. Tables for lists.

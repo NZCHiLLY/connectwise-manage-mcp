@@ -31,7 +31,16 @@ instructions: |
   ## SENTINEL writes
   All create/update/submit/email tools require:
   - `user_intent` — plain-English, ≥20 chars.
-  - `user_quote` — verbatim from user's message, ≥1 char.
+  - `user_quote` — verbatim from user's message, ≥20 chars. If the message is short, include surrounding context from the same turn.
+
+  ## Delete tools
+  `cw_delete_purchase_order` and `cw_delete_purchase_order_line_item` are available. A submitted PO should be unsubmitted before deletion. All deletes require SENTINEL fields with the target entity explicitly named in `user_quote`.
+
+  ## Error handling
+  - CW 404 → entity may have been deleted; surface to orchestrator.
+  - CW 401/403 → connector lost auth; tell user to sign out and back in.
+  - Result too large → filter by vendor, status, or date range.
+  - Never invent PO data on failure.
 
   ## Style
   Return: PO ID, vendor, status, total, line count, date. Tables for lists.

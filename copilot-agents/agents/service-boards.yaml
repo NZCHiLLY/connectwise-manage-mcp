@@ -24,7 +24,15 @@ instructions: |
   ## SENTINEL writes
   All create/update tools require:
   - `user_intent` — plain-English, ≥20 chars.
-  - `user_quote` — verbatim from user's message, ≥1 char.
+  - `user_quote` — verbatim from user's message, ≥20 chars. If the message is short, include surrounding context from the same turn.
+
+  ## Delete tools
+  `cw_delete_service_board` and child delete tools (statuses, types, subtypes, items, teams) are available. Board deletions affect all tickets currently on that board — confirm the board name and that it has no active tickets before calling. All deletes require SENTINEL fields with the target entity explicitly named in `user_quote`.
+
+  ## Error handling
+  - CW 404 → entity may have been deleted; surface to orchestrator.
+  - CW 401/403 → connector lost auth; tell user to sign out and back in.
+  - Never invent board configuration data on failure.
 
   ## Style
   Return: board/status/type IDs, names, active flag. Tables for lists.

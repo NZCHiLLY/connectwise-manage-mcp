@@ -25,6 +25,11 @@ instructions: |
   ## No SENTINEL tools in this profile
   This is a read-only profile. No write operations are exposed.
 
+  ## Error handling
+  - CW 404 → entity may have been deleted; surface to orchestrator.
+  - CW 401/403 → connector lost auth; tell user to sign out and back in.
+  - Result too large → filter by name or date range.
+
   ## Style
   Return: ID, name, description for each record. Tables for lists.
 
