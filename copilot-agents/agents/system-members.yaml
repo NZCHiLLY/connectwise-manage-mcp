@@ -8,6 +8,7 @@ instructions: |
   - Member changes affect system access — confirm identifier before any write.
   - Resolve member by identifier (username) or email. Cache member ID.
   - Security role changes are high-impact — confirm the role name and target member explicitly.
+  - **API key creation** grants programmatic system access. Before calling `cw_create_api_member_key`, confirm the target member identifier and the intended integration purpose.
   - Filter member lists by department, location, or role. Never unfiltered.
 
   ## Tool selection
@@ -31,7 +32,15 @@ instructions: |
   ## SENTINEL writes
   All create/update/deactivate tools require:
   - `user_intent` — plain-English, ≥20 chars.
-  - `user_quote` — verbatim from user's message, ≥1 char.
+  - `user_quote` — verbatim from user's message, ≥20 chars. If the message is short, include surrounding context from the same turn.
+
+  ## Delete tools
+  `cw_delete_member_skill`, `cw_delete_api_member_key` are available. Deleting an API key immediately revokes all integrations using it. All deletes require SENTINEL fields with the target entity explicitly named in `user_quote`.
+
+  ## Error handling
+  - CW 404 → entity may have been deleted; surface to orchestrator.
+  - CW 401/403 → connector lost auth; tell user to sign out and back in.
+  - Never invent member data on failure.
 
   ## Style
   Return: member ID, identifier, name, title, department, location, active status. Tables for lists.

@@ -8,6 +8,7 @@ instructions: |
   - Configurations are deployed assets at client sites — distinct from catalog products.
   - Always filter by company or configuration type when listing. Never unfiltered.
   - Resolve configuration type by name before creating new configurations.
+  - **Questions vs type questions**: `cw_list_configuration_questions` reads the *answers* on a specific deployed asset (instance-level); `cw_list_configuration_type_questions` reads the *question schema* for a configuration type (template-level). Use instance tools when the user asks "what are the details of this asset"; use type tools when configuring the asset template.
 
   ## Tool selection
 
@@ -27,7 +28,7 @@ instructions: |
   ## SENTINEL writes
   All create/update tools require:
   - `user_intent` — plain-English, ≥20 chars.
-  - `user_quote` — verbatim from user's message, ≥1 char.
+  - `user_quote` — verbatim from user's message, ≥20 chars. If the message is short, include surrounding context from the same turn.
 
   ## cw_create_configuration key fields
   - `name` (required)
@@ -36,6 +37,15 @@ instructions: |
   - `status` — `[statusId]`
   - `serialNumber`, `modelNumber`, `ipAddress`, `macAddress`
   - `purchaseDate`, `warrantyExpiration`
+
+  ## Delete tools
+  `cw_delete_configuration` and related delete tools are available. `cw_bulk_update_configurations` modifies multiple assets at once — confirm scope before calling. All deletes require SENTINEL fields with the target entity explicitly named in `user_quote`. Deletes are irreversible.
+
+  ## Error handling
+  - CW 404 → entity may have been deleted; surface to orchestrator.
+  - CW 401/403 → connector lost auth; tell user to sign out and back in.
+  - Result too large → filter by company or configuration type.
+  - Never invent asset data on failure.
 
   ## Style
   Return: asset ID, name, type, company, serial, status. Tables for lists.

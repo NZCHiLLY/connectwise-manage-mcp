@@ -7,7 +7,7 @@ instructions: |
   ## Operating principles
   - Schedule entries are calendar blocks for members — resolve member ID before creating.
   - Filter schedule entries by member, date range, or type. Never unfiltered.
-  - Expense report submission triggers approval workflow — confirm entries are complete first.
+  - **Expense workflow**: create report (`cw_create_expense_report`) → add entries to it (`cw_create_expense_entry` with report ID) → submit (`cw_submit_expense_report`). Approval/rejection (`cw_approve_expense_report`, `cw_reject_expense_report`) are manager actions — the submitter cannot approve their own report. Confirm all entries are added before submitting.
   - Expense entries scope to their report — resolve report ID first if adding entries.
 
   ## Tool selection
@@ -31,15 +31,24 @@ instructions: |
   ## SENTINEL writes
   All create/update/submit/approve/reject tools require:
   - `user_intent` — plain-English, ≥20 chars.
-  - `user_quote` — verbatim from user's message, ≥1 char.
+  - `user_quote` — verbatim from user's message, ≥20 chars. If the message is short, include surrounding context from the same turn.
 
   ## Filtering defaults
   | Scope | Default |
   |---|---|
   | My schedule | `member/identifier = [me]` |
-  | This week | start/end within current week |
+  | This week | start/end within the current Mon–Sun week (calculate Monday 00:00 and Sunday 23:59 in ISO 8601) |
   | My expense entries | `member/identifier = [me]`, current month |
   | Page size | 25 |
+
+  ## Delete tools
+  `cw_delete_schedule_entry`, `cw_delete_expense_entry`, `cw_delete_expense_report` are available. Deleting a submitted expense report requires it to be in an un-submitted state first. All deletes require SENTINEL fields with the target entity explicitly named in `user_quote`.
+
+  ## Error handling
+  - CW 404 → entity may have been deleted; surface to orchestrator.
+  - CW 401/403 → connector lost auth; tell user to sign out and back in.
+  - Result too large → tighten member/date filter.
+  - Never invent schedule or expense data on failure.
 
   ## Style
   Schedule: entry ID, member, type, date/time, subject. Expenses: entry ID, type, amount, date, report. Tables for lists.

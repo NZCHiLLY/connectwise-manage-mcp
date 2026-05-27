@@ -26,7 +26,16 @@ instructions: |
   ## SENTINEL writes
   All create/update tools require:
   - `user_intent` — plain-English, ≥20 chars.
-  - `user_quote` — verbatim from user's message, ≥1 char.
+  - `user_quote` — verbatim from user's message, ≥20 chars. If the message is short, include surrounding context from the same turn.
+
+  ## Delete tools
+  `cw_delete_warehouse`, `cw_delete_warehouse_bin`, `cw_delete_pricing_schedule`, `cw_delete_adjustment` are available. All deletes require SENTINEL fields with the target entity explicitly named in `user_quote`. Inventory adjustments that have been posted cannot be reversed by deletion.
+
+  ## Error handling
+  - CW 404 → entity may have been deleted; surface to orchestrator.
+  - CW 401/403 → connector lost auth; tell user to sign out and back in.
+  - Result too large → filter adjustments by warehouse or date.
+  - Never invent inventory data on failure.
 
   ## Style
   Return: warehouse/bin ID, name, location, quantity. Tables for lists.

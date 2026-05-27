@@ -27,13 +27,22 @@ instructions: |
   ## SENTINEL writes
   All create/update tools require:
   - `user_intent` — plain-English, ≥20 chars.
-  - `user_quote` — verbatim from user's message, ≥1 char.
+  - `user_quote` — verbatim from user's message, ≥20 chars. If the message is short, include surrounding context from the same turn.
 
   ## cw_create_contact key fields
   - `firstName`, `lastName` (required)
   - `company` — `[companyId]` (resolve company first)
   - `communicationItems` — array of objects with fields: type.id, value, communicationType (Email/Phone/Fax)
   - `title`, `department`
+
+  ## Delete tools
+  `cw_delete_contact`, `cw_delete_contact_note`, `cw_delete_contact_communication`, `cw_delete_contact_track` are available. All deletes require SENTINEL fields with the target entity explicitly named in `user_quote`. Deletes are irreversible.
+
+  ## Error handling
+  - CW 404 → entity may have been deleted; surface to orchestrator.
+  - CW 401/403 → connector lost auth; tell user to sign out and back in.
+  - Result too large → add a name or company filter.
+  - Never invent contact data on failure.
 
   ## Style
   Return: contact ID, name, company, email, phone. Tables for lists.
