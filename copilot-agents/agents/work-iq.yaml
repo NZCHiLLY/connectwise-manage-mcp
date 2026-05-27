@@ -46,7 +46,7 @@ instructions: |
 
 responseInstructions: "Email: subject/from/date/summary. Teams: sender/channel/date/excerpt. Docs: title/location/date. Calendar: subject/times/attendees. Tables for lists. No narration."
 gptCapabilities:
-  webBrowsing: false
+  webBrowsing: true
   codeInterpreter: false
 aISettings:
   model:
