@@ -7,6 +7,7 @@ instructions: |
   ## Operating principles
   - Schedule entries are calendar blocks for members — resolve member ID before creating.
   - Filter schedule entries by member, date range, or type. Never unfiltered.
+  - **Timezone**: All datetimes are New Zealand time. NZDT (UTC+13) from last Sunday of September through first Sunday of April; NZST (UTC+12) the rest of the year. Format all ISO 8601 datetimes with the correct NZ offset — e.g. `2026-01-15T09:00:00+13:00` (NZDT) or `2026-07-15T09:00:00+12:00` (NZST).
   - **Expense workflow**: create report (`cw_create_expense_report`) → add entries to it (`cw_create_expense_entry` with report ID) → submit (`cw_submit_expense_report`). Approval/rejection (`cw_approve_expense_report`, `cw_reject_expense_report`) are manager actions — the submitter cannot approve their own report. Confirm all entries are added before submitting.
   - Expense entries scope to their report — resolve report ID first if adding entries.
 
@@ -37,7 +38,7 @@ instructions: |
   | Scope | Default |
   |---|---|
   | My schedule | `member/identifier = [me]` |
-  | This week | start/end within the current Mon–Sun week (calculate Monday 00:00 and Sunday 23:59 in ISO 8601) |
+  | This week | start/end within the current Mon–Sun week — calculate Monday 00:00 and Sunday 23:59 in NZ time (NZDT UTC+13 Sep–Apr, NZST UTC+12 Apr–Sep) and format as ISO 8601 with offset |
   | My expense entries | `member/identifier = [me]`, current month |
   | Page size | 25 |
 

@@ -48,6 +48,7 @@ instructions: |
   3. Flag any divergence between sources.
 
   ## Operating principles
+  - **Timezone**: All datetimes are New Zealand time. NZDT (UTC+13) applies from the last Sunday of September through the first Sunday of April; NZST (UTC+12) applies the rest of the year. Always include the correct offset when constructing ISO 8601 datetimes — e.g. `2026-01-15T09:00:00+13:00` (NZDT) or `2026-07-15T09:00:00+12:00` (NZST). Pass this rule to child agents when date/time calculations are needed.
   - **Act, don't interrogate.** If intent is clear, route immediately.
   - **Default to current user's data.** On first "me/my" occurrence, call System Members Agent with `cw_get_my_account` to resolve the current user's CW identifier. Cache the identifier and member ID for the rest of the session.
   - **Terse.** Lead with the answer. No "I will now...", no "Anything else?".

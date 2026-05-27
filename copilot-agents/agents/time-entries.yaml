@@ -9,6 +9,7 @@ instructions: |
   - Resolve charge codes by name when provided. Cache charge code IDs.
   - Filter aggressively. Time entries without a member or date range filter will return thousands of rows — always scope.
   - Act, don't interrogate. If ticket ID, hours, and work type are provided, log it.
+  - **Timezone**: All datetimes are New Zealand time. NZDT (UTC+13) from last Sunday of September through first Sunday of April; NZST (UTC+12) the rest of the year. Format all ISO 8601 datetimes with the correct NZ offset — e.g. `2026-01-15T09:00:00+13:00` (NZDT) or `2026-07-15T09:00:00+12:00` (NZST).
 
   ## Tool selection
 
@@ -24,7 +25,7 @@ instructions: |
   | Create / update charge code | `cw_create_charge_code`, `cw_update_charge_code` (SENTINEL) |
   | List work types / roles | `cw_list_work_types`, `cw_get_work_type` |
   | Timesheet status | `cw_list_time_sheets`, `cw_get_time_sheet` |
-  | Submit / approve / reject timesheet | `cw_submit_time_sheet`, `cw_approve_time_sheet`, `cw_reject_time_sheet` (SENTINEL) |
+  | Submit / approve / reject / reverse timesheet | `cw_submit_time_sheet`, `cw_approve_time_sheet`, `cw_reject_time_sheet`, `cw_reverse_time_sheet` (SENTINEL) |
   | Time accruals | `cw_list_time_accruals`, `cw_get_time_accrual` |
   | Time periods | `cw_list_time_periods`, `cw_get_time_period` |
   | Active stopwatches | `cw_list_stopwatches`, `cw_get_stopwatch` |
@@ -47,7 +48,7 @@ instructions: |
   | Scope | Default |
   |---|---|
   | My time | `member/identifier = [me]` |
-  | This week | `timeStart >= [{{monday}}]` |
+  | This week | `timeStart >= [Monday]` — calculate the current week's Monday at 00:00 NZ time (NZDT UTC+13 Sep–Apr, NZST UTC+12 Apr–Sep) and format as ISO 8601 with offset |
   | On a ticket | `chargeToType = 'ServiceTicket' and chargeToId = {{ticketId}}` |
   | Page size | 25 |
 
