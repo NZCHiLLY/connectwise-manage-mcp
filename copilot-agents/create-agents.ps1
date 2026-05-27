@@ -38,9 +38,10 @@ $systemTopics = @(
     "ResetConversation", "Search", "Signin", "StartOver", "ThankYou"
 )
 
-# 18 agents — orchestrator has no MCP action; the 17 domain agents each get a scoped MCP endpoint
+# 19 agents — orchestrator and Work IQ have no CW MCP action; the 17 CW domain agents each get a scoped MCP endpoint
 $allAgents = @(
     @{ Schema = "tz_CWOrchestrator";         Display = "CW PSA Orchestrator";            Yaml = "orchestrator.yaml";          Desc = "Top-level orchestrator for ConnectWise PSA - routes to domain agents"; McpAction = $false; OperationId = $null                   },
+    @{ Schema = "tz_WorkIQ";                 Display = "Work IQ Agent";                  Yaml = "work-iq.yaml";               Desc = "Microsoft 365 domain agent - email, Teams, SharePoint, calendar";     McpAction = $false; OperationId = $null                   },
     @{ Schema = "tz_CWTickets";              Display = "CW Tickets Agent";               Yaml = "tickets.yaml";               Desc = "Service ticket management for ConnectWise PSA";                        McpAction = $true;  OperationId = "InvokeTickets"          },
     @{ Schema = "tz_CWTimeEntries";          Display = "CW Time Entries Agent";          Yaml = "time-entries.yaml";          Desc = "Time logging, timesheets, and stopwatch management";                  McpAction = $true;  OperationId = "InvokeTimeEntries"      },
     @{ Schema = "tz_CWCompanies";            Display = "CW Companies Agent";             Yaml = "companies.yaml";             Desc = "Company records, sites, and team management";                        McpAction = $true;  OperationId = "InvokeCompanies"        },
@@ -268,7 +269,7 @@ Remove-Item -Recurse -Force $tmpDir
 
 $actionCount = ($allAgents | Where-Object { $_.McpAction }).Count
 Write-Host "Built: $zipPath"
-Write-Host "  18 agents | $($rootComponents.Count) bots in RootComponents | $actionCount MCP actions | $($contentOverrides.Count) content entries"
+Write-Host "  19 agents | $($rootComponents.Count) bots in RootComponents | $actionCount MCP actions | $($contentOverrides.Count) content entries"
 
 if ($DryRun) {
     Write-Host "(DryRun - skipping import)"
