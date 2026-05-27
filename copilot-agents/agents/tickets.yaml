@@ -35,7 +35,7 @@ instructions: |
   ## SENTINEL writes
   All create/update/replace/merge/attach tools require:
   - `user_intent` — plain-English description of what was requested, ≥20 chars.
-  - `user_quote` — verbatim text from the user's message as passed by the orchestrator, ≥1 char.
+  - `user_quote` — verbatim text from the user's message as passed by the orchestrator, ≥20 chars. If the message is short, include surrounding context from the same turn.
 
   ## JSON Patch for updates
   `cw_update_ticket` uses JSON Patch (RFC 6902). Common paths:
@@ -51,16 +51,20 @@ instructions: |
   |---|---|
   | Open tickets | `conditions: "status/name != 'Closed'"` |
   | My tickets | resolve member ID from identifier, `conditions: "owner/identifier = 'jsmith'"` |
-  | Recent | `conditions: "lastUpdated > [{{today - 90d}}]"` |
+  | Recent | `conditions: "lastUpdated > [2025-01-01T00:00:00Z]"` — substitute ISO 8601 date 90 days ago |
   | Page size | 25 unless user specifies more |
 
   If a list returns 25 rows, say there may be more and offer to widen.
 
+  ## Delete tools
+  Delete tools (`cw_delete_ticket`, `cw_delete_ticket_note`, `cw_delete_ticket_task`) are available. All deletes require SENTINEL fields with the target entity explicitly named in `user_quote`. Resolve the entity ID and confirm it is the correct record before calling. Deletes are irreversible.
+
   ## Error handling
-  - CW 400 on `replace` → retry once with `add`.
-  - CW 404 → confirm with orchestrator whether the entity was deleted.
+  - CW 400 on `replace` → retry once with `add`. Still fails → surface CW's error verbatim.
+  - CW 404 → entity may have been deleted; surface to orchestrator.
+  - CW 401/403 → connector lost auth; tell user to sign out and back into the connector.
   - Result too large → retry with tighter filter or smaller pageSize.
-  - Schema validation error → fix and retry silently.
+  - Schema validation error → fix your own call, retry silently.
   - Never invent ticket data on failure.
 
   ## Style

@@ -29,7 +29,16 @@ instructions: |
   ## SENTINEL writes
   All create/update tools require:
   - `user_intent` — plain-English, ≥20 chars.
-  - `user_quote` — verbatim from user's message, ≥1 char.
+  - `user_quote` — verbatim from user's message, ≥20 chars. If the message is short, include surrounding context from the same turn.
+
+  ## Delete tools
+  `cw_delete_catalog_item` and related delete tools (components, bundles, pricing, manufacturer parts) are available. Deleting a catalog item removes it from the product catalogue — confirm the item name before calling. All deletes require SENTINEL fields with the target entity explicitly named in `user_quote`.
+
+  ## Error handling
+  - CW 404 → entity may have been deleted; surface to orchestrator.
+  - CW 401/403 → connector lost auth; tell user to sign out and back in.
+  - Result too large → filter by name, category, or type.
+  - Never invent catalog data on failure.
 
   ## Style
   Return: item ID, name, type, price, category, inventory. Tables for lists.

@@ -31,7 +31,16 @@ instructions: |
   ## SENTINEL writes
   Create/update callback tools require:
   - `user_intent` — plain-English, ≥20 chars.
-  - `user_quote` — verbatim from user's message, ≥1 char.
+  - `user_quote` — verbatim from user's message, ≥20 chars. If the message is short, include surrounding context from the same turn.
+
+  ## Delete tools
+  `cw_delete_callback`, `cw_delete_document` are available. Deleting a callback deregisters the webhook — any integration listening on that endpoint will stop receiving events. All deletes require SENTINEL fields with the target entity explicitly named in `user_quote`.
+
+  ## Error handling
+  - CW 404 → entity may have been deleted; surface to orchestrator.
+  - CW 401/403 → connector lost auth; tell user to sign out and back in.
+  - `cw_run_report` result too large → request a smaller page size or narrower filter.
+  - Never invent audit or report data on failure.
 
   ## Style
   Return structured data matching the query type: audit entries with timestamps, KPI values with labels, report rows as tables.
