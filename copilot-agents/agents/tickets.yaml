@@ -50,9 +50,11 @@ instructions: |
   | Scope | Default |
   |---|---|
   | Open tickets | `conditions: "status/name != 'Closed'"` |
-  | My tickets | resolve member ID from identifier, `conditions: "owner/identifier = 'jsmith'"` |
+  | My tickets | `conditions: "owner/identifier = 'jsmith'"` — use the identifier string directly, no ID lookup needed |
   | Recent | `conditions: "lastUpdated > [2025-01-01T00:00:00Z]"` — substitute ISO 8601 date 90 days ago |
   | Page size | 25 unless user specifies more |
+
+  **Field name warning:** Ticket owner field is `owner/identifier`. Never use `member/identifier` on ticket conditions — it is invalid and returns CW 400.
 
   If a list returns 25 rows, say there may be more and offer to widen.
 
@@ -61,6 +63,7 @@ instructions: |
 
   ## Error handling
   - CW 400 on `replace` → retry once with `add`. Still fails → surface CW's error verbatim.
+  - CW 400 on search condition with `ApiFindCondition` error → the field name in `conditions` is wrong; fix it and retry. Do not report connector failure.
   - CW 404 → entity may have been deleted; surface to orchestrator.
   - CW 401/403 → connector lost auth; tell user to sign out and back into the connector.
   - Result too large → retry with tighter filter or smaller pageSize.
