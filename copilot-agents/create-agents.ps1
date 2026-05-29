@@ -1,4 +1,4 @@
-# create-agents.ps1 - Build and import all 18 CW PSA agents into one solution
+﻿# create-agents.ps1 - Build and import all 19 CW PSA agents into one solution
 # Run from the copilot-agents directory. Requires: pac CLI authenticated.
 #
 # Usage:
@@ -17,11 +17,6 @@ $ErrorActionPreference = "Stop"
 # ---------------------------------------------------------------------------
 
 $ACA_FQDN          = "YOUR-ACA-APP.YOUR-ENV-ID.australiaeast.azurecontainerapps.io"  # set to your ACA FQDN
-$CONNECTOR_API     = "shared_crc0e-5fcw-2dpsa-2dmcp-2dserver-5fc458ef7842d9bb4b"   # Power Platform connector path
-$CONNECTION_ID     = "YOUR-CONNECTION-ID"                                            # existing connection instance GUID
-$CONNECTOR_GUID    = "YOUR-CONNECTOR-GUID"                                           # connector entity GUID
-$CONNECTOR_SCHEMA  = "crc0e_5Fcw-2Dpsa-2Dmcp-2Dserver"                            # connector schema name
-$CONNECTOR_FILE    = "crc0e_5Fcw-2Dpsa-2Dmcp-2Dserver"                            # filename prefix
 
 $baseDir   = "$PSScriptRoot\ConnectWiseConnectors"
 $agentsDir = "$PSScriptRoot\agents"
@@ -38,27 +33,27 @@ $systemTopics = @(
     "ResetConversation", "Search", "Signin", "StartOver", "ThankYou"
 )
 
-# 19 agents — orchestrator and Work IQ have no CW MCP action; the 17 CW domain agents each get a scoped MCP endpoint
+# 19 agents
 $allAgents = @(
-    @{ Schema = "tz_CWOrchestrator";         Display = "CW PSA Orchestrator";            Yaml = "orchestrator.yaml";          Desc = "Top-level orchestrator for ConnectWise PSA - routes to domain agents"; McpAction = $false; OperationId = $null                   },
-    @{ Schema = "tz_WorkIQ";                 Display = "Work IQ Agent";                  Yaml = "work-iq.yaml";               Desc = "Microsoft 365 domain agent - email, Teams, SharePoint, calendar";     McpAction = $false; OperationId = $null                   },
-    @{ Schema = "tz_CWTickets";              Display = "CW Tickets Agent";               Yaml = "tickets.yaml";               Desc = "Service ticket management for ConnectWise PSA";                        McpAction = $true;  OperationId = "InvokeTickets"          },
-    @{ Schema = "tz_CWTimeEntries";          Display = "CW Time Entries Agent";          Yaml = "time-entries.yaml";          Desc = "Time logging, timesheets, and stopwatch management";                  McpAction = $true;  OperationId = "InvokeTimeEntries"      },
-    @{ Schema = "tz_CWCompanies";            Display = "CW Companies Agent";             Yaml = "companies.yaml";             Desc = "Company records, sites, and team management";                        McpAction = $true;  OperationId = "InvokeCompanies"        },
-    @{ Schema = "tz_CWContacts";             Display = "CW Contacts Agent";              Yaml = "contacts.yaml";              Desc = "Contact records and communications management";                       McpAction = $true;  OperationId = "InvokeContacts"         },
-    @{ Schema = "tz_CWConfigurations";       Display = "CW Configurations Agent";        Yaml = "configurations.yaml";        Desc = "Deployed asset and configuration type management";                   McpAction = $true;  OperationId = "InvokeConfigurations"   },
-    @{ Schema = "tz_CWServiceBoards";        Display = "CW Service Boards Agent";        Yaml = "service-boards.yaml";        Desc = "Service board configuration: statuses, types, teams";               McpAction = $true;  OperationId = "InvokeServiceBoards"    },
-    @{ Schema = "tz_CWServiceConfig";        Display = "CW Service Config Agent";        Yaml = "service-config.yaml";        Desc = "Priorities, SLAs, impacts, KB, and service configuration";          McpAction = $true;  OperationId = "InvokeServiceConfig"    },
-    @{ Schema = "tz_CWSales";                Display = "CW Sales Agent";                 Yaml = "sales.yaml";                 Desc = "Sales quotes, forecasts, pipeline, and territories";                 McpAction = $true;  OperationId = "InvokeSales"            },
-    @{ Schema = "tz_CWOpportunities";        Display = "CW Opportunities Agent";         Yaml = "opportunities.yaml";         Desc = "Opportunity pipeline, activities, and products";                     McpAction = $true;  OperationId = "InvokeOpportunities"    },
-    @{ Schema = "tz_CWFinanceAgreements";    Display = "CW Finance Agreements Agent";    Yaml = "finance-agreements.yaml";    Desc = "Recurring revenue contracts, additions, and GL management";          McpAction = $true;  OperationId = "InvokeFinanceAgreements"},
-    @{ Schema = "tz_CWFinanceInvoices";      Display = "CW Finance Invoices Agent";      Yaml = "finance-invoices.yaml";      Desc = "Invoices, payments, billing setups, and accounting";                McpAction = $true;  OperationId = "InvokeFinanceInvoices"  },
-    @{ Schema = "tz_CWCatalog";              Display = "CW Catalog Agent";               Yaml = "catalog.yaml";               Desc = "Product catalog, bundles, components, and pricing";                 McpAction = $true;  OperationId = "InvokeCatalog"          },
-    @{ Schema = "tz_CWProcurementOrders";    Display = "CW Procurement Orders Agent";    Yaml = "procurement-orders.yaml";    Desc = "Purchase orders, PO lines, and RMA management";                     McpAction = $true;  OperationId = "InvokeProcurementOrders"},
-    @{ Schema = "tz_CWProcurementInventory"; Display = "CW Procurement Inventory Agent"; Yaml = "procurement-inventory.yaml"; Desc = "Warehouses, bins, pricing schedules, and adjustments";              McpAction = $true;  OperationId = "InvokeProcurementInventory"},
-    @{ Schema = "tz_CWSystemMembers";        Display = "CW System Members Agent";        Yaml = "system-members.yaml";        Desc = "Members, API keys, security roles, and departments";                McpAction = $true;  OperationId = "InvokeSystemMembers"    },
-    @{ Schema = "tz_CWSystemAdmin";          Display = "CW System Admin Agent";          Yaml = "system-admin.yaml";          Desc = "Audit trail, reports, KPIs, workflows, and system info";            McpAction = $true;  OperationId = "InvokeSystemAdmin"      },
-    @{ Schema = "tz_CWScheduleExpenses";     Display = "CW Schedule and Expenses Agent"; Yaml = "schedule-expenses.yaml";     Desc = "Schedule entries, calendars, and expense management";               McpAction = $true;  OperationId = "InvokeScheduleExpenses" }
+    @{ Schema = "tz_CWOrchestrator";         Display = "CW PSA Orchestrator";            Yaml = "orchestrator.yaml";          Desc = "Top-level orchestrator for ConnectWise PSA - routes to domain agents" },
+    @{ Schema = "tz_WorkIQ";                 Display = "Work IQ Agent";                  Yaml = "work-iq.yaml";               Desc = "Microsoft 365 domain agent - email, Teams, SharePoint, calendar"     },
+    @{ Schema = "tz_CWTickets";              Display = "CW Tickets Agent";               Yaml = "tickets.yaml";               Desc = "Service ticket management for ConnectWise PSA"                        },
+    @{ Schema = "tz_CWTimeEntries";          Display = "CW Time Entries Agent";          Yaml = "time-entries.yaml";          Desc = "Time logging, timesheets, and stopwatch management"                  },
+    @{ Schema = "tz_CWCompanies";            Display = "CW Companies Agent";             Yaml = "companies.yaml";             Desc = "Company records, sites, and team management"                        },
+    @{ Schema = "tz_CWContacts";             Display = "CW Contacts Agent";              Yaml = "contacts.yaml";              Desc = "Contact records and communications management"                       },
+    @{ Schema = "tz_CWConfigurations";       Display = "CW Configurations Agent";        Yaml = "configurations.yaml";        Desc = "Deployed asset and configuration type management"                   },
+    @{ Schema = "tz_CWServiceBoards";        Display = "CW Service Boards Agent";        Yaml = "service-boards.yaml";        Desc = "Service board configuration: statuses, types, teams"               },
+    @{ Schema = "tz_CWServiceConfig";        Display = "CW Service Config Agent";        Yaml = "service-config.yaml";        Desc = "Priorities, SLAs, impacts, KB, and service configuration"          },
+    @{ Schema = "tz_CWSales";                Display = "CW Sales Agent";                 Yaml = "sales.yaml";                 Desc = "Sales quotes, forecasts, pipeline, and territories"                 },
+    @{ Schema = "tz_CWOpportunities";        Display = "CW Opportunities Agent";         Yaml = "opportunities.yaml";         Desc = "Opportunity pipeline, activities, and products"                     },
+    @{ Schema = "tz_CWFinanceAgreements";    Display = "CW Finance Agreements Agent";    Yaml = "finance-agreements.yaml";    Desc = "Recurring revenue contracts, additions, and GL management"          },
+    @{ Schema = "tz_CWFinanceInvoices";      Display = "CW Finance Invoices Agent";      Yaml = "finance-invoices.yaml";      Desc = "Invoices, payments, billing setups, and accounting"                },
+    @{ Schema = "tz_CWCatalog";              Display = "CW Catalog Agent";               Yaml = "catalog.yaml";               Desc = "Product catalog, bundles, components, and pricing"                 },
+    @{ Schema = "tz_CWProcurementOrders";    Display = "CW Procurement Orders Agent";    Yaml = "procurement-orders.yaml";    Desc = "Purchase orders, PO lines, and RMA management"                     },
+    @{ Schema = "tz_CWProcurementInventory"; Display = "CW Procurement Inventory Agent"; Yaml = "procurement-inventory.yaml"; Desc = "Warehouses, bins, pricing schedules, and adjustments"              },
+    @{ Schema = "tz_CWSystemMembers";        Display = "CW System Members Agent";        Yaml = "system-members.yaml";        Desc = "Members, API keys, security roles, and departments"                },
+    @{ Schema = "tz_CWSystemAdmin";          Display = "CW System Admin Agent";          Yaml = "system-admin.yaml";          Desc = "Audit trail, reports, KPIs, workflows, and system info"            },
+    @{ Schema = "tz_CWScheduleExpenses";     Display = "CW Schedule and Expenses Agent"; Yaml = "schedule-expenses.yaml";     Desc = "Schedule entries, calendars, and expense management"               }
 )
 
 # ---------------------------------------------------------------------------
@@ -97,11 +92,8 @@ New-Item -ItemType Directory -Force "$tmpDir\botcomponents" | Out-Null
 # Build per-agent content
 # ---------------------------------------------------------------------------
 
-$rootComponents     = [System.Collections.Generic.List[string]]::new()
-$contentOverrides   = [System.Collections.Generic.List[string]]::new()
-$connectionRefs     = [System.Collections.Generic.List[string]]::new()
-
-# Connector is already in the environment — not re-imported, not added to RootComponents
+$rootComponents   = [System.Collections.Generic.List[string]]::new()
+$contentOverrides = [System.Collections.Generic.List[string]]::new()
 
 $utf8NoBom = New-Object System.Text.UTF8Encoding $false
 
@@ -148,61 +140,6 @@ foreach ($a in $allAgents) {
     Copy-Item -Force "$agentsDir\$($a.Yaml)" "$gptDst\data"
     $contentOverrides.Add("<Override PartName=""/botcomponents/$s.gpt.default/data"" ContentType=""application/octet-stream"" />")
 
-    # --- MCP action botcomponent (domain agents only) ---
-    if ($a.McpAction) {
-        $connRef = "$s.$CONNECTOR_API.$CONNECTION_ID"
-        $actionSchema = "$s.action.cw-psa-mcp-server-cw-psa-mcp-server"
-        $actionDir = "$tmpDir\botcomponents\$actionSchema"
-        New-Item -ItemType Directory -Force $actionDir | Out-Null
-
-        # botcomponent.xml
-        $actionBc = @"
-<botcomponent schemaname="$actionSchema">
-  <componenttype>9</componenttype>
-  <iscustomizable>0</iscustomizable>
-  <name>cw-psa-mcp-server - cw-psa-mcp-server</name>
-  <parentbotid>
-    <schemaname>$s</schemaname>
-  </parentbotid>
-  <statecode>0</statecode>
-  <statuscode>1</statuscode>
-</botcomponent>
-"@
-        [System.IO.File]::WriteAllText("$actionDir\botcomponent.xml", $actionBc, $utf8NoBom)
-
-        # data (YAML action definition)
-        $actionData = @"
-kind: TaskDialog
-modelDisplayName: ConnectWise PSA
-modelDescription: ConnectWise Manage PSA integration via MCP
-action:
-  kind: InvokeExternalAgentTaskAction
-  connectionReference: $connRef
-  connectionProperties:
-    mode: Invoker
-  operationDetails:
-    kind: ModelContextProtocolMetadata
-    operationId: $($a.OperationId)
-"@
-        [System.IO.File]::WriteAllText("$actionDir\data", $actionData, $utf8NoBom)
-        $contentOverrides.Add("<Override PartName=""/botcomponents/$actionSchema/data"" ContentType=""application/octet-stream"" />")
-
-        # Connection reference entry for customizations.xml
-        $connectionRefs.Add(@"
-    <connectionreference connectionreferencelogicalname="$connRef">
-      <connectionreferencedisplayname>$connRef</connectionreferencedisplayname>
-      <connectorid>/providers/Microsoft.PowerApps/apis/$CONNECTOR_API</connectorid>
-      <customconnectorid>
-        <connectorid>$CONNECTOR_GUID</connectorid>
-      </customconnectorid>
-      <iscustomizable>0</iscustomizable>
-      <promptingbehavior>0</promptingbehavior>
-      <statecode>0</statecode>
-      <statuscode>1</statuscode>
-    </connectionreference>
-"@)
-    }
-
     # RootComponent for this bot (type 380)
     $rootComponents.Add("    <RootComponent type=""380"" schemaName=""$s"" behavior=""0"" />")
 }
@@ -213,19 +150,16 @@ action:
 
 Write-Host "`nUpdating solution manifests..."
 
-# solution.xml — connector + 18 bots in RootComponents
+# solution.xml — 19 bots in RootComponents
 $solXml = [System.IO.File]::ReadAllText("$tmpDir\solution.xml")
 $solXml = $solXml -replace '(?s)<RootComponents>.*?</RootComponents>', "<RootComponents>`n$($rootComponents -join "`n")`n  </RootComponents>"
 $solXml = $solXml -replace 'description="[^"]*"', "description=""$SOL_DISP"""
 [System.IO.File]::WriteAllText("$tmpDir\solution.xml", $solXml, [System.Text.Encoding]::UTF8)
 
-# customizations.xml — strip all connector definitions (not in package), inject connection references
+# customizations.xml — strip connector definitions and clear connection references
 $custXml = [System.IO.File]::ReadAllText("$tmpDir\customizations.xml")
 $custXml = $custXml -replace '(?s)<Connectors>.*?</Connectors>', '<Connectors />'
-
-# Inject connection references for all 17 domain agents
-$connRefsBlock = $connectionRefs -join ""
-$custXml = $custXml -replace '(?s)<connectionreferences>.*?</connectionreferences>', "<connectionreferences>`n${connRefsBlock}`n  </connectionreferences>"
+$custXml = $custXml -replace '(?s)<connectionreferences>.*?</connectionreferences>', '<connectionreferences />'
 [System.IO.File]::WriteAllText("$tmpDir\customizations.xml", $custXml, [System.Text.Encoding]::UTF8)
 
 # [Content_Types].xml — rebuild with all entries
@@ -267,9 +201,8 @@ try {
 
 Remove-Item -Recurse -Force $tmpDir
 
-$actionCount = ($allAgents | Where-Object { $_.McpAction }).Count
 Write-Host "Built: $zipPath"
-Write-Host "  19 agents | $($rootComponents.Count) bots in RootComponents | $actionCount MCP actions | $($contentOverrides.Count) content entries"
+Write-Host "  19 agents | $($rootComponents.Count) bots in RootComponents | $($contentOverrides.Count) content entries"
 
 if ($DryRun) {
     Write-Host "(DryRun - skipping import)"
@@ -332,7 +265,6 @@ foreach ($a in $allAgents) {
     if (-not (Test-Path $yamlPath)) { Write-Host "  SKIP (no yaml): $s"; continue }
     $yamlContent = [System.IO.File]::ReadAllText($yamlPath, [System.Text.Encoding]::UTF8)
 
-    # Find the botcomponent id
     $bcUrl = "$dvUrl/api/data/v9.2/botcomponents?`$select=botcomponentid&`$filter=schemaname eq '$s.gpt.default'"
     $bc = (Invoke-RestMethod -Uri $bcUrl -Headers $dvHdrs -Method Get).value
     if ($bc.Count -eq 0) { Write-Host "  NOT FOUND: $s.gpt.default"; continue }
@@ -348,9 +280,7 @@ foreach ($a in $allAgents) {
 }
 
 # ---------------------------------------------------------------------------
-# Publish all bots (registers connection references with Copilot Studio backend)
-# pac copilot publish must run after import — solution import alone does not
-# register the bot's connection references in the backend service.
+# Publish all bots (pac copilot publish must run after import)
 # ---------------------------------------------------------------------------
 
 Write-Host "`nPublishing agents via pac copilot publish..."
@@ -361,38 +291,10 @@ foreach ($a in $allAgents) {
     Write-Host "  Publishing: $($a.Display) ($botGuid)..."
     $pubOut = (& $pac copilot publish --bot $botGuid 2>&1) -join " "
     if ($pubOut -match "Succeeded") {
-        Write-Host "    OK"
+        Write-Host "    OK: $($a.Display)"
     } else {
-        Write-Host "    WARN: $pubOut"
+        Write-Host "    WARN: $($a.Display) - $pubOut"
     }
 }
 
-# ---------------------------------------------------------------------------
-# Patch connectionid on all connection references
-# Solution import creates connectionreference entities but leaves connectionid
-# empty — Copilot Studio cannot invoke tools until this field is populated.
-# ---------------------------------------------------------------------------
-
-Write-Host "`nPatching connection references (connectionid)..."
-$connRefFilter = "contains(connectionreferencelogicalname,'$CONNECTION_ID')"
-$connRefs = (Invoke-RestMethod -Uri "$dvUrl/api/data/v9.2/connectionreferences?`$select=connectionreferenceid,connectionreferencelogicalname,connectionid&`$filter=$connRefFilter" -Headers $dvHdrs -Method Get).value
-if ($connRefs.Count -eq 0) {
-    Write-Host "  WARN: No connection references found matching connection ID $CONNECTION_ID"
-} else {
-    $patchBody = @{ connectionid = $CONNECTION_ID } | ConvertTo-Json
-    foreach ($ref in $connRefs) {
-        if ($ref.connectionid -eq $CONNECTION_ID) {
-            Write-Host "  Already set: $($ref.connectionreferencelogicalname)"
-            continue
-        }
-        try {
-            Invoke-RestMethod -Uri "$dvUrl/api/data/v9.2/connectionreferences($($ref.connectionreferenceid))" `
-                -Headers ($dvHdrs + @{ "If-Match" = "*" }) -Method Patch -Body $patchBody | Out-Null
-            Write-Host "  Patched: $($ref.connectionreferencelogicalname)"
-        } catch {
-            Write-Host "  WARN: $($ref.connectionreferencelogicalname) - $($_.ErrorDetails.Message)"
-        }
-    }
-}
-
-Write-Host "`nDone. Verify at: https://copilotstudio.microsoft.com"
+Write-Host "`nDone. https://copilotstudio.microsoft.com"
