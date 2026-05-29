@@ -599,20 +599,25 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     },
   );
 
-  // ── Ticket Team Members ──────────────────────────────────────────────────
+  // ── Ticket Team Members (backed by schedule entries in CW v2026+) ─────────
+  // The /allTeamMembers and /members sub-resource endpoints were removed in
+  // CW v2026.x. Resources are now tracked solely via schedule entries
+  // (type/id=4, objectId=ticketId). These tools transparently use that path.
 
   server.tool(
     "cw_list_ticket_team",
-    "List team members assigned to a ticket via /service/tickets/{id}/allTeamMembers (returns owner + sub-team).",
+    "List resources (members) assigned to a ticket. Returns schedule entries (member, status, doneFlag) for the ticket.",
     {
       ticketId: z.number().describe("Ticket ID"),
-      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      conditions: z.string().optional().describe("Additional ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
       pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ ticketId, conditions, page, pageSize }) => {
-      const result = await client.get(`/service/tickets/${ticketId}/allTeamMembers`, {
-        conditions,
+      const baseCond = `type/id=4 AND objectId=${ticketId}`;
+      const fullCond = conditions ? `${baseCond} AND (${conditions})` : baseCond;
+      const result = await client.get(`/schedule/entries`, {
+        conditions: fullCond,
         page: page ?? 1,
         pageSize: pageSize ?? 25,
       });
@@ -622,24 +627,24 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_get_ticket_team_member",
-    "Get a single team-member assignment on a ticket.",
+    "Get a single resource assignment on a ticket by its schedule entry ID.",
     {
-      ticketId: z.number().describe("Ticket ID"),
-      teamMemberId: z.number().describe("Team-member assignment ID (NOT the member ID)"),
+      ticketId: z.number().describe("Ticket ID (used for validation only)"),
+      teamMemberId: z.number().describe("Schedule entry ID (from cw_list_ticket_team)"),
     },
-    async ({ ticketId, teamMemberId }) => {
-      const result = await client.get(`/service/tickets/${ticketId}/allTeamMembers/${teamMemberId}`);
+    async ({ teamMemberId }) => {
+      const result = await client.get(`/schedule/entries/${teamMemberId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
 
   server.tool(
     "cw_add_ticket_team_member",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Add a member to a ticket's sub-team.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Add a resource (member) to a ticket by creating a schedule entry.",
     {
       ticketId: z.number().describe("Ticket ID"),
       memberId: z.number().describe("Member ID to add"),
-      teamRoleId: z.number().optional().describe("Team role ID"),
+      teamRoleId: z.number().optional().describe("Team role ID (ignored in schedule-entry mode)"),
       user_intent: z.string().min(20).describe(
         "Plain-English description of what the user asked for. " +
           "Must be at least 20 characters. Example: " +
@@ -650,22 +655,21 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
     },
-    async ({ ticketId, memberId, teamRoleId, user_intent, user_quote }) => {
+    async ({ ticketId, memberId, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_add_ticket_team_member", entityType: "ticket_team_member", entityId: ticketId, userIntent: user_intent, userQuote: user_quote });
-      const body: Record<string, unknown> = { member: { id: memberId } };
-      if (teamRoleId !== undefined) body.teamRole = { id: teamRoleId };
-      const result = await client.post(`/service/tickets/${ticketId}/allTeamMembers`, body);
+      const body = { type: { id: 4 }, objectId: ticketId, member: { id: memberId } };
+      const result = await client.post(`/schedule/entries`, body);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
 
   server.tool(
     "cw_update_ticket_team_member",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a team-member assignment (e.g. change team role) via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a resource assignment on a ticket (e.g. set doneFlag=true) via JSON Patch on the schedule entry.",
     {
-      ticketId: z.number().describe("Ticket ID"),
-      teamMemberId: z.number().describe("Team-member assignment ID"),
-      patch: z.array(patchOp).describe("Array of JSON Patch operations"),
+      ticketId: z.number().describe("Ticket ID (used for audit only)"),
+      teamMemberId: z.number().describe("Schedule entry ID (from cw_list_ticket_team)"),
+      patch: z.array(patchOp).describe("Array of JSON Patch operations, e.g. [{op:'replace',path:'/doneFlag',value:true}]"),
       user_intent: z.string().min(20).describe(
         "Plain-English description of what the user asked for. " +
           "Must be at least 20 characters. Example: " +
@@ -678,7 +682,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     },
     async ({ ticketId, teamMemberId, patch, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_update_ticket_team_member", entityType: "ticket_team_member", entityId: teamMemberId, userIntent: user_intent, userQuote: user_quote, operations: patch });
-      const result = await client.patch(`/service/tickets/${ticketId}/allTeamMembers/${teamMemberId}`, patch);
+      const result = await client.patch(`/schedule/entries/${teamMemberId}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
@@ -687,8 +691,8 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     "cw_remove_ticket_team_member",
     "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Remove a member from a ticket's sub-team.",
     {
-      ticketId: z.number().describe("Ticket ID"),
-      teamMemberId: z.number().describe("Team-member assignment ID"),
+      ticketId: z.number().describe("Ticket ID (used for audit only)"),
+      teamMemberId: z.number().describe("Schedule entry ID (from cw_list_ticket_team)"),
       user_intent: z.string().min(20).describe(
         "Plain-English description of what the user asked for. " +
           "Must be at least 20 characters. Example: " +
@@ -701,7 +705,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     },
     async ({ ticketId, teamMemberId, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_remove_ticket_team_member", entityType: "ticket_team_member", entityId: teamMemberId, userIntent: user_intent, userQuote: user_quote });
-      const result = await client.request("DELETE", `/service/tickets/${ticketId}/allTeamMembers/${teamMemberId}`);
+      const result = await client.request("DELETE", `/schedule/entries/${teamMemberId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
