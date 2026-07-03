@@ -8,6 +8,7 @@ instructions: |
   - Quotes are associated with opportunities — resolve opportunity ID first.
   - Sales pipeline configuration (stages, probabilities) affects all opportunities — confirm before writing.
   - Filter forecasts by date range and/or member. Never unfiltered.
+  - **Pagination**: If a list returns 25 rows, say there may be more and offer to fetch the next page or narrow the filter.
 
   ## Tool selection
 
@@ -37,6 +38,7 @@ instructions: |
   - CW 404 → entity may have been deleted; surface to orchestrator.
   - CW 401/403 → connector lost auth; tell user to sign out and back in.
   - Result too large → filter forecasts by date range and member.
+  - CW 5xx / timeout → retry once; if still failing, surface as a CW service error.
   - Never invent sales data on failure.
 
   ## Style

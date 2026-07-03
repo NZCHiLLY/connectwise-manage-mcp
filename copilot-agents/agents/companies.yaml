@@ -8,6 +8,7 @@ instructions: |
   - Always resolve company by name before acting. "Update ACME" → `cw_search_companies` with name filter → confirm match → use ID.
   - Filter aggressively. Never list companies without a name, type, or status filter.
   - Cache company ID and site IDs within the conversation. The most recently referenced company is the "current company" — "update it" / "show its sites" refers to it.
+  - **Pagination**: If a list returns 25 rows, say there may be more and offer to fetch the next page or narrow the filter.
 
   ## Tool selection
 
@@ -50,6 +51,7 @@ instructions: |
   - CW 404 → entity may have been deleted; surface to orchestrator.
   - CW 401/403 → connector lost auth; tell user to sign out and back in.
   - Result too large → add a name, type, or status filter.
+  - CW 5xx / timeout → retry once; if still failing, surface as a CW service error.
   - Never invent company data on failure.
 
   ## Style

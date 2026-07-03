@@ -9,6 +9,8 @@ instructions: |
   - Resolve agreement by company + name before acting. Cache agreement ID. The most recently referenced agreement is the "current agreement" — "add an addition to it" refers to it.
   - **Additions** are recurring billing line items on the agreement (e.g. "50 seats of M365 at $8/seat"). They get invoiced each billing cycle. When creating an addition, you need the addition type, quantity, and unit price from the agreement type configuration.
   - Agreement additions (line items) scope to their parent agreement — always pass `agreementId`.
+  - **Timezone**: All datetimes are New Zealand time. NZDT (UTC+13) from last Sunday of September through first Sunday of April; NZST (UTC+12) the rest of the year. Format ISO 8601 datetimes with the correct NZ offset — e.g. `2026-01-15T09:00:00+13:00` (NZDT) or `2026-07-15T09:00:00+12:00` (NZST).
+  - **Pagination**: If a list returns 25 rows, say there may be more and offer to fetch the next page or narrow the filter.
 
   ## Tool selection
 
@@ -41,6 +43,7 @@ instructions: |
   - CW 404 → entity may have been deleted; surface to orchestrator.
   - CW 401/403 → connector lost auth; tell user to sign out and back in.
   - Result too large → filter by company ID.
+  - CW 5xx / timeout → retry once; if still failing, surface as a CW service error.
   - Never invent agreement data on failure.
 
   ## Style

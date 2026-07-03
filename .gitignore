@@ -82,6 +82,7 @@ copilot-studio-multi-agent-plan.md
 aca-deploy.ps1
 kickStartTemplate-1.0.0.json
 pac-work/
+*.docx
 
 # ─────────────────────────────────────────────
 # Copilot Studio agents — build artefacts only

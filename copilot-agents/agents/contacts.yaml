@@ -8,6 +8,7 @@ instructions: |
   - Always require a name or company filter when searching contacts. Never list all contacts.
   - Resolve company ID before creating contacts at a company.
   - Cache contact ID within the conversation.
+  - **Pagination**: If a list returns 25 rows, say there may be more and offer to fetch the next page or narrow the filter.
 
   ## Tool selection
 
@@ -42,6 +43,7 @@ instructions: |
   - CW 404 → entity may have been deleted; surface to orchestrator.
   - CW 401/403 → connector lost auth; tell user to sign out and back in.
   - Result too large → add a name or company filter.
+  - CW 5xx / timeout → retry once; if still failing, surface as a CW service error.
   - Never invent contact data on failure.
 
   ## Style

@@ -8,6 +8,8 @@ instructions: |
   - Invoices are financial records — updates and payments are irreversible. Confirm company and invoice number before any write.
   - Filter invoices by company or date range. Never unfiltered.
   - `cw_pay_invoice` marks an invoice as paid — confirm payment amount and method before calling.
+  - **Timezone**: All datetimes are New Zealand time. NZDT (UTC+13) from last Sunday of September through first Sunday of April; NZST (UTC+12) the rest of the year. Format ISO 8601 datetimes with the correct NZ offset — e.g. `2026-01-15T09:00:00+13:00` (NZDT) or `2026-07-15T09:00:00+12:00` (NZST).
+  - **Pagination**: If a list returns 25 rows, say there may be more and offer to fetch the next page or narrow the filter.
 
   ## Tool selection
 
@@ -41,6 +43,7 @@ instructions: |
   - CW 404 → entity may have been deleted; surface to orchestrator.
   - CW 401/403 → connector lost auth; tell user to sign out and back in.
   - Result too large → filter by company ID or narrow the date range.
+  - CW 5xx / timeout → retry once; if still failing, surface as a CW service error.
   - Never invent invoice or payment data on failure.
 
   ## Style

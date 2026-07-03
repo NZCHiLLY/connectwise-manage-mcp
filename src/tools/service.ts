@@ -818,6 +818,79 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
     },
   );
 
+  server.tool(
+    "cw_create_kb_article",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a knowledgebase article. question is required.",
+    {
+      question: z.string().describe("Article question / title (required)"),
+      answer: z.string().optional().describe("Article body / answer text"),
+      flagged: z.boolean().optional().describe("Flag the article for review"),
+      boardId: z.number().optional().describe("Service board ID to associate the article with"),
+      categoryId: z.number().optional().describe("Service category ID (from cw_list_service_categories)"),
+      subCategoryId: z.number().optional().describe("Service sub-category ID"),
+      locationId: z.number().optional().describe("Location ID"),
+      businessUnitId: z.number().optional().describe("Business unit ID"),
+      ...sentinelParams,
+    },
+    async (args) => {
+      await auditLog({ tool: "cw_create_kb_article", entityType: "kb_article", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
+      const body: Record<string, unknown> = { question: args.question };
+      if (args.answer !== undefined) body.answer = args.answer;
+      if (args.flagged !== undefined) body.flagged = args.flagged;
+      if (args.boardId !== undefined) body.board = { id: args.boardId };
+      if (args.categoryId !== undefined) body.category = { id: args.categoryId };
+      if (args.subCategoryId !== undefined) body.subCategory = { id: args.subCategoryId };
+      if (args.locationId !== undefined) body.location = { id: args.locationId };
+      if (args.businessUnitId !== undefined) body.businessUnit = { id: args.businessUnitId };
+      const result = await client.post("/service/knowledgeBaseArticles", body);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_update_kb_article",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a knowledgebase article via JSON Patch.",
+    {
+      id: z.number().describe("Knowledgebase article ID"),
+      patch: z.array(patchOp).describe("JSON Patch operations to apply. Common paths: /question, /answer, /flagged, /board/id, /category/id"),
+      ...sentinelParams,
+    },
+    async ({ id, patch, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_kb_article", entityType: "kb_article", entityId: id, userIntent: user_intent, userQuote: user_quote, operations: patch });
+      const result = await client.patch(`/service/knowledgeBaseArticles/${id}`, patch);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_replace_kb_article",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Replace a knowledgebase article (full PUT). Provide the complete article body.",
+    {
+      id: z.number().describe("Knowledgebase article ID"),
+      body: z.record(z.string(), z.unknown()).describe("Complete article body. Required fields: question. Optional: answer, flagged, board (id), category (id), subCategory (id), location (id), businessUnit (id)"),
+      ...sentinelParams,
+    },
+    async ({ id, body, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_replace_kb_article", entityType: "kb_article", entityId: id, userIntent: user_intent, userQuote: user_quote });
+      const result = await client.put(`/service/knowledgeBaseArticles/${id}`, body);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_delete_kb_article",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Permanently delete a knowledgebase article.",
+    {
+      id: z.number().describe("Knowledgebase article ID"),
+      ...sentinelParams,
+    },
+    async ({ id, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_delete_kb_article", entityType: "kb_article", entityId: id, userIntent: user_intent, userQuote: user_quote });
+      const result = await client.request("DELETE", `/service/knowledgeBaseArticles/${id}`);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
   // ── Categories & Codes ───────────────────────────────────────────────────
 
   server.tool(

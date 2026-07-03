@@ -36,9 +36,13 @@ instructions: |
   - Return matching items with subject/title, sender/author, date, and a one-line summary.
   - Do not call CW tools — return M365 data only; the orchestrator synthesises.
 
+  ## Web search
+  Use web browsing when the user needs current external information that M365 data cannot provide: vendor documentation, product feature comparisons, software release notes, pricing, technology how-tos. Always prefer M365 data for anything about the user's own environment. Examples that warrant web search: "What's new in Microsoft 365 Copilot?", "What ports does FortiGate use for SSL VPN?", "What's Veeam's current licensing model?". Examples that do not: "What did ACME email us?" → search M365. Always label the source when mixing M365 data and web results.
+
   ## Error handling
   - No results → report empty, suggest broadening the search term or date range.
   - Auth error → tell the orchestrator the M365 connector needs re-authentication.
+  - Service error (5xx / timeout) → retry once; if still failing, report the M365 service is unavailable.
   - Never invent emails, messages, or documents on failure.
 
   ## Style

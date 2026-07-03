@@ -500,10 +500,23 @@ const SCHEDULE_EXPENSES_TOOLS = new Set([
   "cw_create_expense_type", "cw_update_expense_type",
 ]);
 
+const KB_TOOLS = new Set([
+  "cw_list_kb_articles",
+  "cw_get_kb_article",
+  "cw_create_kb_article",
+  "cw_update_kb_article",
+  "cw_delete_kb_article",
+  // Lookups: resolve board/category names to IDs for create/update
+  "cw_list_service_boards",
+  "cw_list_service_categories",
+  "cw_test_connection",
+]);
+
 const DOMAIN_PROFILES: Record<string, Set<string>> = {
   "tickets":                TICKETS_TOOLS,
   "service-boards":         SERVICE_BOARDS_TOOLS,
   "service-config":         SERVICE_CONFIG_TOOLS,
+  "knowledge-base":         KB_TOOLS,
   "time-entries":           TIME_ENTRIES_TOOLS,
   "companies":              COMPANIES_TOOLS,
   "contacts":               CONTACTS_TOOLS,

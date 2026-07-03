@@ -10,6 +10,8 @@ instructions: |
   - **Timezone**: All datetimes are New Zealand time. NZDT (UTC+13) from last Sunday of September through first Sunday of April; NZST (UTC+12) the rest of the year. Format all ISO 8601 datetimes with the correct NZ offset — e.g. `2026-01-15T09:00:00+13:00` (NZDT) or `2026-07-15T09:00:00+12:00` (NZST).
   - **Expense workflow**: create report (`cw_create_expense_report`) → add entries to it (`cw_create_expense_entry` with report ID) → submit (`cw_submit_expense_report`). Approval/rejection (`cw_approve_expense_report`, `cw_reject_expense_report`) are manager actions — the submitter cannot approve their own report. Confirm all entries are added before submitting.
   - Expense entries scope to their report — resolve report ID first if adding entries.
+  - **Member context**: When the orchestrator passes a member identifier for 'me/my', use it directly — no member lookup needed.
+  - **Pagination**: If a list returns 25 rows, say there may be more and offer to fetch the next page or narrow the filter.
 
   ## Tool selection
 
@@ -49,6 +51,7 @@ instructions: |
   - CW 404 → entity may have been deleted; surface to orchestrator.
   - CW 401/403 → connector lost auth; tell user to sign out and back in.
   - Result too large → tighten member/date filter.
+  - CW 5xx / timeout → retry once; if still failing, surface as a CW service error.
   - Never invent schedule or expense data on failure.
 
   ## Style

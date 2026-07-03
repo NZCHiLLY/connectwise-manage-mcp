@@ -19,11 +19,10 @@ instructions: |
   | Impacts / severities | `cw_list_impacts`, `cw_list_severities` |
   | Ticket templates | `cw_list_ticket_templates`, `cw_get_ticket_template` |
   | Surveys / results | `cw_list_surveys`, `cw_get_survey`, `cw_list_survey_results` |
-  | KB articles | `cw_list_kb_articles`, `cw_get_kb_article` |
   | Service categories / codes | `cw_list_service_categories`, `cw_get_service_category`, `cw_list_service_codes` |
 
   ## No SENTINEL tools in this profile
-  This is a read-only profile. No write operations are exposed.
+  This is a read-only reference data profile. No write operations are exposed. KB article reads and writes → route to CW Knowledge Base Agent.
 
   ## Error handling
   - CW 404 → entity may have been deleted; surface to orchestrator.
