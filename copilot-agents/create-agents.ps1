@@ -1,4 +1,4 @@
-﻿# create-agents.ps1 - Build and import all 19 CW PSA agents into one solution
+﻿# create-agents.ps1 - Build and import all 20 CW PSA agents into one solution
 # Run from the copilot-agents directory. Requires: pac CLI authenticated.
 #
 # Usage:
@@ -33,7 +33,7 @@ $systemTopics = @(
     "ResetConversation", "Search", "Signin", "StartOver", "ThankYou"
 )
 
-# 19 agents
+# 20 agents
 $allAgents = @(
     @{ Schema = "tz_CWOrchestrator";         Display = "CW PSA Orchestrator";            Yaml = "orchestrator.yaml";          Desc = "Top-level orchestrator for ConnectWise PSA - routes to domain agents" },
     @{ Schema = "tz_WorkIQ";                 Display = "Work IQ Agent";                  Yaml = "work-iq.yaml";               Desc = "Microsoft 365 domain agent - email, Teams, SharePoint, calendar"     },
@@ -53,7 +53,8 @@ $allAgents = @(
     @{ Schema = "tz_CWProcurementInventory"; Display = "CW Procurement Inventory Agent"; Yaml = "procurement-inventory.yaml"; Desc = "Warehouses, bins, pricing schedules, and adjustments"              },
     @{ Schema = "tz_CWSystemMembers";        Display = "CW System Members Agent";        Yaml = "system-members.yaml";        Desc = "Members, API keys, security roles, and departments"                },
     @{ Schema = "tz_CWSystemAdmin";          Display = "CW System Admin Agent";          Yaml = "system-admin.yaml";          Desc = "Audit trail, reports, KPIs, workflows, and system info"            },
-    @{ Schema = "tz_CWScheduleExpenses";     Display = "CW Schedule and Expenses Agent"; Yaml = "schedule-expenses.yaml";     Desc = "Schedule entries, calendars, and expense management"               }
+    @{ Schema = "tz_CWScheduleExpenses";     Display = "CW Schedule and Expenses Agent"; Yaml = "schedule-expenses.yaml";     Desc = "Schedule entries, calendars, and expense management"               },
+    @{ Schema = "tz_CWKnowledgeBase";        Display = "CW Knowledge Base Agent";        Yaml = "knowledge-base.yaml";        Desc = "CRUD for ConnectWise PSA knowledge base articles"                  }
 )
 
 # ---------------------------------------------------------------------------
@@ -202,7 +203,7 @@ try {
 Remove-Item -Recurse -Force $tmpDir
 
 Write-Host "Built: $zipPath"
-Write-Host "  19 agents | $($rootComponents.Count) bots in RootComponents | $($contentOverrides.Count) content entries"
+Write-Host "  20 agents | $($rootComponents.Count) bots in RootComponents | $($contentOverrides.Count) content entries"
 
 if ($DryRun) {
     Write-Host "(DryRun - skipping import)"

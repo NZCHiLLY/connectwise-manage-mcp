@@ -176,8 +176,11 @@ export async function handleToken(
   const params = new URLSearchParams(body);
 
   // Override client_id; drop resource (Azure AD v2 uses scope, not resource —
-  // sending both causes AADSTS9010010 when they don't match)
+  // sending both causes AADSTS9010010 when they don't match).
+  // Always delete any client_secret the caller sent before injecting ours —
+  // Power Platform sends a garbage value that would cause AADSTS7000215.
   params.set("client_id", config.clientId);
+  params.delete("client_secret");
   if (config.clientSecret) {
     params.set("client_secret", config.clientSecret);
   }

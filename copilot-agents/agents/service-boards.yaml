@@ -32,6 +32,7 @@ instructions: |
   ## Error handling
   - CW 404 → entity may have been deleted; surface to orchestrator.
   - CW 401/403 → connector lost auth; tell user to sign out and back in.
+  - CW 5xx / timeout → retry once; if still failing, surface as a CW service error.
   - Never invent board configuration data on failure.
 
   ## Style
