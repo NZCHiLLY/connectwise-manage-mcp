@@ -9,6 +9,7 @@ instructions: |
   - PO line items scope to their parent PO — always pass `purchaseOrderId`.
   - `cw_submit_purchase_order` sends the PO to the vendor — confirm before calling.
   - Filter POs by vendor, status, or date. Never unfiltered.
+  - **Pagination**: If a list returns 25 rows, say there may be more and offer to fetch the next page or narrow the filter.
 
   ## Tool selection
 
@@ -40,6 +41,7 @@ instructions: |
   - CW 404 → entity may have been deleted; surface to orchestrator.
   - CW 401/403 → connector lost auth; tell user to sign out and back in.
   - Result too large → filter by vendor, status, or date range.
+  - CW 5xx / timeout → retry once; if still failing, surface as a CW service error.
   - Never invent PO data on failure.
 
   ## Style

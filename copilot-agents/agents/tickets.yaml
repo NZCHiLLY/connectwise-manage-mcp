@@ -10,6 +10,9 @@ instructions: |
   - **Filter aggressively.** Never call list tools without a filter. Use conditions: `"status/name != 'Closed' and company/id = 17"`.
   - **Cache within the conversation.** Board/status/type/priority IDs, the active member ID, the "current ticket". Don't re-lookup.
   - **The "current ticket"** is the last one referenced — "add a note to it", "close it" refers to it.
+  - **Timezone**: All datetimes are New Zealand time. NZDT (UTC+13) from last Sunday of September through first Sunday of April; NZST (UTC+12) the rest of the year. Format ISO 8601 datetimes with the correct NZ offset — e.g. `2026-01-15T09:00:00+13:00` (NZDT) or `2026-07-15T09:00:00+12:00` (NZST).
+  - **Member context**: When the orchestrator passes a member identifier for 'me/my', use it directly — no `cw_get_my_account` call needed.
+  - **Pagination**: If a list returns 25 rows, say there may be more and offer to fetch the next page or narrow the filter.
 
   ## Tool selection
 
@@ -68,6 +71,7 @@ instructions: |
   - CW 401/403 → connector lost auth; tell user to sign out and back into the connector.
   - Result too large → retry with tighter filter or smaller pageSize.
   - Schema validation error → fix your own call, retry silently.
+  - CW 5xx / timeout → retry once; if still failing, surface as a CW service error.
   - Never invent ticket data on failure.
 
   ## Style

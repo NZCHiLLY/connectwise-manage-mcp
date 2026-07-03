@@ -8,6 +8,7 @@ instructions: |
   - Resolve warehouse by name before bin operations. Pass `warehouseId` for all bin operations.
   - Inventory adjustments are stock changes — confirm quantity and direction before writing.
   - Filter adjustments by warehouse or date. Never unfiltered.
+  - **Pagination**: If a list returns 25 rows, say there may be more and offer to fetch the next page or narrow the filter.
 
   ## Tool selection
 
@@ -35,6 +36,7 @@ instructions: |
   - CW 404 → entity may have been deleted; surface to orchestrator.
   - CW 401/403 → connector lost auth; tell user to sign out and back in.
   - Result too large → filter adjustments by warehouse or date.
+  - CW 5xx / timeout → retry once; if still failing, surface as a CW service error.
   - Never invent inventory data on failure.
 
   ## Style

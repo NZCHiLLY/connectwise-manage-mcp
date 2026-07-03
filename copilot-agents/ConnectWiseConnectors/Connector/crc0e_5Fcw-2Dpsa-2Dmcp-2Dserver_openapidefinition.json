@@ -5,9 +5,11 @@
     "description": "MCP server for ConnectWise PSA integration",
     "version": "1.0.0"
   },
-  "host": "YOUR-ACA-APP.YOUR-ENV-ID.australiaeast.azurecontainerapps.io",
+  "host": "connectwise-manage-mcp.ambitiousdesert-21b99b06.australiaeast.azurecontainerapps.io",
   "basePath": "/",
-  "schemes": ["https"],
+  "schemes": [
+    "https"
+  ],
   "consumes": [],
   "produces": [],
   "paths": {
@@ -18,7 +20,11 @@
         "operationId": "InvokeTickets",
         "x-ms-agentic-protocol": "mcp-streamable-1.0",
         "x-ms-visibility": "important",
-        "responses": { "200": { "description": "Immediate Response" } }
+        "responses": {
+          "200": {
+            "description": "Immediate Response"
+          }
+        }
       }
     },
     "/mcp/time-entries": {
@@ -28,7 +34,11 @@
         "operationId": "InvokeTimeEntries",
         "x-ms-agentic-protocol": "mcp-streamable-1.0",
         "x-ms-visibility": "important",
-        "responses": { "200": { "description": "Immediate Response" } }
+        "responses": {
+          "200": {
+            "description": "Immediate Response"
+          }
+        }
       }
     },
     "/mcp/companies": {
@@ -38,7 +48,11 @@
         "operationId": "InvokeCompanies",
         "x-ms-agentic-protocol": "mcp-streamable-1.0",
         "x-ms-visibility": "important",
-        "responses": { "200": { "description": "Immediate Response" } }
+        "responses": {
+          "200": {
+            "description": "Immediate Response"
+          }
+        }
       }
     },
     "/mcp/contacts": {
@@ -48,7 +62,11 @@
         "operationId": "InvokeContacts",
         "x-ms-agentic-protocol": "mcp-streamable-1.0",
         "x-ms-visibility": "important",
-        "responses": { "200": { "description": "Immediate Response" } }
+        "responses": {
+          "200": {
+            "description": "Immediate Response"
+          }
+        }
       }
     },
     "/mcp/configurations": {
@@ -58,7 +76,11 @@
         "operationId": "InvokeConfigurations",
         "x-ms-agentic-protocol": "mcp-streamable-1.0",
         "x-ms-visibility": "important",
-        "responses": { "200": { "description": "Immediate Response" } }
+        "responses": {
+          "200": {
+            "description": "Immediate Response"
+          }
+        }
       }
     },
     "/mcp/service-boards": {
@@ -68,7 +90,11 @@
         "operationId": "InvokeServiceBoards",
         "x-ms-agentic-protocol": "mcp-streamable-1.0",
         "x-ms-visibility": "important",
-        "responses": { "200": { "description": "Immediate Response" } }
+        "responses": {
+          "200": {
+            "description": "Immediate Response"
+          }
+        }
       }
     },
     "/mcp/service-config": {
@@ -78,7 +104,11 @@
         "operationId": "InvokeServiceConfig",
         "x-ms-agentic-protocol": "mcp-streamable-1.0",
         "x-ms-visibility": "important",
-        "responses": { "200": { "description": "Immediate Response" } }
+        "responses": {
+          "200": {
+            "description": "Immediate Response"
+          }
+        }
       }
     },
     "/mcp/sales": {
@@ -88,7 +118,11 @@
         "operationId": "InvokeSales",
         "x-ms-agentic-protocol": "mcp-streamable-1.0",
         "x-ms-visibility": "important",
-        "responses": { "200": { "description": "Immediate Response" } }
+        "responses": {
+          "200": {
+            "description": "Immediate Response"
+          }
+        }
       }
     },
     "/mcp/opportunities": {
@@ -98,7 +132,11 @@
         "operationId": "InvokeOpportunities",
         "x-ms-agentic-protocol": "mcp-streamable-1.0",
         "x-ms-visibility": "important",
-        "responses": { "200": { "description": "Immediate Response" } }
+        "responses": {
+          "200": {
+            "description": "Immediate Response"
+          }
+        }
       }
     },
     "/mcp/finance-agreements": {
@@ -108,7 +146,11 @@
         "operationId": "InvokeFinanceAgreements",
         "x-ms-agentic-protocol": "mcp-streamable-1.0",
         "x-ms-visibility": "important",
-        "responses": { "200": { "description": "Immediate Response" } }
+        "responses": {
+          "200": {
+            "description": "Immediate Response"
+          }
+        }
       }
     },
     "/mcp/finance-invoices": {
@@ -118,7 +160,11 @@
         "operationId": "InvokeFinanceInvoices",
         "x-ms-agentic-protocol": "mcp-streamable-1.0",
         "x-ms-visibility": "important",
-        "responses": { "200": { "description": "Immediate Response" } }
+        "responses": {
+          "200": {
+            "description": "Immediate Response"
+          }
+        }
       }
     },
     "/mcp/catalog": {
@@ -128,7 +174,11 @@
         "operationId": "InvokeCatalog",
         "x-ms-agentic-protocol": "mcp-streamable-1.0",
         "x-ms-visibility": "important",
-        "responses": { "200": { "description": "Immediate Response" } }
+        "responses": {
+          "200": {
+            "description": "Immediate Response"
+          }
+        }
       }
     },
     "/mcp/procurement-orders": {
@@ -138,7 +188,11 @@
         "operationId": "InvokeProcurementOrders",
         "x-ms-agentic-protocol": "mcp-streamable-1.0",
         "x-ms-visibility": "important",
-        "responses": { "200": { "description": "Immediate Response" } }
+        "responses": {
+          "200": {
+            "description": "Immediate Response"
+          }
+        }
       }
     },
     "/mcp/procurement-inventory": {
@@ -148,7 +202,11 @@
         "operationId": "InvokeProcurementInventory",
         "x-ms-agentic-protocol": "mcp-streamable-1.0",
         "x-ms-visibility": "important",
-        "responses": { "200": { "description": "Immediate Response" } }
+        "responses": {
+          "200": {
+            "description": "Immediate Response"
+          }
+        }
       }
     },
     "/mcp/system-members": {
@@ -158,7 +216,11 @@
         "operationId": "InvokeSystemMembers",
         "x-ms-agentic-protocol": "mcp-streamable-1.0",
         "x-ms-visibility": "important",
-        "responses": { "200": { "description": "Immediate Response" } }
+        "responses": {
+          "200": {
+            "description": "Immediate Response"
+          }
+        }
       }
     },
     "/mcp/system-admin": {
@@ -168,7 +230,11 @@
         "operationId": "InvokeSystemAdmin",
         "x-ms-agentic-protocol": "mcp-streamable-1.0",
         "x-ms-visibility": "important",
-        "responses": { "200": { "description": "Immediate Response" } }
+        "responses": {
+          "200": {
+            "description": "Immediate Response"
+          }
+        }
       }
     },
     "/mcp/schedule-expenses": {
@@ -178,7 +244,25 @@
         "operationId": "InvokeScheduleExpenses",
         "x-ms-agentic-protocol": "mcp-streamable-1.0",
         "x-ms-visibility": "important",
-        "responses": { "200": { "description": "Immediate Response" } }
+        "responses": {
+          "200": {
+            "description": "Immediate Response"
+          }
+        }
+      }
+    },
+    "/mcp/knowledge-base": {
+      "post": {
+        "summary": "Knowledge Base",
+        "description": "Create, read, update and delete ConnectWise PSA knowledge base articles",
+        "operationId": "InvokeKnowledgeBase",
+        "x-ms-agentic-protocol": "mcp-streamable-1.0",
+        "x-ms-visibility": "important",
+        "responses": {
+          "200": {
+            "description": "Immediate Response"
+          }
+        }
       }
     }
   },
@@ -196,6 +280,12 @@
       "authorizationUrl": "https://YOUR-ACA-APP.YOUR-ENV-ID.australiaeast.azurecontainerapps.io/authorize"
     }
   },
-  "security": [{ "oauth2-auth": ["access_as_user"] }],
+  "security": [
+    {
+      "oauth2-auth": [
+        "access_as_user"
+      ]
+    }
+  ],
   "tags": []
 }

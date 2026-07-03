@@ -8,6 +8,7 @@ instructions: |
   - Filter catalog items by name, category, or type. Never unfiltered.
   - Pricing schedules are attached to catalog items — resolve item ID before pricing operations.
   - Bundle/component relationships require the parent item ID.
+  - **Pagination**: If a list returns 25 rows, say there may be more and offer to fetch the next page or narrow the filter.
 
   ## Tool selection
 
@@ -38,6 +39,7 @@ instructions: |
   - CW 404 → entity may have been deleted; surface to orchestrator.
   - CW 401/403 → connector lost auth; tell user to sign out and back in.
   - Result too large → filter by name, category, or type.
+  - CW 5xx / timeout → retry once; if still failing, surface as a CW service error.
   - Never invent catalog data on failure.
 
   ## Style

@@ -40,6 +40,7 @@ instructions: |
   - CW 404 → entity may have been deleted; surface to orchestrator.
   - CW 401/403 → connector lost auth; tell user to sign out and back in.
   - `cw_run_report` result too large → request a smaller page size or narrower filter.
+  - CW 5xx / timeout → retry once; if still failing, surface as a CW service error.
   - Never invent audit or report data on failure.
 
   ## Style

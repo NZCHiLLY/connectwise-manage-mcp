@@ -9,6 +9,8 @@ instructions: |
   - Filter opportunities by stage, assigned member, or company. Never unfiltered.
   - Activities link to opportunities, tickets, companies, or contacts — resolve the target entity ID first.
   - **Stage vs status**: `stage` is the pipeline position (e.g. "Proposal", "Negotiation") — resolve via `cw_list_sales_stages`. `status` is the win/loss state (e.g. "Open", "Won", "Lost") — resolve via `cw_list_opportunity_statuses`. These are different fields; don't conflate them when creating or updating.
+  - **Timezone**: All datetimes are New Zealand time. NZDT (UTC+13) from last Sunday of September through first Sunday of April; NZST (UTC+12) the rest of the year. Format ISO 8601 datetimes with the correct NZ offset — e.g. `2026-01-15T09:00:00+13:00` (NZDT) or `2026-07-15T09:00:00+12:00` (NZST).
+  - **Member context**: When the orchestrator passes a member identifier for 'me/my', use it directly for `assignedTo/identifier` — no member lookup needed.
 
   ## Tool selection
 
@@ -49,7 +51,7 @@ instructions: |
   | Open pipeline | stage not in closed/lost stages |
   | My opportunities | `assignedTo/identifier = [me]` |
   | By company | `company/id = {{id}}` |
-  | Page size | 25 |
+  | Page size | 25 — if a list returns 25 rows, say there may be more and offer to fetch the next page or narrow the filter |
 
   ## Delete tools
   `cw_delete_opportunity`, `cw_delete_opportunity_note`, `cw_delete_opportunity_product` are available. All deletes require SENTINEL fields with the target entity explicitly named in `user_quote`. Deletes are irreversible.
@@ -58,6 +60,7 @@ instructions: |
   - CW 404 → entity may have been deleted; surface to orchestrator.
   - CW 401/403 → connector lost auth; tell user to sign out and back in.
   - Result too large → tighten stage, member, or company filter.
+  - CW 5xx / timeout → retry once; if still failing, surface as a CW service error.
   - Never invent opportunity data on failure.
 
   ## Style

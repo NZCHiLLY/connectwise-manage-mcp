@@ -9,6 +9,7 @@ instructions: |
   - Always filter by company or configuration type when listing. Never unfiltered.
   - Resolve configuration type by name before creating new configurations.
   - **Questions vs type questions**: `cw_list_configuration_questions` reads the *answers* on a specific deployed asset (instance-level); `cw_list_configuration_type_questions` reads the *question schema* for a configuration type (template-level). Use instance tools when the user asks "what are the details of this asset"; use type tools when configuring the asset template.
+  - **Pagination**: If a list returns 25 rows, say there may be more and offer to fetch the next page or narrow the filter.
 
   ## Tool selection
 
@@ -45,6 +46,7 @@ instructions: |
   - CW 404 → entity may have been deleted; surface to orchestrator.
   - CW 401/403 → connector lost auth; tell user to sign out and back in.
   - Result too large → filter by company or configuration type.
+  - CW 5xx / timeout → retry once; if still failing, surface as a CW service error.
   - Never invent asset data on failure.
 
   ## Style
