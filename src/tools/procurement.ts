@@ -80,7 +80,7 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
       if (args.price !== undefined) body.price = args.price;
       if (args.cost !== undefined) body.cost = args.cost;
       if (args.billableOption) body.billableOption = args.billableOption;
-      if (args.ticketId) body.chargeToId = args.ticketId, body.chargeToType = "Ticket";
+      if (args.ticketId) { body.chargeToId = args.ticketId; body.chargeToType = "Ticket"; }
       if (args.projectId) body.project = { id: args.projectId };
       if (args.phaseId) body.phase = { id: args.phaseId };
       if (args.agreementId) body.agreement = { id: args.agreementId };
