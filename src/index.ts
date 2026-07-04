@@ -48,7 +48,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
-import { getConfig, CwManageClient, CwManageConfig } from "./api-client.js";
+import { getConfig, CwManageClient } from "./api-client.js";
+import { resolveGatewayConfig, type CwManageConfig } from "./mcp-server.js";
 import { getEntraConfig, createJwksClient, validateToken } from "./auth/middleware.js";
 import {
   handleProtectedResource,
@@ -393,58 +394,31 @@ async function startHttpTransport(): Promise<void> {
 
         // ------------------------------------------------------------------
         // Gateway mode: extract CW credentials from headers
+        // Per-request resolution keeps concurrent requests isolated
+        // (no global process.env mutation).
         // ------------------------------------------------------------------
         let gatewayConfig: CwManageConfig | undefined;
         if (isGatewayMode) {
-          const headers = req.headers as Record<
-            string,
-            string | string[] | undefined
-          >;
-          const companyId = headers["x-cw-company-id"] as string | undefined;
-          const publicKey = headers["x-cw-public-key"] as string | undefined;
-          const privateKey = headers["x-cw-private-key"] as string | undefined;
-          const clientId = headers["x-cw-client-id"] as string | undefined;
-          const baseUrl = headers["x-cw-url"] as string | undefined;
-
-          if (!companyId || !publicKey || !privateKey || !clientId) {
+          const { config, error } = resolveGatewayConfig(
+            (name: string) => (req.headers as Record<string, string | undefined>)[name],
+          );
+          if (error) {
             res.writeHead(401, { "Content-Type": "application/json" });
-            res.end(
-              JSON.stringify({
-                error: "Missing credentials",
-                message:
-                  "Gateway mode requires X-CW-Company-Id, X-CW-Public-Key, X-CW-Private-Key, and X-CW-Client-Id headers",
-                required: [
-                  "X-CW-Company-Id",
-                  "X-CW-Public-Key",
-                  "X-CW-Private-Key",
-                  "X-CW-Client-Id",
-                ],
-              }),
-            );
+            res.end(JSON.stringify({ error: "Missing credentials", message: error }));
             return;
           }
-
-          // Build config directly — do not route through process.env (race condition)
-          let validatedBaseUrl: string;
-          if (baseUrl) {
+          // Validate CW_URL via the same SSRF guard used before
+          const rawUrl = (req.headers as Record<string, string | undefined>)["x-cw-url"];
+          if (rawUrl) {
             try {
-              validatedBaseUrl = validateCwBaseUrl(baseUrl);
+              config!.baseUrl = validateCwBaseUrl(rawUrl);
             } catch (err) {
               res.writeHead(400, { "Content-Type": "application/json" });
               res.end(JSON.stringify({ error: "invalid_url", message: (err as Error).message }));
               return;
             }
-          } else {
-            validatedBaseUrl = (process.env.CW_MANAGE_URL || "https://api-na.myconnectwise.net").replace(/\/+$/, "");
           }
-
-          gatewayConfig = {
-            companyId,
-            publicKey,
-            privateKey,
-            clientId,
-            baseUrl: validatedBaseUrl,
-          };
+          gatewayConfig = config;
         }
 
         // ------------------------------------------------------------------
