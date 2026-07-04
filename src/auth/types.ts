@@ -3,6 +3,7 @@ export interface EntraConfig {
   clientId: string;
   clientSecret?: string; // confidential client — included in token proxy to Entra
   audience: string; // api://<clientId>
+  extraAudiences: string[]; // additional accepted audiences (e.g. Teams federated connector)
   requiredRole: string; // e.g. "CWM.Access"
   serverUrl: string; // https://mcp.yourdomain.com (no trailing slash)
   bearerToken?: string; // static token for Claude Code CLI fallback
