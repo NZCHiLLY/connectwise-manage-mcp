@@ -87,38 +87,24 @@ jobs:
     needs: [release]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
+      id-token: write
       contents: read
-      packages: write
+    outputs:
+      image-tag: ${{ steps.tag.outputs.image-tag }}
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
-      - name: Login to GHCR
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9  # v3.7.0
+      - name: Azure login (OIDC)
+        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5  # v2.3.0
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Docker metadata
-        id: meta
-        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051  # v5.10.0
-        with:
-          images: ghcr.io/${{ github.repository }}
-          tags: |
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha
-            type=raw,value=latest,enable={{is_default_branch}}
-      - name: Resolve release version
-        id: version
-        env:
-          RELEASE_VERSION: ${{ needs.release.outputs.version }}
-        run: |
-          if [ -z "$RELEASE_VERSION" ]; then
-            echo "ERROR: needs.release.outputs.version is empty" >&2
-            exit 1
-          fi
-          echo "version=$RELEASE_VERSION" >> "$GITHUB_OUTPUT"
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: ACR login
+        run: az acr login --name acrcwmmcp
+      - name: Resolve image tag
+        id: tag
+        run: echo "image-tag=sha-${GITHUB_SHA::7}-${GITHUB_RUN_ID}" >> "$GITHUB_OUTPUT"
       - name: Build and push
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8  # v6.19.2
         with:
@@ -126,9 +112,8 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:v${{ steps.version.outputs.version }}
-          labels: ${{ steps.meta.outputs.labels }}
+            acrcwmmcp.azurecr.io/connectwise-manage-mcp:latest
+            acrcwmmcp.azurecr.io/connectwise-manage-mcp:${{ steps.tag.outputs.image-tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -187,11 +172,10 @@ jobs:
 
       - name: Deploy to Azure Container Apps
         run: |
-          SHORT_SHA="${GITHUB_SHA::7}"
-          IMAGE="ghcr.io/${{ github.repository }}:latest"
-          echo "Deploying $IMAGE (revision tag sha-${SHORT_SHA}-${GITHUB_RUN_ID})"
+          IMAGE="acrcwmmcp.azurecr.io/connectwise-manage-mcp:${{ needs.docker.outputs.image-tag }}"
+          echo "Deploying $IMAGE"
           az containerapp update \
             --name "${{ secrets.ACA_APP_NAME }}" \
             --resource-group "${{ secrets.ACA_RESOURCE_GROUP }}" \
             --image "$IMAGE" \
-            --set-env-vars "IMAGE_VERSION=sha-${SHORT_SHA}-${GITHUB_RUN_ID}"
+            --set-env-vars "IMAGE_VERSION=${{ needs.docker.outputs.image-tag }}"
