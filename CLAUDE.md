@@ -83,7 +83,15 @@ docker compose -f docker-compose.caddy.yml up -d     # with TLS termination
 ## Deployment
 
 ACA FQDN: `YOUR-ACA-APP.YOUR-ENV-ID.australiaeast.azurecontainerapps.io`
-Deploy script: `./aca-deploy.ps1`
+Deploy: `.\deploy-image-update.ps1` (requires local Docker). Without Docker, build in ACR:
+
+```powershell
+az acr build --registry acrcwmmcp --image connectwise-manage-mcp:latest .
+az containerapp update --name connectwise-manage-mcp --resource-group rg-cwm-mcp `
+  --image acrcwmmcp.azurecr.io/connectwise-manage-mcp:latest --revision-suffix <unique>
+```
+
+CI also builds to ACR on push to main.
 
 ## Gotchas
 
@@ -91,6 +99,7 @@ Deploy script: `./aca-deploy.ps1`
 - `CW_MANAGE_REJECT_UNAUTHORIZED=false` required for self-signed certs on self-hosted instances
 - `secretlint` runs pre-commit via `.githooks`; never bypass with `--no-verify`
 - Two MCP server IDs registered in Claude: `mcp__connectwise-manage__*` (local) and `mcp__claude_ai_tz-cw-psa-mcp__*` (cloud)
+- `az containerapp update` with an unchanged image tag may not create a new revision — always pass `--revision-suffix`
 
 ## Copilot Studio Agents (copilot-agents/)
 
