@@ -33,8 +33,9 @@
  * Tool profile selection — URL path takes precedence, JWT role is fallback:
  *   /mcp/l1  → L1 helpdesk engineer profile (65 tools)
  *   /mcp/l2  → L2 management profile (70 tools)
+ *   /mcp/l3  → L3 finance/accounting profile (70 tools)
  *   /mcp     → full tool set (JWT role or MCP_TOOL_PROFILE env var applies)
- *   Azure AD app role "CWM.L1" / "CWM.L2" → profile fallback when hitting /mcp directly
+ *   Azure AD app role "CWM.L1" / "CWM.L2" / "CWM.L3" → profile fallback when hitting /mcp directly
  */
 
 import {
@@ -462,7 +463,7 @@ async function startHttpTransport(): Promise<void> {
     res.end(
       JSON.stringify({
         error: "Not found",
-        endpoints: ["/mcp", "/mcp/l1", "/mcp/l2", "/mcp/full", "/health"],
+        endpoints: ["/mcp", "/mcp/l1", "/mcp/l2", "/mcp/l3", "/mcp/full", "/health"],
       }),
     );
     }); // end requestContext.run
@@ -474,6 +475,7 @@ async function startHttpTransport(): Promise<void> {
       console.error(`  Copilot Studio Server URL → profile:`);
       console.error(`    https://<domain>/l1  →  L1 helpdesk engineer (65 tools)`);
       console.error(`    https://<domain>/l2  →  L2 management (70 tools)`);
+      console.error(`    https://<domain>/l3  →  L3 finance/accounting (70 tools)`);
       console.error(`    https://<domain>     →  full tool set (JWT role / env fallback)`);
       console.error(`  /health — health check`);
       console.error(
