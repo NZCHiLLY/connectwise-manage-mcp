@@ -34,7 +34,7 @@ try {
     $health = Invoke-RestMethod -Uri "https://$FQDN/health" -TimeoutSec 10
     Write-Host "  Health: $($health | ConvertTo-Json -Compress)" -ForegroundColor Green
 } catch {
-    Write-Warning "  Health check failed — container may still be starting. Verify: https://$FQDN/health"
+    Write-Warning "  Health check failed - container may still be starting. Verify: https://$FQDN/health"
 }
 
 Write-Host "`nDone." -ForegroundColor Green

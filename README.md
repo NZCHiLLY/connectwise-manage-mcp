@@ -45,7 +45,7 @@ For deploying to **Azure Container Apps** with Entra ID OAuth 2.1, see [AZURE_AC
 | `MCP_TRANSPORT` | No | `stdio` (default) or `http` |
 | `MCP_HTTP_PORT` | No | HTTP port (default: `8080`) |
 | `AUTH_MODE` | No | `env` (default) or `gateway` for header-based auth |
-| `MCP_TOOL_PROFILE` | No | `l1`, `l2`, or `full` — sets default tool profile for `/mcp` |
+| `MCP_TOOL_PROFILE` | No | `l1`, `l2`, `l3`, or `full` — sets default tool profile for `/mcp` |
 | `MCP_OAUTH_ENABLED` | No | Set to `true` to enable Entra ID OAuth 2.1 |
 | `AZURE_TENANT_ID` | OAuth | Entra ID tenant ID |
 | `AZURE_CLIENT_ID` | OAuth | Entra ID app registration client ID |
@@ -90,6 +90,7 @@ URL path takes precedence over JWT role / env var:
 |------|---------|-------|
 | `/mcp/l1` | L1 helpdesk | ~65 tools |
 | `/mcp/l2` | L2 management | ~70 tools |
+| `/mcp/l3` | L3 finance/accounting | 70 tools |
 | `/mcp/{domain}` | Domain | 20–38 tools (Copilot Studio) |
 | `/mcp` | full or JWT role | all |
 

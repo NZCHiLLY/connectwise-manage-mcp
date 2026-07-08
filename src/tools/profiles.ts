@@ -198,6 +198,103 @@ const L2_TOOLS = new Set([
   "cw_test_connection",
 ]);
 
+/**
+ * L3 finance/accounting profile — invoicing, payments, GL exports, agreement
+ * billing, expense and time sheet approval, procurement cost visibility.
+ * Read-heavy with approval/write actions limited to the billing workflow.
+ * No destructive operations (no deletes, no agreement create/cancel).
+ * Capped at 70 tools.
+ */
+const L3_TOOLS = new Set([
+  // ── Invoices / payments / billing ─────────────────────────────────────────
+  "cw_search_invoices",
+  "cw_get_invoice",
+  "cw_update_invoice",
+  "cw_email_invoice",
+  "cw_pay_invoice",
+  "cw_search_payments",
+  "cw_get_payment",
+  "cw_list_invoice_templates",
+  "cw_list_delivery_methods",
+  "cw_list_billing_setups",
+  "cw_list_billing_cycles",
+  "cw_list_billing_terms",
+  "cw_list_billing_statuses",
+  "cw_list_accounting_batches",
+  "cw_get_accounting_batch",
+
+  // ── GL / tax / currency reference ─────────────────────────────────────────
+  "cw_list_gl_accounts",
+  "cw_list_gl_types",
+  "cw_list_gl_payment_types",
+  "cw_list_tax_codes",
+  "cw_get_tax_code",
+  "cw_list_currencies",
+
+  // ── Agreements (recurring billing) ────────────────────────────────────────
+  "cw_search_agreements",
+  "cw_get_agreement",
+  "cw_update_agreement",
+  "cw_get_agreement_additions",
+  "cw_get_agreement_addition",
+  "cw_create_agreement_addition",
+  "cw_update_agreement_addition",
+  "cw_list_agreement_types",
+  "cw_list_agreement_workroles",
+  "cw_list_agreement_worktypes",
+
+  // ── Expense review / approval ─────────────────────────────────────────────
+  "cw_search_expense_reports",
+  "cw_get_expense_report",
+  "cw_approve_expense_report",
+  "cw_reject_expense_report",
+  "cw_list_expense_report_entries",
+  "cw_search_expense_entries",
+  "cw_get_expense_entry",
+  "cw_list_expense_types",
+  "cw_get_expense_type",
+  "cw_list_expense_classifications",
+
+  // ── Time review / approval (billing readiness) ────────────────────────────
+  "cw_search_time_entries",
+  "cw_get_time_entry",
+  "cw_list_time_sheets",
+  "cw_get_time_sheet",
+  "cw_approve_time_sheet",
+  "cw_reject_time_sheet",
+  "cw_reverse_time_sheet",
+  "cw_list_time_periods",
+  "cw_list_work_roles",
+  "cw_list_work_types",
+  "cw_list_charge_codes",
+
+  // ── Procurement / cost visibility (read-only) ─────────────────────────────
+  "cw_search_purchase_orders",
+  "cw_get_purchase_order",
+  "cw_list_purchase_order_line_items",
+  "cw_list_purchase_order_statuses",
+  "cw_search_products",
+  "cw_get_product",
+
+  // ── Companies / contacts (billing lookup) ─────────────────────────────────
+  "cw_search_companies",
+  "cw_get_company",
+  "cw_list_company_sites",
+  "cw_search_contacts",
+  "cw_get_contact",
+
+  // ── Reporting / KPIs / audit ──────────────────────────────────────────────
+  "cw_list_reports",
+  "cw_get_report",
+  "cw_run_report",
+  "cw_list_kpis",
+  "cw_get_kpi",
+  "cw_list_audit_trail",
+
+  // ── System / utility ──────────────────────────────────────────────────────
+  "cw_test_connection",
+]);
+
 // ── Domain profiles for multi-agent Copilot Studio expansion ─────────────────
 // Each profile maps to one child agent at /<profile-key>/mcp
 // Rules: no delete/remove operations, ≤40 tools (goal: 25), no marketing/projects
@@ -537,11 +634,13 @@ const DOMAIN_PROFILES: Record<string, Set<string>> = {
  * Maps an Azure AD app role to a tool profile name.
  * CWM.L1  → "l1"  (helpdesk engineer, 65 ticket-focused tools)
  * CWM.L2  → "l2"  (management, 70 operational-oversight tools)
+ * CWM.L3  → "l3"  (finance/accounting, 70 billing-focused tools)
  * Unrecognised roles fall through to the MCP_TOOL_PROFILE env var.
  */
 const ROLE_PROFILE_MAP: Record<string, string> = {
   "CWM.L1": "l1",
   "CWM.L2": "l2",
+  "CWM.L3": "l3",
 };
 
 /**
@@ -622,6 +721,7 @@ export function applyToolProfile(
   const allowlist =
     profile === "l1" ? L1_TOOLS :
     profile === "l2" ? L2_TOOLS :
+    profile === "l3" ? L3_TOOLS :
     profile && DOMAIN_PROFILES[profile] !== undefined ? DOMAIN_PROFILES[profile] :
     profile && profile !== "full" ? null :  // unknown profile → warn, allow all
     undefined;                              // full or unset → no filtering
