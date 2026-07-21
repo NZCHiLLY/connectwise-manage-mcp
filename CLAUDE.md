@@ -60,7 +60,7 @@ URL path takes precedence over JWT role / env var:
 |-----------|----------------|-------|
 | `/mcp/l1` | L1 helpdesk    | ~65 tools |
 | `/mcp/l2` | L2 management  | ~70 tools |
-| `/mcp/l3` | L3 finance/accounting | 70 tools |
+| `/mcp/l3` | L3 finance/accounting | 71 tools |
 | `/mcp`    | full or JWT role | all |
 
 `MCP_TOOL_PROFILE=l1|l2|l3|full` sets the default when hitting `/mcp` directly.
@@ -95,6 +95,7 @@ CI also builds to ACR on push to main.
 
 ## Gotchas
 
+- CW REST has no top-level `/finance/payments` (404 "endpoint does not exist") and no `/finance/invoices/{id}/pay` action. Payments are an invoice sub-resource: `/finance/invoices/{id}/payments` (GET/POST/PATCH per payment ID). Payment model fields: `amount` (required), `paymentDate`, `type`, `appliedBy`.
 - `npm ci --ignore-scripts` in Dockerfile — prevents `prepare` (git hooks) from running before source copy
 - `CW_MANAGE_REJECT_UNAUTHORIZED=false` required for self-signed certs on self-hosted instances
 - `secretlint` runs pre-commit via `.githooks`; never bypass with `--no-verify`

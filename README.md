@@ -90,7 +90,7 @@ URL path takes precedence over JWT role / env var:
 |------|---------|-------|
 | `/mcp/l1` | L1 helpdesk | ~65 tools |
 | `/mcp/l2` | L2 management | ~70 tools |
-| `/mcp/l3` | L3 finance/accounting | 70 tools |
+| `/mcp/l3` | L3 finance/accounting | 71 tools |
 | `/mcp/{domain}` | Domain | 20–38 tools (Copilot Studio) |
 | `/mcp` | full or JWT role | all |
 

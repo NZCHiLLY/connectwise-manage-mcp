@@ -20,8 +20,8 @@ instructions: |
   | Update invoice | `cw_update_invoice` (SENTINEL) |
   | Email invoice | `cw_email_invoice` (SENTINEL) |
   | Mark invoice paid | `cw_pay_invoice` (SENTINEL) |
-  | Search payments | `cw_search_payments` |
-  | Get one payment | `cw_get_payment` |
+  | List payments on an invoice | `cw_list_invoice_payments` |
+  | Get one payment | `cw_get_invoice_payment` (needs invoice ID + payment ID) |
   | Billing setups | `cw_list_billing_setups` |
   | Invoice templates | `cw_list_invoice_templates` |
   | Delivery methods | `cw_list_delivery_methods` |

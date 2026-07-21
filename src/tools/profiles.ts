@@ -146,7 +146,7 @@ const L2_TOOLS = new Set([
   "cw_list_agreement_types",
   "cw_search_invoices",
   "cw_get_invoice",
-  "cw_search_payments",
+  "cw_list_invoice_payments",
   "cw_list_work_roles",
 
   // ── Configurations / assets ───────────────────────────────────────────────
@@ -203,7 +203,8 @@ const L2_TOOLS = new Set([
  * billing, expense and time sheet approval, procurement cost visibility.
  * Read-heavy with approval/write actions limited to the billing workflow.
  * No destructive operations (no deletes, no agreement create/cancel).
- * Capped at 70 tools.
+ * Served to claude.ai connectors only (not Copilot Studio), so the 70-tool
+ * Copilot cap does not apply; currently 71 tools.
  */
 const L3_TOOLS = new Set([
   // ── Invoices / payments / billing ─────────────────────────────────────────
@@ -212,8 +213,9 @@ const L3_TOOLS = new Set([
   "cw_update_invoice",
   "cw_email_invoice",
   "cw_pay_invoice",
-  "cw_search_payments",
-  "cw_get_payment",
+  "cw_list_invoice_payments",
+  "cw_get_invoice_payment",
+  "cw_update_invoice_payment",
   "cw_list_invoice_templates",
   "cw_list_delivery_methods",
   "cw_list_billing_setups",
@@ -483,7 +485,7 @@ const FINANCE_AGREEMENTS_TOOLS = new Set([
 const FINANCE_INVOICES_TOOLS = new Set([
   "cw_search_invoices", "cw_get_invoice",
   "cw_update_invoice", "cw_email_invoice", "cw_pay_invoice",
-  "cw_search_payments", "cw_get_payment",
+  "cw_list_invoice_payments", "cw_get_invoice_payment",
   "cw_list_billing_setups",
   "cw_list_invoice_templates", "cw_list_delivery_methods",
   "cw_list_accounting_batches", "cw_get_accounting_batch",

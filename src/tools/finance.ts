@@ -641,43 +641,41 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_pay_invoice",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Record a payment against an invoice. POST to /finance/invoices/{id}/pay.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Record a payment against an invoice. POST to /finance/invoices/{id}/payments.",
     {
       id: z.number().describe("Invoice ID"),
       amount: z.number().describe("Payment amount"),
       paymentDate: z.string().optional().describe("Payment date in CW format: [YYYY-MM-DDTHH:MM:SSZ]"),
-      paymentMethodId: z.number().optional().describe("Payment method ID"),
-      paymentTypeId: z.number().optional().describe("Payment type ID"),
-      checkNumber: z.string().optional().describe("Check / reference number"),
-      memo: z.string().optional().describe("Memo / notes"),
+      type: z.string().optional().describe("Payment type label"),
+      appliedBy: z.string().optional().describe("Member identifier who applied the payment"),
       ...sentinelParams,
     },
-    async ({ id, amount, paymentDate, paymentMethodId, paymentTypeId, checkNumber, memo, user_intent, user_quote }) => {
+    async ({ id, amount, paymentDate, type, appliedBy, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_pay_invoice", entityType: "invoice", entityId: id, userIntent: user_intent, userQuote: user_quote });
       const body: Record<string, unknown> = { amount };
       if (paymentDate) body.paymentDate = paymentDate;
-      if (paymentMethodId) body.paymentMethod = { id: paymentMethodId };
-      if (paymentTypeId) body.paymentType = { id: paymentTypeId };
-      if (checkNumber) body.checkNumber = checkNumber;
-      if (memo) body.memo = memo;
-      const result = await client.post(`/finance/invoices/${id}/pay`, body);
+      if (type) body.type = type;
+      if (appliedBy) body.appliedBy = appliedBy;
+      const result = await client.post(`/finance/invoices/${id}/payments`, body);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
 
-  // ── /finance/payments ────────────────────────────────────────────────────
+  // ── /finance/invoices/{id}/payments ──────────────────────────────────────
+  // Payments are an invoice sub-resource; CW has no top-level /finance/payments.
 
   server.tool(
-    "cw_search_payments",
-    "Search payments in ConnectWise Manage.",
+    "cw_list_invoice_payments",
+    "List payments recorded against an invoice (includes payment dates). Payments in ConnectWise Manage are per-invoice; there is no cross-invoice payment search.",
     {
+      id: z.number().describe("Invoice ID"),
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
       pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
       orderBy: z.string().optional().describe("Field to order by"),
     },
-    async ({ conditions, page, pageSize, orderBy }) => {
-      const result = await client.get("/finance/payments", {
+    async ({ id, conditions, page, pageSize, orderBy }) => {
+      const result = await client.get(`/finance/invoices/${id}/payments`, {
         conditions, page: page ?? 1, pageSize: pageSize ?? 25, orderBy,
       });
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
@@ -685,13 +683,34 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
   );
 
   server.tool(
-    "cw_get_payment",
-    "Get a single payment by ID.",
+    "cw_get_invoice_payment",
+    "Get a single payment on an invoice by payment ID.",
     {
-      id: z.number().describe("Payment ID"),
+      id: z.number().describe("Invoice ID"),
+      paymentId: z.number().describe("Payment ID"),
     },
-    async ({ id }) => {
-      const result = await client.get(`/finance/payments/${id}`);
+    async ({ id, paymentId }) => {
+      const result = await client.get(`/finance/invoices/${id}/payments/${paymentId}`);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_update_invoice_payment",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a payment on an invoice via JSON Patch. Common ops: replace amount, replace paymentDate.",
+    {
+      id: z.number().describe("Invoice ID"),
+      paymentId: z.number().describe("Payment ID"),
+      operations: z.array(z.object({
+        op: z.enum(["replace", "add", "remove"]),
+        path: z.string(),
+        value: z.unknown().optional(),
+      })).describe("Array of JSON Patch operations"),
+      ...sentinelParams,
+    },
+    async ({ id, paymentId, operations, user_intent, user_quote }) => {
+      await auditLog({ tool: "cw_update_invoice_payment", entityType: "invoice", entityId: id, userIntent: user_intent, userQuote: user_quote, operations });
+      const result = await client.patch(`/finance/invoices/${id}/payments/${paymentId}`, operations);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
