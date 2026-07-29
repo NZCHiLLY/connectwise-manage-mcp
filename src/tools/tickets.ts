@@ -312,9 +312,11 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     },
     async ({ targetTicketId, mergeTicketIds, statusId, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_merge_tickets", entityType: "ticket", entityId: targetTicketId, userIntent: user_intent, userQuote: user_quote });
-      const body: Record<string, unknown> = {
-        mergeTicketIds: mergeTicketIds.map((id) => ({ id })),
-      };
+      // mergeTicketIds is a list of bare integers, not id-references. Sending
+      // [{ id: 123 }] makes CW's deserialiser hit '{' where it wants a number
+      // and 500 with "Unexpected character encountered while parsing value: {".
+      // status stays an object — that one really is a StatusReference.
+      const body: Record<string, unknown> = { mergeTicketIds };
       if (statusId !== undefined) body.status = { id: statusId };
       const result = await client.post(`/service/tickets/${targetTicketId}/merge`, body);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
