@@ -520,19 +520,27 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
   );
 
   // ── /finance/workRoles (global catalogue) ────────────────────────────────
+  // Read-only by design — exposed to every tool profile as reference data.
 
   server.tool(
     "cw_list_work_roles",
-    "List the global work roles catalogue (Tier 1, Tier 2, Project Manager, etc.).",
+    "List the global work roles rate card (Tier 1, Tier 2, Project Manager, etc.). " +
+      "Each role includes its standard 'hourlyRate' in the system currency, plus " +
+      "'inactiveFlag' and any default location/department. Use this to look up the " +
+      "billable hourly rate for a role. Defaults to 250 per page so the whole rate " +
+      "card is usually returned in one call; filter with conditions such as " +
+      "\"name like '%Tier%'\", \"id = 5\", or \"inactiveFlag = false\". " +
+      "Note: an agreement may override these rates — use cw_list_agreement_workroles " +
+      "for the rate that actually applies to a specific agreement.",
     {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
-      orderBy: z.string().optional().describe("Field to order by"),
+      pageSize: z.number().optional().describe("Results per page (default: 250, max: 1000)"),
+      orderBy: z.string().optional().describe("Field to order by (e.g. \"name asc\", \"hourlyRate desc\")"),
     },
     async ({ conditions, page, pageSize, orderBy }) => {
       const result = await client.get("/finance/workRoles", {
-        conditions, page: page ?? 1, pageSize: pageSize ?? 25, orderBy,
+        conditions, page: page ?? 1, pageSize: pageSize ?? 250, orderBy,
       });
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -540,7 +548,9 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_get_work_role",
-    "Get a single global work role by ID.",
+    "Get a single global work role by ID, including its standard 'hourlyRate'. " +
+      "Use this to resolve a workRole reference on a time entry, schedule entry or " +
+      "member into a role name and billable hourly rate.",
     {
       id: z.number().describe("Work role ID"),
     },

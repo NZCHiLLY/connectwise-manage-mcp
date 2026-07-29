@@ -58,12 +58,19 @@ URL path takes precedence over JWT role / env var:
 
 | Path      | Profile        | Tools |
 |-----------|----------------|-------|
-| `/mcp/l1` | L1 helpdesk    | ~65 tools |
+| `/mcp/l1` | L1 helpdesk    | ~67 tools |
 | `/mcp/l2` | L2 management  | ~70 tools |
-| `/mcp/l3` | L3 finance/accounting | 71 tools |
+| `/mcp/l3` | L3 finance/accounting | 72 tools |
 | `/mcp`    | full or JWT role | all |
 
 `MCP_TOOL_PROFILE=l1|l2|l3|full` sets the default when hitting `/mcp` directly.
+
+`UNIVERSAL_READ_TOOLS` in `profiles.ts` is unioned into every profile's allowlist,
+so those tools are exposed even when a profile doesn't list them. Currently just
+`cw_list_work_roles` — the labour rate card is reference data every tier reads.
+Keep it to one tool: L2 sits exactly on the 70-tool Copilot cap, so each entry
+costs a slot in every capped profile. Work roles are read-only by design — the
+create/update/delete tools are not registered, so `full` can't mutate them either.
 
 ## Docker
 
@@ -106,7 +113,7 @@ CI also builds to ACR on push to main.
 
 Deploy: `cd copilot-agents && .\create-agents.ps1`
 
-Domain profiles: 17 endpoints `/mcp/{domain}` → each exposes 20–38 tools (Copilot Studio 70-tool cap).
+Domain profiles: 17 endpoints `/mcp/{domain}` → each exposes 9–39 tools (Copilot Studio 70-tool cap).
 Profile source: `src/tools/profiles.ts` `DOMAIN_PROFILES` record.
 
 ### Gotchas

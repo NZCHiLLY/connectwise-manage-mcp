@@ -72,6 +72,10 @@ const L1_TOOLS = new Set([
   "cw_create_time_entry",
   "cw_update_time_entry",
 
+  // ── Work roles (read-only rate card — resolves workRoleId on time entries) ─
+  "cw_list_work_roles",
+  "cw_get_work_role",
+
   // ── Service / board metadata (valid values for ticket fields) ─────────────
   "cw_list_service_boards",
   "cw_get_service_board",
@@ -204,7 +208,7 @@ const L2_TOOLS = new Set([
  * Read-heavy with approval/write actions limited to the billing workflow.
  * No destructive operations (no deletes, no agreement create/cancel).
  * Served to claude.ai connectors only (not Copilot Studio), so the 70-tool
- * Copilot cap does not apply; currently 71 tools.
+ * Copilot cap does not apply; currently 72 tools.
  */
 const L3_TOOLS = new Set([
   // ── Invoices / payments / billing ─────────────────────────────────────────
@@ -267,6 +271,7 @@ const L3_TOOLS = new Set([
   "cw_reverse_time_sheet",
   "cw_list_time_periods",
   "cw_list_work_roles",
+  "cw_get_work_role",
   "cw_list_work_types",
   "cw_list_charge_codes",
 
@@ -355,7 +360,7 @@ const TIME_ENTRIES_TOOLS = new Set([
   "cw_list_charge_code_expense_types",
   "cw_list_work_types", "cw_get_work_type",
   "cw_create_work_type", "cw_update_work_type",
-  "cw_create_work_role", "cw_update_work_role",
+  "cw_list_work_roles", "cw_get_work_role",
   "cw_list_time_sheets", "cw_get_time_sheet",
   "cw_submit_time_sheet", "cw_approve_time_sheet",
   "cw_reject_time_sheet", "cw_reverse_time_sheet",
@@ -486,6 +491,7 @@ const FINANCE_INVOICES_TOOLS = new Set([
   "cw_search_invoices", "cw_get_invoice",
   "cw_update_invoice", "cw_email_invoice", "cw_pay_invoice",
   "cw_list_invoice_payments", "cw_get_invoice_payment",
+  "cw_list_work_roles", "cw_get_work_role",
   "cw_list_billing_setups",
   "cw_list_invoice_templates", "cw_list_delivery_methods",
   "cw_list_accounting_batches", "cw_get_accounting_batch",
@@ -556,6 +562,7 @@ const SYSTEM_MEMBERS_TOOLS = new Set([
   "cw_list_security_role_permissions", "cw_list_security_role_settings",
   "cw_list_departments", "cw_get_department",
   "cw_list_locations", "cw_get_location",
+  "cw_list_work_roles", "cw_get_work_role",
   "cw_get_my_company", "cw_get_my_account",
 ]);
 
@@ -587,6 +594,7 @@ const SCHEDULE_EXPENSES_TOOLS = new Set([
   "cw_list_schedule_colors",
   "cw_list_portal_calendars", "cw_get_portal_calendar",
   "cw_list_schedule_details",
+  "cw_list_work_roles", "cw_get_work_role",
   // Expenses
   "cw_search_expense_entries", "cw_get_expense_entry",
   "cw_create_expense_entry", "cw_update_expense_entry",
@@ -633,10 +641,37 @@ const DOMAIN_PROFILES: Record<string, Set<string>> = {
 };
 
 /**
+ * Every named profile this server can serve (excluding "full", which applies no
+ * filtering). Exported so tests can assert cross-profile invariants — e.g. that
+ * the work role rate card is readable from every profile and writable from none.
+ */
+export const PROFILE_NAMES: readonly string[] = [
+  "l1", "l2", "l3", ...Object.keys(DOMAIN_PROFILES),
+];
+
+/**
+ * Reference lookups every profile gets, whether or not the profile lists them.
+ * Unioned into each allowlist by applyToolProfile so the guarantee is structural
+ * and can't drift as individual profiles are edited.
+ *
+ * Work roles are the labour rate card. Any tier may need to resolve a workRole
+ * reference on a ticket, time entry, schedule entry or agreement into a role name
+ * and its billable hourly rate, so the read is universal. There is deliberately
+ * no corresponding write: no tier has a business need to mutate the rate card,
+ * and the create/update/delete tools are not registered at all.
+ *
+ * Kept to one tool: L2 sits exactly on the 70-tool Copilot Studio cap, so each
+ * addition here costs a slot in every capped profile. cw_list_work_roles accepts
+ * conditions (e.g. "id = 5"), which covers by-ID lookup; profiles with room list
+ * cw_get_work_role explicitly.
+ */
+const UNIVERSAL_READ_TOOLS: readonly string[] = ["cw_list_work_roles"];
+
+/**
  * Maps an Azure AD app role to a tool profile name.
- * CWM.L1  → "l1"  (helpdesk engineer, 65 ticket-focused tools)
+ * CWM.L1  → "l1"  (helpdesk engineer, 67 ticket-focused tools)
  * CWM.L2  → "l2"  (management, 70 operational-oversight tools)
- * CWM.L3  → "l3"  (finance/accounting, 70 billing-focused tools)
+ * CWM.L3  → "l3"  (finance/accounting, 72 billing-focused tools)
  * Unrecognised roles fall through to the MCP_TOOL_PROFILE env var.
  */
 const ROLE_PROFILE_MAP: Record<string, string> = {
@@ -720,13 +755,20 @@ export function applyToolProfile(
   server: McpServer,
   profile: string | undefined,
 ): McpServer {
-  const allowlist =
+  const baseAllowlist =
     profile === "l1" ? L1_TOOLS :
     profile === "l2" ? L2_TOOLS :
     profile === "l3" ? L3_TOOLS :
     profile && DOMAIN_PROFILES[profile] !== undefined ? DOMAIN_PROFILES[profile] :
     profile && profile !== "full" ? null :  // unknown profile → warn, allow all
     undefined;                              // full or unset → no filtering
+
+  // Universal reference lookups are added to every filtered profile. Unfiltered
+  // profiles (full / unset / unknown) already expose them.
+  const allowlist =
+    baseAllowlist === null || baseAllowlist === undefined
+      ? baseAllowlist
+      : new Set([...baseAllowlist, ...UNIVERSAL_READ_TOOLS]);
 
   if (allowlist === null) {
     console.warn(`[mcp] Unknown MCP_TOOL_PROFILE "${profile}", using full tool set`);
