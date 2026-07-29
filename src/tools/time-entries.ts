@@ -522,83 +522,9 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     },
   );
 
-  server.tool(
-    "cw_create_work_role",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a work role.",
-    {
-      name: z.string().describe("Work role name"),
-      hourlyRate: z.number().optional().describe("Hourly rate override"),
-      inactiveFlag: z.boolean().optional().describe("Mark as inactive"),
-      addAllWorkTypesFlag: z.boolean().optional().describe("Add all work types to this role"),
-      removeAllWorkTypesFlag: z.boolean().optional().describe("Remove all work types from this role"),
-      integrationXref: z.string().optional().describe("Integration cross-reference identifier"),
-      user_intent: z.string().min(20).describe(
-        "Plain-English description of what the user asked for. " +
-          "Must be at least 20 characters. Example: " +
-          "'User asked to close ticket 12345 because they have billed it.'",
-      ),
-      user_quote: z.string().min(1).describe(
-        "Verbatim quote of the user's actual words that motivated this action. " +
-          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
-      ),
-    },
-    async (args) => {
-      await auditLog({ tool: "cw_create_work_role", entityType: "work_role", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
-      const body: Record<string, unknown> = { name: args.name };
-      if (args.hourlyRate !== undefined) body.hourlyRate = args.hourlyRate;
-      if (args.inactiveFlag !== undefined) body.inactiveFlag = args.inactiveFlag;
-      if (args.addAllWorkTypesFlag !== undefined) body.addAllWorkTypesFlag = args.addAllWorkTypesFlag;
-      if (args.removeAllWorkTypesFlag !== undefined) body.removeAllWorkTypesFlag = args.removeAllWorkTypesFlag;
-      if (args.integrationXref) body.integrationXref = args.integrationXref;
-      const result = await client.post("/time/workRoles", body);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    },
-  );
-
-  server.tool(
-    "cw_update_work_role",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a work role via JSON Patch.",
-    {
-      id: z.number().describe("Work role ID"),
-      patch: z.array(patchOp).describe("JSON Patch operations to apply"),
-      user_intent: z.string().min(20).describe(
-        "Plain-English description of what the user asked for. " +
-          "Must be at least 20 characters. Example: " +
-          "'User asked to close ticket 12345 because they have billed it.'",
-      ),
-      user_quote: z.string().min(1).describe(
-        "Verbatim quote of the user's actual words that motivated this action. " +
-          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
-      ),
-    },
-    async ({ id, patch, user_intent, user_quote }) => {
-      await auditLog({ tool: "cw_update_work_role", entityType: "work_role", entityId: id, userIntent: user_intent, userQuote: user_quote, operations: patch });
-      const result = await client.patch(`/time/workRoles/${id}`, patch);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    },
-  );
-
-  server.tool(
-    "cw_delete_work_role",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a work role.",
-    {
-      id: z.number().describe("Work role ID"),
-      user_intent: z.string().min(20).describe(
-        "Plain-English description of what the user asked for. " +
-          "Must be at least 20 characters. Example: " +
-          "'User asked to close ticket 12345 because they have billed it.'",
-      ),
-      user_quote: z.string().min(1).describe(
-        "Verbatim quote of the user's actual words that motivated this action. " +
-          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
-      ),
-    },
-    async ({ id, user_intent, user_quote }) => {
-      await auditLog({ tool: "cw_delete_work_role", entityType: "work_role", entityId: id, userIntent: user_intent, userQuote: user_quote });
-      const result = await client.request("DELETE", `/time/workRoles/${id}`);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    },
-  );
+  // Work roles are read-only across every profile: the rate card is reference
+  // data that all tiers need to look up, and no tier has a need to mutate it.
+  // Read tools live in finance.ts (cw_list_work_roles / cw_get_work_role).
 
   // ── Time sheets ─────────────────────────────────────────────────────────────────
 

@@ -14,7 +14,7 @@ This is a [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) serve
 | Feature | Description |
 |---|---|
 | **SENTINEL protocol** | Write-gating for all mutating tools — requires explicit intent + user quote confirmation before create/update/delete |
-| **Domain profiles** | 17 URL-scoped endpoints (`/mcp/tickets`, `/mcp/companies`, etc.) each exposing 20–38 tools (Copilot Studio 70-tool cap) |
+| **Domain profiles** | 17 URL-scoped endpoints (`/mcp/tickets`, `/mcp/companies`, etc.) each exposing 9–39 tools (Copilot Studio 70-tool cap) |
 | **Entra ID OAuth 2.1** | Confidential client token proxy — injects `client_secret` server-side so Copilot Studio connectors never see it |
 | **Multi-agent Copilot Studio** | 18 agents (1 orchestrator + 17 domain) deployable via PowerShell script, with SharePoint knowledge base integration |
 | **Work IQ agent** | M365 domain agent for email, Teams, SharePoint, and calendar operations |
@@ -88,10 +88,10 @@ URL path takes precedence over JWT role / env var:
 
 | Path | Profile | Tools |
 |------|---------|-------|
-| `/mcp/l1` | L1 helpdesk | ~65 tools |
+| `/mcp/l1` | L1 helpdesk | ~67 tools |
 | `/mcp/l2` | L2 management | ~70 tools |
-| `/mcp/l3` | L3 finance/accounting | 71 tools |
-| `/mcp/{domain}` | Domain | 20–38 tools (Copilot Studio) |
+| `/mcp/l3` | L3 finance/accounting | 72 tools |
+| `/mcp/{domain}` | Domain | 9–39 tools (Copilot Studio) |
 | `/mcp` | full or JWT role | all |
 
 Domain endpoints: `tickets`, `time-entries`, `companies`, `contacts`, `configurations`, `service-boards`, `service-config`, `sales`, `opportunities`, `finance-agreements`, `finance-invoices`, `catalog`, `procurement-orders`, `procurement-inventory`, `system-members`, `system-admin`, `schedule-expenses`, `knowledge-base`.
@@ -163,7 +163,7 @@ Domain endpoints: `tickets`, `time-entries`, `companies`, `contacts`, `configura
 - `cw_search_members` — Search members/technicians
 - `cw_get_member` — Get a member by ID
 - `cw_list_member_types` — List member types
-- `cw_list_work_roles` — List work roles
+- `cw_list_work_roles` — List work roles with their hourly rates (exposed in every profile)
 - `cw_list_locations` — List locations/departments
 
 ### Configuration Items
@@ -335,7 +335,7 @@ CW PSA Orchestrator
 └── CW Knowledge Base Agent    → /mcp/knowledge-base
 ```
 
-Each domain endpoint exposes 20–38 tools, staying within the Copilot Studio 70-tool-per-connector cap.
+Each domain endpoint exposes 9–39 tools, staying within the Copilot Studio 70-tool-per-connector cap.
 
 ### Prerequisites
 
