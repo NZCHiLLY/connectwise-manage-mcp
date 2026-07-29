@@ -60,11 +60,12 @@ const WRITE_TOOLS = [
 ] as const;
 
 /**
- * Copilot Studio refuses tool sets larger than 70, so the role tiers it serves
- * are capped there. L3 is claude.ai-only and exempt. Domain profiles are capped
- * at 40 by the multi-agent design rules.
+ * Copilot Studio refuses tool sets larger than 70, and the profiles it actually
+ * serves are the domain ones — no Copilot agent binds to /mcp/l1, /mcp/l2 or
+ * /mcp/l3 (see copilot-agents/agents/*.yaml). The role tiers go to claude.ai
+ * connectors instead, so the 70 cap does not bind them; the ≤40 rule from the
+ * multi-agent design notes is the one that still applies.
  */
-const PROFILE_CAPS: Record<string, number> = { l1: 70, l2: 70 };
 const DOMAIN_CAP = 40;
 
 function registerAll(server: McpServer): void {
@@ -162,11 +163,12 @@ describe("work role exposure", () => {
 });
 
 describe("profile tool count caps", () => {
-  it("keeps Copilot Studio role tiers at or under their cap", () => {
+  it("keeps every Copilot-served domain profile under the 70-tool Copilot cap", () => {
     const over: string[] = [];
-    for (const [profile, cap] of Object.entries(PROFILE_CAPS)) {
+    for (const profile of PROFILE_NAMES) {
+      if (profile === "l1" || profile === "l2" || profile === "l3") continue;
       const size = exposed.get(profile)!.size;
-      if (size > cap) over.push(`${profile}=${size} (cap ${cap})`);
+      if (size > 70) over.push(`${profile}=${size}`);
     }
     expect(over).toStrictEqual([]);
   });
