@@ -31,9 +31,9 @@
  *   MCP_BEARER_TOKEN            - Static bearer token for Claude Code CLI / Claude Desktop
  *
  * Tool profile selection — URL path takes precedence, JWT role is fallback:
- *   /mcp/l1  → L1 helpdesk engineer profile (65 tools)
+ *   /mcp/l1  → L1 helpdesk engineer profile (67 tools)
  *   /mcp/l2  → L2 management profile (70 tools)
- *   /mcp/l3  → L3 finance/accounting profile (70 tools)
+ *   /mcp/l3  → L3 finance/accounting profile (72 tools)
  *   /mcp     → full tool set (JWT role or MCP_TOOL_PROFILE env var applies)
  *   Azure AD app role "CWM.L1" / "CWM.L2" / "CWM.L3" → profile fallback when hitting /mcp directly
  */
@@ -473,9 +473,9 @@ async function startHttpTransport(): Promise<void> {
     httpServer!.listen(port, host, () => {
       console.error(`ConnectWise Manage MCP server listening on http://${host}:${port}`);
       console.error(`  Copilot Studio Server URL → profile:`);
-      console.error(`    https://<domain>/l1  →  L1 helpdesk engineer (65 tools)`);
+      console.error(`    https://<domain>/l1  →  L1 helpdesk engineer (67 tools)`);
       console.error(`    https://<domain>/l2  →  L2 management (70 tools)`);
-      console.error(`    https://<domain>/l3  →  L3 finance/accounting (70 tools)`);
+      console.error(`    https://<domain>/l3  →  L3 finance/accounting (72 tools)`);
       console.error(`    https://<domain>     →  full tool set (JWT role / env fallback)`);
       console.error(`  /health — health check`);
       console.error(
