@@ -72,10 +72,10 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
       managerId: z.number().optional().describe("Project manager member ID"),
       contactId: z.number().optional().describe("Contact ID"),
       siteId: z.number().optional().describe("Site ID"),
-      estimatedStart: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
-      estimatedEnd: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
-      actualStart: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
-      actualEnd: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      estimatedStart: z.string().optional().describe("YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
+      estimatedEnd: z.string().optional().describe("YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
+      actualStart: z.string().optional().describe("YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
+      actualEnd: z.string().optional().describe("YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
       estimatedHours: z.number().optional().describe("Estimated hours for the project"),
       estimatedExpenseRevenue: z.number().optional().describe("Estimated expense revenue"),
       estimatedProductRevenue: z.number().optional().describe("Estimated product revenue"),
@@ -129,7 +129,7 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_project",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a project via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a project via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Project ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
@@ -244,11 +244,11 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
       billProjectAfterClosedFlag: z.boolean().optional().describe("Bill project after phase is closed"),
       billingAmount: z.number().optional().describe("Billing amount"),
       budgetHours: z.number().optional().describe("Budget hours for the phase"),
-      scheduledStart: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
-      scheduledEnd: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      scheduledStart: z.string().optional().describe("YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
+      scheduledEnd: z.string().optional().describe("YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
       scheduledHours: z.number().optional().describe("Scheduled hours for the phase"),
-      actualStart: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
-      actualEnd: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      actualStart: z.string().optional().describe("YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
+      actualEnd: z.string().optional().describe("YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
       actualHours: z.number().optional().describe("Actual hours logged"),
       markAsMilestoneFlag: z.boolean().optional().describe("Mark this phase as a milestone"),
       notes: z.string().optional().describe("Phase notes"),
@@ -279,7 +279,7 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_project_phase",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a project phase via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a project phase via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       projectId: z.number().describe("Project ID"),
       phaseId: z.number().describe("Phase ID"),
@@ -350,8 +350,8 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
       memberId: z.number().describe("Member ID"),
       projectRoleId: z.number().describe("Project role ID"),
       hoursScheduled: z.number().optional().describe("Hours scheduled for this team member"),
-      startDate: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
-      endDate: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      startDate: z.string().optional().describe("YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
+      endDate: z.string().optional().describe("YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
       workRoleId: z.number().optional().describe("Work role ID"),
       ...sentinelParams,
     },
@@ -372,7 +372,7 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_project_team_member",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a project team-member row via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a project team-member row via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       projectId: z.number().describe("Project ID"),
       teamMemberId: z.number().describe("Team-member row ID"),
@@ -457,7 +457,7 @@ export function registerProjectTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_project_note",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a project note via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a project note via JSON Patch. Use to edit, amend, correct, revise or rewrite the text/body of an existing note.",
     {
       projectId: z.number().describe("Project ID"),
       noteId: z.number().describe("Note ID"),

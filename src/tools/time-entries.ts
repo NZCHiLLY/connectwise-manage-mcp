@@ -4,6 +4,63 @@ import { CwManageClient } from "../api-client.js";
 import { auditLog } from "../audit/log.js";
 import { patchOp } from "./shared.js";
 
+/**
+ * The member's own default work role, or undefined if it can't be resolved.
+ *
+ * Letting ConnectWise infer the work role instead fails with "The default Work
+ * Role is not valid for the selected location" whenever the member's location
+ * and their default role disagree. Best-effort: a lookup failure here must not
+ * turn into a create failure, so we fall back to letting CW decide.
+ */
+async function defaultWorkRoleFor(
+  client: CwManageClient,
+  memberId: number,
+): Promise<number | undefined> {
+  try {
+    const member = (await client.get(`/system/members/${memberId}`, {
+      fields: "id,defaultWorkRole",
+    })) as { defaultWorkRole?: { id?: number } } | undefined;
+    return member?.defaultWorkRole?.id;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * ConnectWise rejects time against a ticket whose status has
+ * timeEntryNotAllowed set, but the error names only the `chargeToId` field and
+ * never says which status is blocking it. Look the ticket up and say so, since
+ * the caller otherwise has to guess.
+ */
+async function explainTimeEntryRejection(
+  client: CwManageClient,
+  err: unknown,
+  chargeToId: number,
+  chargeToType: string,
+): Promise<Error> {
+  const original = err instanceof Error ? err : new Error(String(err));
+  if (!/status/i.test(original.message) || chargeToType !== "ServiceTicket") {
+    return original;
+  }
+  try {
+    const ticket = (await client.get(`/service/tickets/${chargeToId}`, {
+      fields: "id,status,board",
+    })) as { status?: { name?: string }; board?: { id?: number; name?: string } } | undefined;
+    const status = ticket?.status?.name;
+    const board = ticket?.board?.name;
+    if (!status) return original;
+    return new Error(
+      `${original.message} — ticket ${chargeToId} is currently "${status}"` +
+        (board ? ` on board "${board}"` : "") +
+        `. That status does not permit time entry. Call cw_list_board_statuses for` +
+        ` this board and pick one with timeEntryNotAllowed = false, then move the` +
+        ` ticket with cw_update_ticket before retrying.`,
+    );
+  } catch {
+    return original;
+  }
+}
+
 export function registerTimeEntryTools(server: McpServer, client: CwManageClient) {
   // ── Time entries ─────────────────────────────────────────────────────────────────
 
@@ -62,17 +119,37 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
 
   server.tool(
     "cw_create_time_entry",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a time entry. chargeToId and chargeToType are required. " +
-      "chargeToType is one of: ServiceTicket | ProjectTicket | ChargeCode | Activity.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a time entry. chargeToId, chargeToType and memberId are required. " +
+      "chargeToType is one of: ServiceTicket | ProjectTicket | ChargeCode | Activity. " +
+      "If workRoleId is omitted it is taken from the member's defaultWorkRole. " +
+      "Times are UTC — convert local wall-clock first. " +
+      "If the target ticket's status has timeEntryNotAllowed set, ConnectWise rejects " +
+      "the entry; cw_list_board_statuses shows which statuses on the board permit time.",
     {
       chargeToId: z.number().describe("Ticket / project ticket / charge code / activity ID"),
       chargeToType: z.enum(["ServiceTicket", "ProjectTicket", "ChargeCode", "Activity"]),
-      memberId: z.number().optional().describe("Member ID (defaults to current API member)"),
+      memberId: z.number().describe(
+        "Member ID the time belongs to — required. Do not omit it: the entry would " +
+          "otherwise default to the authenticating API member, which has no access to " +
+          "the Time Entry module and fails with " +
+          "\"API-only members do not have access to this module\". " +
+          "Resolve a member with cw_search_members.",
+      ),
       workTypeId: z.number().optional().describe("Work type ID"),
-      workRoleId: z.number().optional().describe("Work role ID"),
+      workRoleId: z.number().optional().describe(
+        "Work role ID. Defaults to the member's defaultWorkRole. Letting ConnectWise " +
+          "pick instead can fail with \"The default Work Role is not valid for the " +
+          "selected location\". Use cw_list_work_roles to choose one explicitly.",
+      ),
       agreementId: z.number().optional().describe("Agreement ID to charge against"),
-      timeStart: z.string().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
-      timeEnd: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      timeStart: z.string().describe(
+        "Start time as YYYY-MM-DDTHH:MM:SSZ — UTC, no enclosing brackets. " +
+          "Convert local time first (NZST is UTC+12, NZDT UTC+13), or the entry " +
+          "lands 12–13 hours out.",
+      ),
+      timeEnd: z.string().optional().describe(
+        "End time as YYYY-MM-DDTHH:MM:SSZ — UTC, no enclosing brackets.",
+      ),
       hoursDeduct: z.number().optional().describe("Hours to deduct from the agreement"),
       actualHours: z.number().optional().describe("Hours actually worked"),
       billableOption: z.enum(["Billable", "DoNotBill", "NoCharge", "NoDefault"]).optional(),
@@ -118,9 +195,13 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
         chargeToType: args.chargeToType,
         timeStart: args.timeStart,
       };
-      if (args.memberId !== undefined) body.member = { id: args.memberId };
+      body.member = { id: args.memberId };
       if (args.workTypeId !== undefined) body.workType = { id: args.workTypeId };
-      if (args.workRoleId !== undefined) body.workRole = { id: args.workRoleId };
+      // Prefer the member's own default work role over whatever ConnectWise would
+      // infer from the location — that inference fails with "The default Work Role
+      // is not valid for the selected location" often enough to be a trap.
+      const workRoleId = args.workRoleId ?? (await defaultWorkRoleFor(client, args.memberId));
+      if (workRoleId !== undefined) body.workRole = { id: workRoleId };
       if (args.agreementId !== undefined) body.agreement = { id: args.agreementId };
       if (args.timeEnd) body.timeEnd = args.timeEnd;
       if (args.hoursDeduct !== undefined) body.hoursDeduct = args.hoursDeduct;
@@ -151,14 +232,18 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
       if (args.ticketBoardId !== undefined) body.ticket = { ...(body.ticket as Record<string, unknown> | undefined ?? {}), board: { id: args.ticketBoardId } };
       if (args.ticketStatusId !== undefined) body.ticket = { ...(body.ticket as Record<string, unknown> | undefined ?? {}), status: { id: args.ticketStatusId } };
       if (args.customFields) body.customFields = args.customFields;
-      const result = await client.post("/time/entries", body);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      try {
+        const result = await client.post("/time/entries", body);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } catch (err: unknown) {
+        throw await explainTimeEntryRejection(client, err, args.chargeToId, args.chargeToType);
+      }
     },
   );
 
   server.tool(
     "cw_update_time_entry",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a time entry via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a time entry via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Time entry ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
@@ -336,7 +421,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
 
   server.tool(
     "cw_update_charge_code",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a charge code via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a charge code via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Charge code ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
@@ -479,7 +564,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
 
   server.tool(
     "cw_update_work_type",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a work type via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a work type via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Work type ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),

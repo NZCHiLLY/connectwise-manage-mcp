@@ -44,8 +44,8 @@ export function registerMarketingTools(server: McpServer, client: CwManageClient
       statusId: z.number().describe("Campaign status ID"),
       subTypeId: z.number().optional().describe("Campaign sub-type ID"),
       description: z.string().optional().describe("Description"),
-      startDate: z.string().optional().describe("Start date in CW format: [YYYY-MM-DDTHH:MM:SSZ]"),
-      endDate: z.string().optional().describe("End date in CW format: [YYYY-MM-DDTHH:MM:SSZ]"),
+      startDate: z.string().optional().describe("Start date in CW format: YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
+      endDate: z.string().optional().describe("End date in CW format: YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
       ownerId: z.number().optional().describe("Owner member ID"),
       cost: z.number().optional().describe("Budgeted cost"),
       goal: z.string().optional().describe("Campaign goal text"),
@@ -90,7 +90,7 @@ export function registerMarketingTools(server: McpServer, client: CwManageClient
 
   server.tool(
     "cw_update_campaign",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a marketing campaign via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a marketing campaign via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Campaign ID"),
       operations: z.array(z.object({
@@ -237,7 +237,7 @@ export function registerMarketingTools(server: McpServer, client: CwManageClient
 
   server.tool(
     "cw_update_marketing_group",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a marketing group via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a marketing group via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Group ID"),
       operations: z.array(z.object({
