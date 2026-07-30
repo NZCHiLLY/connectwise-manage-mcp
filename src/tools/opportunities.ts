@@ -77,11 +77,11 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
       contactId: z.number().optional().describe("Contact ID"),
       siteId: z.number().optional().describe("Site ID"),
       campaignId: z.number().optional().describe("Campaign ID"),
-      expectedCloseDate: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
-      dateBecameLead: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
-      pipelineChangeDate: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
-      lastStageChangeDate: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
-      closedDate: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      expectedCloseDate: z.string().optional().describe("YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
+      dateBecameLead: z.string().optional().describe("YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
+      pipelineChangeDate: z.string().optional().describe("YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
+      lastStageChangeDate: z.string().optional().describe("YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
+      closedDate: z.string().optional().describe("YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
       notes: z.string().optional().describe("Opportunity notes"),
       businessUnitId: z.number().optional().describe("Business unit ID"),
       locationId: z.number().optional().describe("Location ID"),
@@ -129,7 +129,7 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_update_opportunity",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an opportunity via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an opportunity via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Opportunity ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
@@ -194,7 +194,7 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     {
       id: z.number().describe("Opportunity ID"),
       statusId: z.number().describe("Status ID where wonFlag=true and closedFlag=true"),
-      closedDate: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      closedDate: z.string().optional().describe("YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
       ...sentinelParams,
     },
     async (args) => {
@@ -216,7 +216,7 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     {
       id: z.number().describe("Opportunity ID"),
       statusId: z.number().describe("Status ID where lostFlag=true and closedFlag=true"),
-      closedDate: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      closedDate: z.string().optional().describe("YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
       ...sentinelParams,
     },
     async (args) => {
@@ -261,8 +261,8 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
       statusId: z.number().optional().describe("Project status ID"),
       typeId: z.number().optional().describe("Project type ID"),
       managerId: z.number().optional().describe("Project manager member ID"),
-      estimatedStart: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
-      estimatedEnd: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      estimatedStart: z.string().optional().describe("YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
+      estimatedEnd: z.string().optional().describe("YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
       ...sentinelParams,
     },
     async (args) => {
@@ -395,7 +395,7 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_update_opportunity_product",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an opportunity product via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an opportunity product via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       opportunityId: z.number().describe("Opportunity ID"),
       productId: z.number().describe("Opportunity product ID"),
@@ -533,7 +533,7 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_update_opportunity_note",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an opportunity note via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an opportunity note via JSON Patch. Use to edit, amend, correct, revise or rewrite the text/body of an existing note.",
     {
       opportunityId: z.number().describe("Opportunity ID"),
       noteId: z.number().describe("Opportunity note ID"),

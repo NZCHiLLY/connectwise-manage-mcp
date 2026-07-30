@@ -106,7 +106,7 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_update_product",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a product instance via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a product instance via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Product ID"),
       operations: z.array(z.object({
@@ -239,7 +239,7 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
       currencyId: z.number().optional().describe("Currency ID"),
       locationId: z.number().optional().describe("Location ID"),
       businessUnitId: z.number().optional().describe("Business unit ID"),
-      dateOrdered: z.string().optional().describe("Order date in CW format: [YYYY-MM-DDTHH:MM:SSZ]"),
+      dateOrdered: z.string().optional().describe("Order date in CW format: YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
       shipmentDate: z.string().optional().describe("Expected ship date in CW format"),
       vendorOrderNumber: z.string().optional().describe("Vendor's order number"),
       notes: z.string().optional().describe("Free-text notes"),
@@ -287,7 +287,7 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_update_purchase_order",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a purchase order via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a purchase order via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Purchase order ID"),
       operations: z.array(z.object({
@@ -457,7 +457,7 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_update_purchase_order_line_item",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a purchase order line item via JSON Patch. Common ops: replace receivedQuantity, replace receivedFlag.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a purchase order line item via JSON Patch. Common ops: replace receivedQuantity, replace receivedFlag. Use to edit, amend, correct, revise or patch an existing record.",
     {
       poId: z.number().describe("Parent purchase order ID"),
       lineItemId: z.number().describe("Line item ID"),
@@ -630,7 +630,7 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_update_warehouse",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a warehouse via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a warehouse via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Warehouse ID"),
       operations: z.array(z.object({
@@ -717,7 +717,7 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_update_warehouse_bin",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a warehouse bin via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a warehouse bin via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Warehouse bin ID"),
       operations: z.array(z.object({
@@ -814,7 +814,7 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_update_pricing_schedule",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a pricing schedule via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a pricing schedule via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Pricing schedule ID"),
       operations: z.array(z.object({
@@ -987,7 +987,7 @@ export function registerProcurementTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_update_adjustment",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an adjustment via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an adjustment via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Adjustment ID"),
       operations: z.array(z.object({

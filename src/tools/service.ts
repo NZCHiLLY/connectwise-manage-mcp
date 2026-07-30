@@ -66,7 +66,7 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_service_board",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a service board via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a service board via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Service board ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
@@ -167,7 +167,7 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_board_status",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a board status via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a board status via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       boardId: z.number().describe("Service board ID"),
       statusId: z.number().describe("Board status ID"),
@@ -256,7 +256,7 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_board_type",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a board type via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a board type via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       boardId: z.number().describe("Service board ID"),
       typeId: z.number().describe("Board type ID"),
@@ -343,7 +343,7 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_board_subtype",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a board subtype via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a board subtype via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       boardId: z.number().describe("Service board ID"),
       subTypeId: z.number().describe("Board subtype ID"),
@@ -430,7 +430,7 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_board_item",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a board item via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a board item via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       boardId: z.number().describe("Service board ID"),
       itemId: z.number().describe("Board item ID"),
@@ -521,7 +521,7 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_board_team",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a board team via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a board team via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       boardId: z.number().describe("Service board ID"),
       teamId: z.number().describe("Board team ID"),
@@ -597,6 +597,28 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
         conditions,
         page: page ?? 1,
         pageSize: pageSize ?? 25,
+      });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "cw_list_service_locations",
+    "List service locations — the On-Site / Remote / In-House values that a ticket's " +
+      "serviceLocation field takes. Use this to resolve a name to an ID for " +
+      "serviceLocationId on cw_create_ticket / cw_update_ticket. Note this is a " +
+      "different field from a ticket's site (the customer address) and from a system " +
+      "location (the owning office, see cw_list_locations).",
+    {
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 100, max: 1000)"),
+    },
+    async ({ conditions, page, pageSize }) => {
+      const result = await client.get("/service/locations", {
+        conditions,
+        page: page ?? 1,
+        pageSize: pageSize ?? 100,
       });
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -849,7 +871,7 @@ export function registerServiceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_kb_article",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a knowledgebase article via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a knowledgebase article via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Knowledgebase article ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply. Common paths: /question, /answer, /flagged, /board/id, /category/id"),

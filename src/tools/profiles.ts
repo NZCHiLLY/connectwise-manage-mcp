@@ -102,6 +102,7 @@ const L1_TOOLS = new Set([
   "cw_list_board_teams",
   "cw_list_service_categories",
   "cw_list_service_sources",
+  "cw_list_service_locations",
   "cw_list_impacts",
   "cw_list_severities",
 
@@ -211,6 +212,7 @@ const L2_TOOLS = new Set([
   "cw_list_service_boards",
   "cw_list_service_priorities",
   "cw_list_board_statuses",
+  "cw_list_service_locations",
   "cw_list_impacts",
 
   // ── System / utility ──────────────────────────────────────────────────────
@@ -337,6 +339,7 @@ const TICKETS_TOOLS = new Set([
   "cw_attach_configuration_to_ticket",
   "cw_list_ticket_documents", "cw_list_ticket_time_entries",
   "cw_list_ticket_schedule_entries", "cw_list_ticket_activities",
+  "cw_list_service_locations",
 ]);
 
 const SERVICE_BOARDS_TOOLS = new Set([
@@ -357,6 +360,7 @@ const SERVICE_BOARDS_TOOLS = new Set([
 const SERVICE_CONFIG_TOOLS = new Set([
   "cw_list_service_priorities", "cw_get_service_priority",
   "cw_list_service_sources", "cw_get_service_source",
+  "cw_list_service_locations",
   "cw_list_slas", "cw_get_sla", "cw_list_sla_priorities",
   "cw_list_impacts", "cw_list_severities",
   "cw_list_ticket_templates", "cw_get_ticket_template",
@@ -684,8 +688,8 @@ const UNIVERSAL_READ_TOOLS: readonly string[] = ["cw_list_work_roles"];
 
 /**
  * Maps an Azure AD app role to a tool profile name.
- * CWM.L1  → "l1"  (helpdesk engineer, 72 ticket- and time-focused tools)
- * CWM.L2  → "l2"  (management, 70 operational-oversight tools)
+ * CWM.L1  → "l1"  (helpdesk engineer, 73 ticket- and time-focused tools)
+ * CWM.L2  → "l2"  (management, 71 operational-oversight tools)
  * CWM.L3  → "l3"  (finance/accounting, 72 billing-focused tools)
  * Unrecognised roles fall through to the MCP_TOOL_PROFILE env var.
  */

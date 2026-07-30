@@ -58,8 +58,8 @@ URL path takes precedence over JWT role / env var:
 
 | Path      | Profile        | Tools |
 |-----------|----------------|-------|
-| `/mcp/l1` | L1 helpdesk    | 72 tools |
-| `/mcp/l2` | L2 management  | 70 tools |
+| `/mcp/l1` | L1 helpdesk    | 73 tools |
+| `/mcp/l2` | L2 management  | 71 tools |
 | `/mcp/l3` | L3 finance/accounting | 72 tools |
 | `/mcp`    | full or JWT role | all |
 
@@ -106,6 +106,11 @@ CI also builds to ACR on push to main.
 
 ## Gotchas
 
+- Work roles live at `/time/workRoles`, NOT `/finance/workRoles` — the latter 404s "The endpoint does not exist." CW's own `_info.workRole_href` on a time entry confirms the real route. Agreement-level rate *overrides* are a different resource and do sit under `/finance/agreements/{id}/workroles`; don't let the two blur.
+- `POST /service/tickets/search` takes a `FilterValues` body — `{"conditions": "id = 104094"}`, not `{"id": 104094}`. The bare-id form fails with "Could not find member 'id' on object of type 'FilterValues'".
+- A ticket's `serviceLocation` (On-Site / Remote / In-House, from `/service/locations`) is a different field from its `site` (customer address) and from `location` (the owning office, `/system/locations`). All three are settable and easily confused.
+- Time entries need an explicit `member` — defaulting to the API member fails with "API-only members do not have access to this module". Editing an entry whose `member` differs from `enteredBy` needs Time & Expense → Time Entry → **Edit: All** on the API member's security role, otherwise `PATCH /time/entries/{id}` returns 403.
+- Date/time params are UTC and take **no** enclosing brackets. The old `[YYYY-MM-DDTHH:MM:SSZ]` descriptions were read as literal and rejected with `UnsupportedFormat`.
 - CW REST has no top-level `/finance/payments` (404 "endpoint does not exist") and no `/finance/invoices/{id}/pay` action. Payments are an invoice sub-resource: `/finance/invoices/{id}/payments` (GET/POST/PATCH per payment ID). Payment model fields: `amount` (required), `paymentDate`, `type`, `appliedBy`.
 - `npm ci --ignore-scripts` in Dockerfile — prevents `prepare` (git hooks) from running before source copy
 - `CW_MANAGE_REJECT_UNAUTHORIZED=false` required for self-signed certs on self-hosted instances

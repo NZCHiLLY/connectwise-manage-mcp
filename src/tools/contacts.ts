@@ -125,7 +125,7 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_contact",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a contact via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a contact via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Contact ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
@@ -229,7 +229,7 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_contact_communication",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a contact communication item via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a contact communication item via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       contactId: z.number().describe("Contact ID"),
       communicationId: z.number().describe("Communication item ID"),
@@ -314,7 +314,7 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_contact_note",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a contact note via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a contact note via JSON Patch. Use to edit, amend, correct, revise or rewrite the text/body of an existing note.",
     {
       contactId: z.number().describe("Contact ID"),
       noteId: z.number().describe("Contact note ID"),
@@ -370,7 +370,7 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
     {
       contactId: z.number().describe("Contact ID"),
       trackId: z.number().describe("Contact track ID"),
-      startDate: z.string().optional().describe("Start date in [YYYY-MM-DDTHH:MM:SSZ] format"),
+      startDate: z.string().optional().describe("Start date in YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets) format"),
       ...sentinelParams,
     },
     async (args) => {
@@ -448,7 +448,7 @@ export function registerContactTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_contact_type",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a contact type via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a contact type via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Contact type ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),

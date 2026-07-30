@@ -48,12 +48,20 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_get_ticket_by_id_search",
-    "Lookup a ticket by ID via the /service/tickets/search endpoint (POST with id payload). Useful when you have only a ticket number and want the search-endpoint shape.",
+    "Look up a ticket by ID via the POST /service/tickets/search endpoint, which " +
+      "returns the search-result shape (an array) rather than a single object. " +
+      "Prefer cw_get_ticket for a plain by-ID fetch — this exists for callers that " +
+      "specifically need the search response shape.",
     {
       id: z.number().describe("Ticket ID to look up"),
     },
     async ({ id }) => {
-      const result = await client.post("/service/tickets/search", { id });
+      // The endpoint takes a FilterValues body, so the id has to go in as a
+      // conditions expression. Posting { id } instead gets rejected with
+      // "Could not find member 'id' on object of type 'FilterValues'".
+      const result = await client.post("/service/tickets/search", {
+        conditions: `id = ${id}`,
+      });
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
@@ -79,7 +87,10 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       ownerId: z.number().optional().describe("Owner (member) ID"),
       teamId: z.number().optional().describe("Team ID"),
       slaId: z.number().optional().describe("SLA ID"),
-      locationId: z.number().optional().describe("Location ID"),
+      locationId: z.number().optional().describe("System location ID — the owning office (see cw_list_locations). Not the service location."),
+      serviceLocationId: z.number().optional().describe(
+        "Service location ID — On-Site / Remote / In-House. Use cw_list_service_locations to resolve the name to an ID.",
+      ),
       departmentId: z.number().optional().describe("Department ID"),
       initialDescription: z.string().optional().describe("Initial description (private note will not be created)"),
       initialInternalAnalysis: z.string().optional().describe("Initial internal analysis note"),
@@ -124,6 +135,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       if (args.teamId !== undefined) body.team = { id: args.teamId };
       if (args.slaId !== undefined) body.sla = { id: args.slaId };
       if (args.locationId !== undefined) body.location = { id: args.locationId };
+      if (args.serviceLocationId !== undefined) body.serviceLocation = { id: args.serviceLocationId };
       if (args.departmentId !== undefined) body.department = { id: args.departmentId };
       if (args.initialDescription) body.initialDescription = args.initialDescription;
       if (args.initialInternalAnalysis) body.initialInternalAnalysis = args.initialInternalAnalysis;
@@ -169,6 +181,11 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       contactId: z.number().optional().describe("Contact ID"),
       companyId: z.number().optional().describe("Company ID"),
       siteId: z.number().optional().describe("Site ID"),
+      serviceLocationId: z.number().optional().describe(
+        "Service location ID — On-Site / Remote / In-House. Distinct from siteId " +
+          "(the customer address) and from a system location (the owning office). " +
+          "Use cw_list_service_locations to resolve the name to an ID.",
+      ),
       requiredDate: z.string().optional().describe("Due date in ISO 8601 format, e.g. '2025-06-30T00:00:00Z'"),
     },
     async ({ id, user_intent, user_quote, ...fields }) => {
@@ -185,6 +202,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       if (fields.contactId !== undefined)   ops.push({ op: "replace", path: "/contact/id",   value: fields.contactId });
       if (fields.companyId !== undefined)   ops.push({ op: "replace", path: "/company/id",   value: fields.companyId });
       if (fields.siteId !== undefined)      ops.push({ op: "replace", path: "/site/id",      value: fields.siteId });
+      if (fields.serviceLocationId !== undefined) ops.push({ op: "replace", path: "/serviceLocation/id", value: fields.serviceLocationId });
       if (fields.requiredDate !== undefined) ops.push({ op: "replace", path: "/requiredDate", value: fields.requiredDate });
       if (ops.length === 0) {
         return { content: [{ type: "text", text: "cw_update_ticket: no fields to update were provided. Specify at least one of: summary, statusId, priorityId, boardId, typeId, subTypeId, itemId, ownerId, teamId, contactId, companyId, siteId, requiredDate." }], isError: true };
@@ -441,7 +459,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_update_ticket_note",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a ticket note via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a ticket note via JSON Patch. Use to edit, amend, correct, revise or rewrite the text/body of an existing note.",
     {
       ticketId: z.number().describe("Ticket ID"),
       noteId: z.number().describe("Note ID"),
@@ -556,7 +574,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_update_ticket_task",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a ticket task via JSON Patch (typical use: /closedFlag = true to tick a checkbox).",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a ticket task via JSON Patch (typical use: /closedFlag = true to tick a checkbox). Use to edit, amend, correct, revise or patch an existing record.",
     {
       ticketId: z.number().describe("Ticket ID"),
       taskId: z.number().describe("Task ID"),
@@ -667,7 +685,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_update_ticket_team_member",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a resource assignment on a ticket (e.g. set doneFlag=true) via JSON Patch on the schedule entry.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a resource assignment on a ticket (e.g. set doneFlag=true) via JSON Patch on the schedule entry. Use to edit, amend, correct, revise or patch an existing record.",
     {
       ticketId: z.number().describe("Ticket ID (used for audit only)"),
       teamMemberId: z.number().describe("Schedule entry ID (from cw_list_ticket_team)"),
