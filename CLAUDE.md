@@ -58,8 +58,8 @@ URL path takes precedence over JWT role / env var:
 
 | Path      | Profile        | Tools |
 |-----------|----------------|-------|
-| `/mcp/l1` | L1 helpdesk    | ~67 tools |
-| `/mcp/l2` | L2 management  | ~70 tools |
+| `/mcp/l1` | L1 helpdesk    | 72 tools |
+| `/mcp/l2` | L2 management  | 70 tools |
 | `/mcp/l3` | L3 finance/accounting | 72 tools |
 | `/mcp`    | full or JWT role | all |
 
@@ -68,9 +68,13 @@ URL path takes precedence over JWT role / env var:
 `UNIVERSAL_READ_TOOLS` in `profiles.ts` is unioned into every profile's allowlist,
 so those tools are exposed even when a profile doesn't list them. Currently just
 `cw_list_work_roles` — the labour rate card is reference data every tier reads.
-Keep it to one tool: L2 sits exactly on the 70-tool Copilot cap, so each entry
-costs a slot in every capped profile. Work roles are read-only by design — the
-create/update/delete tools are not registered, so `full` can't mutate them either.
+Keep it lean — each entry costs a slot in every profile, and the domain profiles
+are capped at 40. Work roles are read-only by design — the create/update/delete
+tools are not registered, so `full` can't mutate them either.
+
+The 70-tool Copilot Studio cap applies only to the **domain** profiles. No Copilot
+agent binds to `/mcp/l1|l2|l3` (check `copilot-agents/agents/*.yaml`) — the role
+tiers are served to claude.ai connectors, where L1 and L3 both run at 72.
 
 ## Docker
 

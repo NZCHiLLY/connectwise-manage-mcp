@@ -2,8 +2,14 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { auditOutcome } from "../audit/log.js";
 
 /**
- * L1 helpdesk engineer profile — deep ticket management plus supporting
- * lookups. Capped at 70 tools for Copilot Studio compatibility.
+ * L1 helpdesk engineer profile — deep ticket management, own-time editing, plus
+ * supporting lookups. Currently 72 tools.
+ *
+ * The 70-tool Copilot Studio cap does not apply here: no Copilot agent binds to
+ * /mcp/l1, /mcp/l2 or /mcp/l3 — they all target the DOMAIN_PROFILES endpoints
+ * (see copilot-agents/agents/*.yaml). The role tiers are served to claude.ai
+ * connectors, where L3 has run at 72 without trouble. The cap that still binds
+ * is the ≤40 rule on the domain profiles below.
  */
 const L1_TOOLS = new Set([
   // ── Tickets (full lifecycle) ──────────────────────────────────────────────
@@ -66,11 +72,19 @@ const L1_TOOLS = new Set([
   "cw_search_members",
   "cw_get_member",
 
-  // ── Time entries (create + update for ticket work) ────────────────────────
+  // ── Time entries (full edit surface for own ticket work) ──────────────────
   "cw_search_time_entries",
   "cw_get_time_entry",
   "cw_create_time_entry",
   "cw_update_time_entry",
+  "cw_replace_time_entry",
+  "cw_copy_time_entry",
+  "cw_delete_time_entry",
+
+  // ── Time entry field lookups (resolve names → IDs when editing an entry) ───
+  // Without these an edit to workType or chargeCode has to guess at IDs.
+  "cw_list_work_types",
+  "cw_list_charge_codes",
 
   // ── Work roles (read-only rate card — resolves workRoleId on time entries) ─
   "cw_list_work_roles",
@@ -104,7 +118,8 @@ const L1_TOOLS = new Set([
 
 /**
  * L2 management profile — operational oversight across tickets, projects,
- * time, assets, finance, and reporting. Capped at 70 tools.
+ * time, assets, finance, and reporting. Currently 70 tools — that figure is
+ * historical rather than a hard limit; see the note on L1 about the Copilot cap.
  */
 const L2_TOOLS = new Set([
   // ── Tickets (escalation + oversight) ─────────────────────────────────────
@@ -669,7 +684,7 @@ const UNIVERSAL_READ_TOOLS: readonly string[] = ["cw_list_work_roles"];
 
 /**
  * Maps an Azure AD app role to a tool profile name.
- * CWM.L1  → "l1"  (helpdesk engineer, 67 ticket-focused tools)
+ * CWM.L1  → "l1"  (helpdesk engineer, 72 ticket- and time-focused tools)
  * CWM.L2  → "l2"  (management, 70 operational-oversight tools)
  * CWM.L3  → "l3"  (finance/accounting, 72 billing-focused tools)
  * Unrecognised roles fall through to the MCP_TOOL_PROFILE env var.
