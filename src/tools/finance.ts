@@ -54,8 +54,8 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
       companyId: z.number().describe("Company ID"),
       contactId: z.number().describe("Primary contact ID"),
       siteId: z.number().optional().describe("Site ID"),
-      startDate: z.string().optional().describe("Start date in CW format: [YYYY-MM-DDTHH:MM:SSZ]"),
-      endDate: z.string().optional().describe("End date in CW format: [YYYY-MM-DDTHH:MM:SSZ]"),
+      startDate: z.string().optional().describe("Start date in CW format: YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
+      endDate: z.string().optional().describe("End date in CW format: YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
       noEndingDateFlag: z.boolean().optional().describe("True for indefinite agreements"),
       billAmount: z.number().optional().describe("Bill amount"),
       billingCycleId: z.number().optional().describe("Billing cycle ID"),
@@ -137,7 +137,7 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_agreement",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an agreement via JSON Patch. Common ops: replace endDate, replace billAmount, replace cancelledFlag.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an agreement via JSON Patch. Common ops: replace endDate, replace billAmount, replace cancelledFlag. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Agreement ID"),
       operations: z.array(z.object({
@@ -159,7 +159,7 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
     "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Cancel an agreement by patching cancelledFlag=true (DELETE on active agreement returns 400).",
     {
       id: z.number().describe("Agreement ID"),
-      dateCancelled: z.string().optional().describe("Cancellation date in CW format: [YYYY-MM-DDTHH:MM:SSZ]"),
+      dateCancelled: z.string().optional().describe("Cancellation date in CW format: YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
       reasonCancelled: z.string().optional().describe("Reason text"),
       ...sentinelParams,
     },
@@ -284,7 +284,7 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_agreement_addition",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an agreement addition via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an agreement addition via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       agreementId: z.number().describe("Parent agreement ID"),
       additionId: z.number().describe("Addition ID"),
@@ -381,7 +381,7 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_agreement_workrole",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an agreement work role override via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an agreement work role override via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       agreementId: z.number().describe("Parent agreement ID"),
       workRoleId: z.number().describe("Work role override ID"),
@@ -519,8 +519,15 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
     },
   );
 
-  // ── /finance/workRoles (global catalogue) ────────────────────────────────
+  // ── /time/workRoles (global catalogue) ───────────────────────────────────
   // Read-only by design — exposed to every tool profile as reference data.
+  //
+  // The collection lives under /time/, NOT /finance/. /finance/workRoles 404s
+  // with "The endpoint does not exist." on every instance. ConnectWise's own
+  // workRole_href on a time entry confirms the real route:
+  //   "_info": { "workRole_href": ".../apis/3.0/time/workRoles/5" }
+  // Agreement-level rate overrides are a different resource and do live under
+  // /finance/agreements/{id}/workroles — don't let the two paths blur.
 
   server.tool(
     "cw_list_work_roles",
@@ -539,7 +546,7 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
       orderBy: z.string().optional().describe("Field to order by (e.g. \"name asc\", \"hourlyRate desc\")"),
     },
     async ({ conditions, page, pageSize, orderBy }) => {
-      const result = await client.get("/finance/workRoles", {
+      const result = await client.get("/time/workRoles", {
         conditions, page: page ?? 1, pageSize: pageSize ?? 250, orderBy,
       });
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
@@ -555,7 +562,7 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
       id: z.number().describe("Work role ID"),
     },
     async ({ id }) => {
-      const result = await client.get(`/finance/workRoles/${id}`);
+      const result = await client.get(`/time/workRoles/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
@@ -593,7 +600,7 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_invoice",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an invoice via JSON Patch. Common ops: replace status/id, replace dueDate.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an invoice via JSON Patch. Common ops: replace status/id, replace dueDate. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Invoice ID"),
       operations: z.array(z.object({
@@ -655,7 +662,7 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
     {
       id: z.number().describe("Invoice ID"),
       amount: z.number().describe("Payment amount"),
-      paymentDate: z.string().optional().describe("Payment date in CW format: [YYYY-MM-DDTHH:MM:SSZ]"),
+      paymentDate: z.string().optional().describe("Payment date in CW format: YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
       type: z.string().optional().describe("Payment type label"),
       appliedBy: z.string().optional().describe("Member identifier who applied the payment"),
       ...sentinelParams,
@@ -707,7 +714,7 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_invoice_payment",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a payment on an invoice via JSON Patch. Common ops: replace amount, replace paymentDate.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a payment on an invoice via JSON Patch. Common ops: replace amount, replace paymentDate. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Invoice ID"),
       paymentId: z.number().describe("Payment ID"),

@@ -75,8 +75,8 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
       campaignId: z.number().optional().describe("Campaign ID"),
       agreementId: z.number().optional().describe("Agreement ID"),
       notes: z.string().optional().describe("Activity notes / detail"),
-      dateStart: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
-      dateEnd: z.string().optional().describe("[YYYY-MM-DDTHH:MM:SSZ]"),
+      dateStart: z.string().optional().describe("YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
+      dateEnd: z.string().optional().describe("YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
       allDayFlag: z.boolean().optional().describe("True if the activity spans the full day"),
       mobileGuid: z.string().optional().describe("Mobile GUID for client-generated activities"),
       where: z.string().optional().describe("Location"),
@@ -123,7 +123,7 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
 
   server.tool(
     "cw_update_activity",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an activity via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an activity via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Activity ID"),
       patch: z.array(patchOp).describe("JSON Patch operations"),
@@ -327,7 +327,7 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
 
   server.tool(
     "cw_update_activity_type",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an activity type via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an activity type via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Activity type ID"),
       patch: z.array(patchOp).describe("JSON Patch operations"),
@@ -435,7 +435,7 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
 
   server.tool(
     "cw_update_activity_status",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an activity status via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an activity status via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number(),
       patch: z.array(patchOp),

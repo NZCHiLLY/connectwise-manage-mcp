@@ -150,7 +150,7 @@ export function registerSalesTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_update_quote",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a quote via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a quote via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Quote ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
@@ -272,7 +272,7 @@ export function registerSalesTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_update_sales_probability",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a sales probability via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a sales probability via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Sales probability ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
@@ -382,7 +382,7 @@ export function registerSalesTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_update_opportunity_status",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an opportunity status via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an opportunity status via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Opportunity status ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
@@ -486,7 +486,7 @@ export function registerSalesTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_update_opportunity_type",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an opportunity type via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an opportunity type via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Opportunity type ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
@@ -620,7 +620,7 @@ export function registerSalesTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_update_sales_stage",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a sales stage via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a sales stage via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Sales stage ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
@@ -728,7 +728,7 @@ export function registerSalesTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_update_sales_territory",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a sales territory via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a sales territory via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Sales territory ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
