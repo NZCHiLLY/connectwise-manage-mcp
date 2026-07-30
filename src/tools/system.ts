@@ -501,25 +501,75 @@ export function registerSystemTools(server: McpServer, client: CwManageClient) {
     },
   );
 
-  // ── /system/myCompany ────────────────────────────────────────────────────
+  // ── "My Company" / "My Account" ──────────────────────────────────────────
+  //
+  // Neither /system/myCompany nor /system/myAccount is routed on CW cloud —
+  // both 404 with "The endpoint does not exist." /system/myCompany is not a
+  // documented route at all; the tenant's own organisation is an ordinary
+  // /company/companies record whose identifier is the company ID the client
+  // authenticates with, so resolve it that way instead.
 
   server.tool(
     "cw_get_my_company",
-    "Get 'My Company' record — the CW Manage tenant's own organisation info.",
+    "Get 'My Company' — the CW Manage tenant's own organisation record (the company this API connection belongs to).",
     {},
     async () => {
-      const result = await client.get("/system/myCompany");
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      const identifier = client.companyId;
+      const matches = await client.get<unknown[]>("/company/companies", {
+        conditions: `identifier="${identifier}"`,
+        pageSize: 1,
+      });
+      const company = Array.isArray(matches) ? matches[0] : undefined;
+      if (!company) {
+        throw new Error(
+          `No company found with identifier "${identifier}". The tenant's own ` +
+            `company record normally carries the same identifier as the company ID ` +
+            `used to authenticate; use cw_search_companies to locate it if it has ` +
+            `been renamed.`,
+        );
+      }
+      return { content: [{ type: "text", text: JSON.stringify(company, null, 2) }] };
     },
   );
 
   server.tool(
     "cw_get_my_account",
-    "Get the currently-authenticated member's account record.",
+    "Get the currently-authenticated member's account record. On instances that do not route /system/myAccount (CW cloud with an API-only member), reports the authenticated connection context instead.",
     {},
     async () => {
-      const result = await client.get("/system/myAccount");
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      try {
+        const result = await client.get("/system/myAccount");
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        if (!/endpoint does not exist/i.test(message)) throw err;
+        // API-only members have no "my account" record to return. Report what
+        // the connection itself knows and name the tools that can resolve a
+        // specific member, rather than surfacing a bare 404.
+        const systemInfo = await client.get("/system/info").catch(() => null);
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  authenticatedAs: {
+                    companyId: client.companyId,
+                    memberType: "API member",
+                  },
+                  systemInfo,
+                  note:
+                    "This instance does not route /system/myAccount. Use " +
+                    "cw_search_members or cw_get_member for a named member's record, " +
+                    "and cw_get_my_company for the tenant's own company.",
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      }
     },
   );
 
