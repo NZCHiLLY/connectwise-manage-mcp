@@ -51,11 +51,19 @@ export class CwManageClient {
   private readonly rejectUnauthorized: boolean;
   private tlsAgent?: unknown;
 
+  /**
+   * Company identifier this client authenticates as. This is also CW's
+   * "My Company" identifier, which is how cw_get_my_company finds the
+   * tenant's own /company/companies record.
+   */
+  readonly companyId: string;
+
   constructor(config: CwManageConfig) {
     // Auth: Basic base64("{companyId}+{publicKey}:{privateKey}")
     const credentials = `${config.companyId}+${config.publicKey}:${config.privateKey}`;
     this.authHeader = `Basic ${Buffer.from(credentials).toString("base64")}`;
     this.clientId = config.clientId;
+    this.companyId = config.companyId;
     // Append the standard API path if the URL doesn't already contain it
     this.apiBase = config.baseUrl.includes("/v4_6_release/")
       ? config.baseUrl.replace(/\/+$/, "")
