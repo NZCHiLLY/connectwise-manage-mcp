@@ -73,7 +73,7 @@ export function registerSystemTools(server: McpServer, client: CwManageClient) {
       securityRoleId: z.number().optional().describe("Security role ID"),
       adminFlag: z.boolean().optional().describe("Admin flag"),
       enableMobileFlag: z.boolean().optional().describe("Mobile access enabled"),
-      hireDate: z.string().optional().describe("Hire date in CW format: [YYYY-MM-DDTHH:MM:SSZ]"),
+      hireDate: z.string().optional().describe("Hire date in CW format: YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
       user_intent: z.string().min(20).describe(
         "Plain-English description of what the user asked for. " +
           "Must be at least 20 characters. Example: " +
@@ -127,7 +127,7 @@ export function registerSystemTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_update_member",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a member via JSON Patch. To deactivate, replace inactiveFlag=true (DO NOT call DELETE — CW returns 400).",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a member via JSON Patch. To deactivate, replace inactiveFlag=true (DO NOT call DELETE — CW returns 400). Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Member ID"),
       operations: z.array(z.object({
@@ -607,7 +607,7 @@ export function registerSystemTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_update_callback",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a callback registration via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a callback registration via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Callback ID"),
       operations: z.array(z.object({

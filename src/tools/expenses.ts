@@ -41,7 +41,7 @@ export function registerExpenseTools(server: McpServer, client: CwManageClient) 
     "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create an expense entry. Required: amount, date, member, type, billableOption. Dates use CW format with square brackets and Z suffix.",
     {
       amount: z.number().describe("Expense amount"),
-      date: z.string().describe("Expense date in CW format: [YYYY-MM-DDTHH:MM:SSZ]"),
+      date: z.string().describe("Expense date in CW format: YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
       memberId: z.number().describe("Member ID who incurred the expense"),
       typeId: z.number().describe("Expense type ID"),
       billableOption: z.string().describe("'Billable', 'DoNotBill', or 'NoCharge'"),
@@ -95,7 +95,7 @@ export function registerExpenseTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_expense_entry",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an expense entry via JSON Patch operations.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an expense entry via JSON Patch operations. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Expense entry ID"),
       operations: z.array(z.object({
@@ -162,8 +162,8 @@ export function registerExpenseTools(server: McpServer, client: CwManageClient) 
     "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create an expense report (a submission grouping multiple expense entries).",
     {
       memberId: z.number().describe("Member ID submitting the report"),
-      dateStart: z.string().describe("Report period start in CW format: [YYYY-MM-DDTHH:MM:SSZ]"),
-      dateEnd: z.string().describe("Report period end in CW format: [YYYY-MM-DDTHH:MM:SSZ]"),
+      dateStart: z.string().describe("Report period start in CW format: YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
+      dateEnd: z.string().describe("Report period end in CW format: YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
       statusId: z.number().optional().describe("Status ID"),
       notes: z.string().optional().describe("Free-text notes"),
       ...sentinelParams,
@@ -185,7 +185,7 @@ export function registerExpenseTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_expense_report",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an expense report via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an expense report via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Expense report ID"),
       operations: z.array(z.object({
@@ -376,7 +376,7 @@ export function registerExpenseTools(server: McpServer, client: CwManageClient) 
 
   server.tool(
     "cw_update_expense_type",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an expense type via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update an expense type via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Expense type ID"),
       operations: z.array(z.object({

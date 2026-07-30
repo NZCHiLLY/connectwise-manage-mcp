@@ -64,7 +64,7 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
       serialNumber: z.string().optional().describe("Serial number"),
       modelNumber: z.string().optional().describe("Model number"),
       tagNumber: z.string().optional().describe("Asset tag number"),
-      purchaseDate: z.string().optional().describe("Purchase date in CW format: [YYYY-MM-DDTHH:MM:SSZ]"),
+      purchaseDate: z.string().optional().describe("Purchase date in CW format: YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
       installationDate: z.string().optional().describe("Installation date in CW format"),
       installedById: z.number().optional().describe("Installed-by member ID"),
       warrantyExpirationDate: z.string().optional().describe("Warranty expiration date in CW format"),
@@ -156,7 +156,7 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
 
   server.tool(
     "cw_update_configuration",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a configuration via JSON Patch. Common ops: replace status/id, replace warrantyExpirationDate, replace ipAddress.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a configuration via JSON Patch. Common ops: replace status/id, replace warrantyExpirationDate, replace ipAddress. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Configuration ID"),
       operations: z.array(z.object({
@@ -236,7 +236,7 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
 
   server.tool(
     "cw_update_configuration_question",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a per-instance question answer via JSON Patch (typically replace 'answer').",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a per-instance question answer via JSON Patch (typically replace 'answer'). Use to edit, amend, correct, revise or patch an existing record.",
     {
       configurationId: z.number().describe("Parent configuration ID"),
       questionId: z.number().describe("Question answer ID"),
@@ -306,7 +306,7 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
 
   server.tool(
     "cw_update_configuration_type",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a configuration type via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a configuration type via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Configuration type ID"),
       operations: z.array(z.object({
@@ -399,7 +399,7 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
 
   server.tool(
     "cw_update_configuration_type_question",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a question template entry via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a question template entry via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       typeId: z.number().describe("Parent configuration type ID"),
       questionId: z.number().describe("Question ID"),
@@ -476,7 +476,7 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
 
   server.tool(
     "cw_update_configuration_type_question_value",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a picklist value via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a picklist value via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       typeId: z.number().describe("Parent configuration type ID"),
       questionId: z.number().describe("Parent question ID"),
@@ -565,7 +565,7 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
 
   server.tool(
     "cw_update_configuration_status",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a configuration status via JSON Patch.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a configuration status via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Configuration status ID"),
       operations: z.array(z.object({
