@@ -754,14 +754,22 @@ export function registerSystemTools(server: McpServer, client: CwManageClient) {
     },
   );
 
+  // Rows come from the bare /system/reports/{name} path. /count on that path
+  // returns only {"count": n} — it is not a row endpoint with a total attached.
   server.tool(
     "cw_get_report",
-    "Get a single report definition by name.",
+    "Get a report's rows by name. Use 'conditions' to filter and 'page'/'pageSize' to page through — without them CW returns only the first 25 rows.",
     {
       name: z.string().describe("Report name"),
+      conditions: z.string().optional().describe("ConnectWise conditions query string"),
+      page: z.number().optional().describe("Page number (default: 1)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      orderBy: z.string().optional().describe("Field to order by"),
     },
-    async ({ name }) => {
-      const result = await client.get(`/system/reports/${name}`);
+    async ({ name, conditions, page, pageSize, orderBy }) => {
+      const result = await client.get(`/system/reports/${name}`, {
+        conditions, page: page ?? 1, pageSize: pageSize ?? 25, orderBy,
+      });
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
@@ -777,7 +785,7 @@ export function registerSystemTools(server: McpServer, client: CwManageClient) {
       orderBy: z.string().optional().describe("Field to order by"),
     },
     async ({ name, conditions, page, pageSize, orderBy }) => {
-      const result = await client.get(`/system/reports/${name}/count`, {
+      const result = await client.get(`/system/reports/${name}`, {
         conditions, page: page ?? 1, pageSize: pageSize ?? 25, orderBy,
       });
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };

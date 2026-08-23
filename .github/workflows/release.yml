@@ -6,6 +6,16 @@ on:
   pull_request:
     branches: [main]
 
+# Serialise runs per ref. Two pushes to main landing minutes apart used to race
+# in the deploy job, and ACA takes whichever `az containerapp update` finishes
+# last — not whichever commit is newest. On 2026-07-30 that rolled production
+# back to the previous commit's image and it stayed there for 24 days.
+# Queue rather than cancel: cancelling mid-run can leave semantic-release having
+# tagged a version it never published.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   test:
     name: Test
