@@ -120,6 +120,8 @@ CI also builds to ACR on push to main.
 - `secretlint` runs pre-commit via `.githooks`; never bypass with `--no-verify`
 - Two MCP server IDs registered in Claude: `mcp__connectwise-manage__*` (local) and `mcp__claude_ai_tz-cw-psa-mcp__*` (cloud)
 - `az containerapp update` with an unchanged image tag may not create a new revision — always pass `--revision-suffix`
+- Reports: rows come from `/system/reports/{name}`. `/system/reports/{name}/count` returns only `{"count": n}` — `cw_run_report` was wired to `/count`, so it reported 71 matching payments and never handed over a row. Both `cw_run_report` and `cw_get_report` now hit the bare path and forward `conditions`/`page`/`pageSize`/`orderBy`; without those CW returns the oldest 25 rows.
+- `release.yml` has no per-ref `concurrency` group by default. Two main pushes landing together race in the deploy job and ACA keeps whichever `az containerapp update` returns last, not the newest commit. This silently reverted production to the prior image on 2026-07-30 and it ran that way for 24 days. The workflow now queues runs per ref.
 
 ## Copilot Studio Agents (copilot-agents/)
 

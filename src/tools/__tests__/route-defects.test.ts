@@ -13,6 +13,7 @@ import { registerFinanceTools } from "../finance.js";
 import { registerTicketTools } from "../tickets.js";
 import { registerServiceTools } from "../service.js";
 import { registerTimeEntryTools } from "../time-entries.js";
+import { registerSystemTools } from "../system.js";
 
 vi.mock("../../audit/log.js", () => ({
   auditLog: vi.fn().mockResolvedValue(undefined),
@@ -60,6 +61,7 @@ beforeEach(() => {
   registerTicketTools(server, mockClient);
   registerServiceTools(server, mockClient);
   registerTimeEntryTools(server, mockClient);
+  registerSystemTools(server, mockClient);
 });
 
 describe("work roles live under /time, not /finance", () => {
@@ -271,5 +273,67 @@ describe("update tools are findable by the words callers use", () => {
     for (const word of ["edit", "amend", "correct", "revise"]) {
       expect(desc, `description should contain "${word}"`).toContain(word);
     }
+  });
+});
+
+describe("report tools return rows, not a count", () => {
+  // cw_run_report was wired to /system/reports/{name}/count, so every call came
+  // back as {"count": 71} no matter what conditions or pageSize were passed.
+  // The rows live on the bare /system/reports/{name} path.
+  it("cw_run_report GETs /system/reports/{name}, not /count", async () => {
+    await getTool(server, "cw_run_report").handler({ name: "PaymentsByDate" }, {});
+    expect(mockClient.get).toHaveBeenCalledWith(
+      "/system/reports/PaymentsByDate",
+      expect.anything(),
+    );
+    const paths = (mockClient.get as unknown as { mock: { calls: unknown[][] } }).mock.calls.map(
+      (c) => String(c[0]),
+    );
+    expect(paths.some((p) => p.endsWith("/count"))).toBe(false);
+  });
+
+  it("cw_run_report forwards conditions, paging and orderBy", async () => {
+    await getTool(server, "cw_run_report").handler(
+      {
+        name: "PaymentsByDate",
+        conditions: 'paymentDate="2026-08-20"',
+        page: 2,
+        pageSize: 500,
+        orderBy: "paymentDate desc",
+      },
+      {},
+    );
+    expect(mockClient.get).toHaveBeenCalledWith("/system/reports/PaymentsByDate", {
+      conditions: 'paymentDate="2026-08-20"',
+      page: 2,
+      pageSize: 500,
+      orderBy: "paymentDate desc",
+    });
+  });
+
+  it("cw_get_report accepts conditions and paging so it is not first-page-only", async () => {
+    const { inputSchema } = getTool(server, "cw_get_report");
+    await expect(
+      inputSchema.parseAsync({
+        name: "PaymentsByDate",
+        conditions: 'paymentDate="2026-08-20"',
+        page: 3,
+        pageSize: 1000,
+        orderBy: "id",
+      }),
+    ).resolves.toBeTruthy();
+  });
+
+  it("cw_get_report forwards those filters to CW", async () => {
+    await getTool(server, "cw_get_report").handler(
+      { name: "PaymentsByDate", conditions: 'paymentDate="2026-08-20"', page: 3 },
+      {},
+    );
+    expect(mockClient.get).toHaveBeenCalledWith("/system/reports/PaymentsByDate", {
+      conditions: 'paymentDate="2026-08-20"',
+      page: 3,
+      pageSize: 25,
+      orderBy: undefined,
+    });
   });
 });
