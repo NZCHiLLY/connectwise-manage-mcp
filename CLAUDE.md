@@ -127,7 +127,7 @@ CI also builds to ACR on push to main.
 
 Deploy: `cd copilot-agents && .\create-agents.ps1`
 
-Domain profiles: 17 endpoints `/mcp/{domain}` → each exposes 9–39 tools (Copilot Studio 70-tool cap).
+Domain profiles: 18 endpoints `/mcp/{domain}` → each exposes 9–39 tools (Copilot Studio 70-tool cap).
 Profile source: `src/tools/profiles.ts` `DOMAIN_PROFILES` record.
 
 ### Gotchas
