@@ -84,6 +84,7 @@ import { registerServiceTools }       from "./tools/service.js";
 import { registerSystemTools }        from "./tools/system.js";
 import { registerTicketTools }        from "./tools/tickets.js";
 import { registerTimeEntryTools }     from "./tools/time-entries.js";
+import { isValidHostHeader, parseRequestTarget } from "./request-target.js";
 
 // ---------------------------------------------------------------------------
 // Security headers applied to every HTTP response
@@ -213,10 +214,17 @@ async function startHttpTransport(): Promise<void> {
   httpServer = createServer((req: IncomingMessage, res: ServerResponse) => {
     requestContext.run({ correlationId: newCorrelationId() }, () => {
     applySecurityHeaders(res);
-    const url = new URL(
-      req.url || "/",
-      `http://${req.headers.host || "localhost"}`,
-    );
+    // The request target is parsed against a fixed base, never against the
+    // client-supplied Host header. A malformed Host or target is answered
+    // with 400: it must not be able to throw here and end the process.
+    const url = isValidHostHeader(req.headers.host)
+      ? parseRequestTarget(req.url)
+      : null;
+    if (!url) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "invalid_request" }));
+      return;
+    }
 
     // ------------------------------------------------------------------
     // OAuth discovery + proxy endpoints (always available when OAuth on)
