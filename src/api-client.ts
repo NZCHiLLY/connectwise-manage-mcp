@@ -19,6 +19,8 @@ export interface CwManageConfig {
   publicKey: string;
   privateKey: string;
   clientId: string;
+  /** Set when baseUrl came from the X-CW-Url header; checked before every request. */
+  untrustedBaseUrl?: boolean;
 }
 
 export function getConfig(): CwManageConfig | null {
@@ -39,10 +41,13 @@ export function getConfig(): CwManageConfig | null {
   return { baseUrl, companyId, publicKey, privateKey, clientId };
 }
 
+const REQUEST_TIMEOUT_MS = 30_000;
+
 /**
  * Low-level API client for ConnectWise Manage REST API.
  */
 import { getCorrelationId } from "./context.js";
+import { assertSafeGatewayUrl } from "./url-guard.js";
 
 export class CwManageClient {
   private readonly authHeader: string;
@@ -50,6 +55,7 @@ export class CwManageClient {
   private readonly apiBase: string;
   private readonly rejectUnauthorized: boolean;
   private tlsAgent?: unknown;
+  private readonly untrustedBaseUrl: string | undefined;
 
   /**
    * Company identifier this client authenticates as. This is also CW's
@@ -64,6 +70,7 @@ export class CwManageClient {
     this.authHeader = `Basic ${Buffer.from(credentials).toString("base64")}`;
     this.clientId = config.clientId;
     this.companyId = config.companyId;
+    this.untrustedBaseUrl = config.untrustedBaseUrl ? config.baseUrl : undefined;
     // Append the standard API path if the URL doesn't already contain it
     this.apiBase = config.baseUrl.includes("/v4_6_release/")
       ? config.baseUrl.replace(/\/+$/, "")
@@ -93,6 +100,14 @@ export class CwManageClient {
       params?: Record<string, string | number | undefined>;
     },
   ): Promise<T> {
+    // Re-checked per request so a hostname re-pointed after the last call is caught.
+    // Known gap (documented, not closed): DNS can change between this lookup and
+    // the connection. Closing it needs a lookup that pins the resolved address on
+    // the socket, which global fetch does not offer without a custom dispatcher.
+    // With redirects refused for gateway URLs, the window is small.
+    if (this.untrustedBaseUrl !== undefined) {
+      await assertSafeGatewayUrl(this.untrustedBaseUrl);
+    }
     const url = new URL(`${this.apiBase}${path}`);
 
     if (options?.params) {
@@ -103,11 +118,17 @@ export class CwManageClient {
       }
     }
 
+    // Redirect blocking is gateway-only: env-mode CW_MANAGE_URL may legitimately
+    // 301/302 to a canonical HTTPS origin on a self-hosted server. Cloudflare
+    // Workers reject redirect: "error", so gateway mode uses "manual" and a throw.
+    const blockRedirects = this.untrustedBaseUrl !== undefined;
     // Omit<RequestInit, 'dispatcher'> avoids a type conflict between the
     // undici-types shipped with @types/node and undici's own Agent type.
     const fetchOptions: Omit<RequestInit, "dispatcher"> & { dispatcher?: unknown } = {
       method,
       headers: this.defaultHeaders(),
+      redirect: blockRedirects ? "manual" : "follow",
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     };
 
     if (options?.body !== undefined) {
@@ -130,6 +151,14 @@ export class CwManageClient {
     const start = Date.now();
     const response = await fetch(url.toString(), fetchOptions as RequestInit);
     const elapsed = Date.now() - start;
+
+    // Before the !ok branch: under redirect "manual" a 3xx is not ok, and would
+    // otherwise surface as a generic API error rather than a refused redirect.
+    if (blockRedirects && response.status >= 300 && response.status < 400) {
+      throw new Error(
+        `ConnectWise API ${method} ${path} returned a redirect (HTTP ${response.status}); refusing to follow it.`,
+      );
+    }
 
     if (!response.ok) {
       const errorBody = await response.text();
