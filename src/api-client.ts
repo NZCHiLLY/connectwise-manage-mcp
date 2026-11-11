@@ -11,6 +11,7 @@
  *   CW_MANAGE_PRIVATE_KEY       - API member private key
  *   CW_MANAGE_CLIENT_ID         - Client ID from ConnectWise Developer Portal
  *   CW_MANAGE_REJECT_UNAUTHORIZED - Set to "false" to allow self-signed certs (default: "true")
+ *   CW_REQUEST_TIMEOUT_MS      - Env-mode request timeout in ms (default: none)
  */
 
 export interface CwManageConfig {
@@ -41,7 +42,25 @@ export function getConfig(): CwManageConfig | null {
   return { baseUrl, companyId, publicKey, privateKey, clientId };
 }
 
-const REQUEST_TIMEOUT_MS = 30_000;
+/** Timeout for a gateway (X-CW-Url) request. */
+const GATEWAY_TIMEOUT_MS = 30_000;
+
+const MAX_TIMER_MS = 2_147_483_647;
+
+/**
+ * Env-mode timeout: none unless CW_REQUEST_TIMEOUT_MS is a positive integer.
+ * Production runs env mode and has real ConnectWise calls of 32 s to 50 s
+ * (Log Analytics, 30 days to 12 Nov 2026). An abort fails the call here while
+ * a write may still commit in ConnectWise, so no default is imposed.
+ */
+function envModeTimeoutMs(): number | undefined {
+  const raw = process.env.CW_REQUEST_TIMEOUT_MS;
+  if (!raw || !/^\d+$/.test(raw)) return undefined;
+  const ms = Number(raw);
+  // Past the signed 32-bit timer limit a Node timer misbehaves, and past 2^32 - 1
+  // AbortSignal.timeout throws, which would fail every call. Ignore such values.
+  return ms > 0 && ms <= MAX_TIMER_MS ? ms : undefined;
+}
 
 /**
  * Low-level API client for ConnectWise Manage REST API.
@@ -128,8 +147,11 @@ export class CwManageClient {
       method,
       headers: this.defaultHeaders(),
       redirect: blockRedirects ? "manual" : "follow",
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     };
+    const timeoutMs = blockRedirects ? GATEWAY_TIMEOUT_MS : envModeTimeoutMs();
+    if (timeoutMs !== undefined) {
+      fetchOptions.signal = AbortSignal.timeout(timeoutMs);
+    }
 
     if (options?.body !== undefined) {
       fetchOptions.body = JSON.stringify(options.body);

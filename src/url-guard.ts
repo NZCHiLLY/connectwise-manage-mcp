@@ -50,6 +50,15 @@ export async function assertSafeGatewayUrl(input: string): Promise<void> {
   }
 }
 
+/**
+ * Checks a gateway X-CW-Url with assertSafeGatewayUrl and returns its origin.
+ * The client appends the API path itself, so any path on the header is dropped.
+ */
+export async function validateGatewayBaseUrl(raw: string): Promise<string> {
+  await assertSafeGatewayUrl(raw);
+  return new URL(raw).origin;
+}
+
 function isIpLiteral(host: string): boolean {
   // URL() already normalises IP literals; v6 hosts are the only ones containing ":".
   return parseIpv4(host) !== null || host.includes(":");
