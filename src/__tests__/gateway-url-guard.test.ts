@@ -16,7 +16,7 @@ vi.mock("node:dns/promises", () => ({
   resolve6: resolve6Mock,
 }));
 
-import { assertSafeGatewayUrl, isPublicIp } from "../url-guard.js";
+import { assertSafeGatewayUrl, isPublicIp, validateGatewayBaseUrl } from "../url-guard.js";
 
 describe("isPublicIp", () => {
   it.each([
@@ -109,5 +109,29 @@ describe("assertSafeGatewayUrl", () => {
       expect(err.message).toMatch(/did not resolve/);
       expect((err.cause as Error).message).toMatch(/not implemented/);
     });
+  });
+});
+
+describe("validateGatewayBaseUrl", () => {
+  beforeEach(() => {
+    lookupMock.mockReset();
+    lookupMock.mockResolvedValue([{ address: "203.0.113.10", family: 4 }]);
+  });
+
+  it("allows the AU cloud host and returns its origin", async () => {
+    await expect(validateGatewayBaseUrl("https://api-aus.myconnectwise.net")).resolves.toBe(
+      "https://api-aus.myconnectwise.net",
+    );
+  });
+
+  it("cuts a URL carrying the API path back to its origin", async () => {
+    await expect(
+      validateGatewayBaseUrl("https://api-aus.myconnectwise.net/v4_6_release/apis/3.0"),
+    ).resolves.toBe("https://api-aus.myconnectwise.net");
+  });
+
+  it("rejects what the guard rejects", async () => {
+    await expect(validateGatewayBaseUrl("http://api-aus.myconnectwise.net")).rejects.toThrow(/https/);
+    await expect(validateGatewayBaseUrl("https://[::1]")).rejects.toThrow(/non-public/);
   });
 });

@@ -61,6 +61,7 @@ describe("CwManageClient with a gateway-supplied URL", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
 
@@ -85,6 +86,19 @@ describe("CwManageClient with a gateway-supplied URL", () => {
 
     const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(options.redirect).toBe("manual");
+    expect(options.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("uses the 30 s timeout in gateway mode, whatever CW_REQUEST_TIMEOUT_MS says", async () => {
+    vi.stubEnv("CW_REQUEST_TIMEOUT_MS", "90000");
+    const timeoutSpy = vi.spyOn(AbortSignal, "timeout");
+    const fetchMock = vi.fn().mockResolvedValue(fakeResponse({ ok: true }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await new CwManageClient(gatewayConfig("https://cw.example.com")).get("/system/info");
+
+    expect(timeoutSpy).toHaveBeenCalledWith(30_000);
+    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(options.signal).toBeInstanceOf(AbortSignal);
   });
 
@@ -159,8 +173,64 @@ describe("CwManageClient with a gateway-supplied URL", () => {
     // Env mode still follows redirects (a self-hosted API may 301 to its
     // canonical HTTPS origin). Gateway mode alone uses redirect: "manual".
     expect(options.redirect).toBe("follow");
-    expect(options.signal).toBeInstanceOf(AbortSignal);
   });
+});
+
+// Production runs env mode, and Log Analytics shows real ConnectWise calls of
+// 32 s, 36 s and 50 s in the 30 days to 12 Nov 2026. Aborting those would
+// fail them client-side while a write may still commit in ConnectWise, so env
+// mode sets no timeout unless the operator asks for one.
+describe("request timeout in env mode", () => {
+  beforeEach(() => {
+    lookupMock.mockReset();
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
+
+  async function envModeOptions(): Promise<RequestInit> {
+    const fetchMock = vi.fn().mockResolvedValue(fakeResponse({ ok: true }));
+    vi.stubGlobal("fetch", fetchMock);
+    await new CwManageClient(envConfig).get("/system/info");
+    return (fetchMock.mock.calls[0] as [string, RequestInit])[1];
+  }
+
+  it("sets no signal when CW_REQUEST_TIMEOUT_MS is unset", async () => {
+    vi.stubEnv("CW_REQUEST_TIMEOUT_MS", undefined);
+    const timeoutSpy = vi.spyOn(AbortSignal, "timeout");
+
+    const options = await envModeOptions();
+
+    expect(options.signal).toBeUndefined();
+    expect(timeoutSpy).not.toHaveBeenCalled();
+  });
+
+  it("uses CW_REQUEST_TIMEOUT_MS=90000 as the timeout", async () => {
+    vi.stubEnv("CW_REQUEST_TIMEOUT_MS", "90000");
+    const timeoutSpy = vi.spyOn(AbortSignal, "timeout");
+
+    const options = await envModeOptions();
+
+    expect(options.signal).toBeInstanceOf(AbortSignal);
+    expect(timeoutSpy).toHaveBeenCalledWith(90_000);
+  });
+
+  it.each(["", "0", "-5", "abc", "1.5", "30s", "99999999999"])(
+    "ignores CW_REQUEST_TIMEOUT_MS=%j, which is not a positive integer",
+    async (value) => {
+      vi.stubEnv("CW_REQUEST_TIMEOUT_MS", value);
+      const timeoutSpy = vi.spyOn(AbortSignal, "timeout");
+
+      const options = await envModeOptions();
+
+      expect(options.signal).toBeUndefined();
+      expect(timeoutSpy).not.toHaveBeenCalled();
+    },
+  );
 });
 
 describe("ConnectWise error text", () => {

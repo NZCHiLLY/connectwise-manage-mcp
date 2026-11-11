@@ -51,7 +51,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { getConfig, CwManageClient } from "./api-client.js";
 import { resolveGatewayConfig, type CwManageConfig } from "./mcp-server.js";
-import { assertSafeGatewayUrl } from "./url-guard.js";
+import { validateGatewayBaseUrl } from "./url-guard.js";
 import { getEntraConfig, createJwksClient, validateToken } from "./auth/middleware.js";
 import {
   handleProtectedResource,
@@ -392,8 +392,7 @@ async function startHttpTransport(): Promise<void> {
           const rawUrl = (req.headers as Record<string, string | undefined>)["x-cw-url"];
           if (rawUrl) {
             try {
-              await assertSafeGatewayUrl(rawUrl);
-              config!.baseUrl = new URL(rawUrl).origin;
+              config!.baseUrl = await validateGatewayBaseUrl(rawUrl);
             } catch (err) {
               res.writeHead(400, { "Content-Type": "application/json" });
               res.end(JSON.stringify({ error: "invalid_url", message: (err as Error).message }));
