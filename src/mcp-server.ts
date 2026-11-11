@@ -70,9 +70,12 @@ export function resolveGatewayConfig(
     getHeader("x-cw-client-id"),
     getHeader("x-cw-url"),
   );
-  // The caller picks this URL, so the client checks it before every request.
-  if (result.config && getHeader("x-cw-url")) {
-    result.config.untrustedBaseUrl = true;
+  if (result.config) {
+    result.config.gatewayMode = true;
+    // The caller picks this URL, so the client checks it before every request.
+    if (getHeader("x-cw-url")) {
+      result.config.untrustedBaseUrl = true;
+    }
   }
   return result;
 }

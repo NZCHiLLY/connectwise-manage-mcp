@@ -102,6 +102,19 @@ describe("CwManageClient with a gateway-supplied URL", () => {
     expect(options.signal).toBeInstanceOf(AbortSignal);
   });
 
+  it("applies the 30 s timeout and refuses redirects in gateway mode without X-CW-Url", async () => {
+    const timeoutSpy = vi.spyOn(AbortSignal, "timeout");
+    const fetchMock = vi.fn().mockResolvedValue(fakeResponse({ ok: true }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await new CwManageClient(gatewayConfig(undefined)).get("/system/info");
+
+    expect(timeoutSpy).toHaveBeenCalledWith(30_000);
+    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(options.redirect).toBe("manual");
+    expect(options.signal).toBeInstanceOf(AbortSignal);
+  });
+
   it("throws on a redirect response without following it", async () => {
     const fetchMock = vi.fn().mockResolvedValue(fakeResponse({}, 302));
     vi.stubGlobal("fetch", fetchMock);

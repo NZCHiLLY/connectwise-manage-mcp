@@ -22,6 +22,11 @@ export interface CwManageConfig {
   clientId: string;
   /** Set when baseUrl came from the X-CW-Url header; checked before every request. */
   untrustedBaseUrl?: boolean;
+  /**
+   * Set for every per-request gateway config, with or without X-CW-Url. Gateway
+   * mode refuses redirects and applies the 30 s timeout. Env mode leaves it unset.
+   */
+  gatewayMode?: boolean;
 }
 
 export function getConfig(): CwManageConfig | null {
@@ -75,6 +80,7 @@ export class CwManageClient {
   private readonly rejectUnauthorized: boolean;
   private tlsAgent?: unknown;
   private readonly untrustedBaseUrl: string | undefined;
+  private readonly gatewayMode: boolean;
 
   /**
    * Company identifier this client authenticates as. This is also CW's
@@ -90,6 +96,7 @@ export class CwManageClient {
     this.clientId = config.clientId;
     this.companyId = config.companyId;
     this.untrustedBaseUrl = config.untrustedBaseUrl ? config.baseUrl : undefined;
+    this.gatewayMode = config.gatewayMode === true || config.untrustedBaseUrl === true;
     // Append the standard API path if the URL doesn't already contain it
     this.apiBase = config.baseUrl.includes("/v4_6_release/")
       ? config.baseUrl.replace(/\/+$/, "")
@@ -140,7 +147,7 @@ export class CwManageClient {
     // Redirect blocking is gateway-only: env-mode CW_MANAGE_URL may legitimately
     // 301/302 to a canonical HTTPS origin on a self-hosted server. Cloudflare
     // Workers reject redirect: "error", so gateway mode uses "manual" and a throw.
-    const blockRedirects = this.untrustedBaseUrl !== undefined;
+    const blockRedirects = this.gatewayMode;
     // Omit<RequestInit, 'dispatcher'> avoids a type conflict between the
     // undici-types shipped with @types/node and undici's own Agent type.
     const fetchOptions: Omit<RequestInit, "dispatcher"> & { dispatcher?: unknown } = {
