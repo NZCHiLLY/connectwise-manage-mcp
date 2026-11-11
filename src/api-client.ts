@@ -184,6 +184,7 @@ export class CwManageClient {
     // Before the !ok branch: under redirect "manual" a 3xx is not ok, and would
     // otherwise surface as a generic API error rather than a refused redirect.
     if (blockRedirects && response.status >= 300 && response.status < 400) {
+      await response.body?.cancel();
       throw new Error(
         `ConnectWise API ${method} ${path} returned a redirect (HTTP ${response.status}); refusing to follow it.`,
       );
