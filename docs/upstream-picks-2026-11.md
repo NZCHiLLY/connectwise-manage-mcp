@@ -1,5 +1,16 @@
 # Upstream security picks, November 2026
 
+## Outcome
+
+Decided and executed on branch `chore/upstream-security`. The sections below record the pre-decision analysis. Sentences marked "Superseded" no longer describe the plan.
+
+- #106: hand-ported. A cherry-pick conflicted on upstream #116's safe-error code, which the fork did not take, so the SSRF guard was re-applied by hand with the verbatim ConnectWise error body kept.
+- #107: reproduced with `npm audit fix --omit=dev` rather than cherry-picked. Production advisories went from 10 to 0, the SDK from 1.26.0 to 1.32.2, transitive `@hono/node-server` from 1.19.14 to 2.1.7 and `undici` from 8.3.0 to 8.12.4.
+- #115: cherry-picked.
+- #122: deferred, because it is unmerged upstream.
+- #116: deliberately absent. The fork keeps ConnectWise error bodies verbatim.
+- Hunks for `src/worker.ts` and `src/__tests__/http-s2s-auth.test.ts` were dropped, because the fork has neither file.
+
 Source: `upstream` = wyre-technology/connectwise-manage-mcp, fetched 12 Nov 2026 (`git fetch upstream`, tip `ae2e8d0`). Fork base: `origin/main` 69b08d0. Read with `gh pr view <n> --repo wyre-technology/connectwise-manage-mcp` and `git show`.
 
 ## Number mapping
@@ -14,7 +25,7 @@ Source: `upstream` = wyre-technology/connectwise-manage-mcp, fetched 12 Nov 2026
 | #122 input caps | #122 | fix(security): cap request body and tool input elements (CVE-2026-111768, GHSA-f897) | NOT MERGED. Head b358f88a82ea05631cf225f65a0a6a8de98cb149 (two commits c308e4dbf, b358f88a8), base 4218e3062 | open, mergeCommit null | 9 |
 | never take | #116 | fix(security): return status and a reference id, not the upstream error body | b797e8a6d815c10254aefa2cdc2a5592752eb97b | squash, 1 parent | 10 |
 
-All merged picks are squash commits, so a plain `git cherry-pick <sha>` is right and `-m 1` is not needed. #122 has no merge commit, so it can only be taken as its two head commits. Its head is fetched locally as `upstream/pr-122` (`git fetch upstream pull/122/head`).
+All merged picks are squash commits, so a plain `git cherry-pick <sha>` is right and `-m 1` is not needed. Superseded: only #115 was cherry-picked, #106 and #107 were not (see Outcome). #122 has no merge commit, so it can only be taken as its two head commits. Its head is fetched locally as `upstream/pr-122` (`git fetch upstream pull/122/head`).
 
 ## Changed files
 
@@ -27,7 +38,7 @@ All merged picks are squash commits, so a plain `git cherry-pick <sha>` is right
 ## Files the fork does not have (checked with `git cat-file -e origin/main:<path>`)
 
 - src/url-guard.ts (new in #106), src/request-target.ts (new in #115), src/input-limits.ts (new in #122): new files, expected.
-- src/worker.ts: #122 edits it, but the fork has no such file. That hunk will not apply and needs a decision.
+- src/worker.ts: #122 edits it, but the fork has no such file. That hunk will not apply and needs a decision. Superseded: the hunk was dropped and #122 deferred (see Outcome).
 - src/safe-error.ts: from #116, absent, as intended.
 - src/__tests__/http-s2s-auth.test.ts: #106 edits it, but the fork has no such file. That hunk will not apply.
 - Present in the fork: src/auth/routes.ts, src/mcp-server.ts, src/api-client.ts, src/index.ts, package-lock.json, CHANGELOG.md, README.md.
@@ -56,6 +67,6 @@ All four fail a plain apply, because the fork lags upstream.
 ## Findings for the controller
 
 1. Brief numbers #101 and #103 are issues. Pick #106 and #107.
-2. #122 is OPEN and unmerged, so there is no merge SHA and its content may still change upstream. Pin to head b358f88a8 or defer.
+2. #122 is OPEN and unmerged, so there is no merge SHA and its content may still change upstream. Pin to head b358f88a8 or defer. Superseded: deferred (see Outcome).
 3. #106 is textually built on #116 in api-client.ts. That is a reported dependency in context only. Whether to resolve by hand is the controller's call.
 4. #122 depends on #115 being applied first.
