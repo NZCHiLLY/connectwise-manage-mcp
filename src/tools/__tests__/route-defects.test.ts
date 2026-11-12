@@ -159,18 +159,8 @@ describe("service location is settable on tickets", () => {
 });
 
 describe("cw_create_time_entry guards the three known rejections", () => {
-  it("requires memberId so it can't default to the API member", async () => {
-    const { inputSchema } = getTool(server, "cw_create_time_entry");
-    await expect(
-      inputSchema.parseAsync({
-        chargeToId: 104094,
-        chargeToType: "ServiceTicket",
-        timeStart: "2026-07-29T20:00:00Z",
-        ...SENTINEL,
-      }),
-    ).rejects.toThrow();
-  });
-
+  // memberId is now optional in the schema; the never-default-to-the-API-member
+  // guarantee is covered at handler level in attribution-tools.test.ts.
   it("falls back to the member's defaultWorkRole when workRoleId is omitted", async () => {
     (mockClient.get as unknown as { mockResolvedValueOnce(v: unknown): void }).mockResolvedValueOnce({
       id: 154,

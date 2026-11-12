@@ -22,7 +22,7 @@ src/
   api-client.ts     # CW Manage REST client + config loader
   context.ts        # AsyncLocalStorage correlation IDs
   tools/            # MCP tools by domain (tickets, companies, contacts, …)
-    profiles.ts     # L1 / L2 / full tool-set definitions
+    profiles.ts     # L1 / L2 / L3 / pricing / full tool-set definitions
     middleware.ts   # Per-tool auth + audit injection
     routes.ts       # HTTP route → tool dispatch
   auth/
@@ -59,11 +59,12 @@ URL path takes precedence over JWT role / env var:
 | Path      | Profile        | Tools |
 |-----------|----------------|-------|
 | `/mcp/l1` | L1 helpdesk    | 73 tools |
-| `/mcp/l2` | L2 management  | 71 tools |
-| `/mcp/l3` | L3 finance/accounting | 72 tools |
+| `/mcp/l2` | L2 management  | 73 tools |
+| `/mcp/l3` | L3 finance/accounting | 75 tools |
+| `/mcp/pricing` | Pricing, read-only (claude.ai) | 21 tools |
 | `/mcp`    | full or JWT role | all |
 
-`MCP_TOOL_PROFILE=l1|l2|l3|full` sets the default when hitting `/mcp` directly.
+`MCP_TOOL_PROFILE=l1|l2|l3|pricing|full` sets the default when hitting `/mcp` directly.
 
 `UNIVERSAL_READ_TOOLS` in `profiles.ts` is unioned into every profile's allowlist,
 so those tools are exposed even when a profile doesn't list them. Currently just
@@ -74,13 +75,13 @@ tools are not registered, so `full` can't mutate them either.
 
 The 70-tool Copilot Studio cap applies only to the **domain** profiles. No Copilot
 agent binds to `/mcp/l1|l2|l3` (check `copilot-agents/agents/*.yaml`) — the role
-tiers are served to claude.ai connectors, where L1 and L3 both run at 72.
+tiers, and `pricing`, are served to claude.ai connectors, where L1 and L3 run at 72 or more.
 
 ## Output shaping
 
 Large ConnectWise results overflow the claude.ai client, which refuses a tool result near 50,000 characters. Shaped profiles keep every result under a 40,000-character budget. The logic is in `src/tools/shaping.ts`, wired up in `src/tools/profiles.ts`.
 
-**Which endpoints are shaped.** `l1`, `l2`, `l3`, `opportunities`, `sales` and `pricing` (`SHAPED_PROFILES_DEFAULT`). `pricing` is reserved for the planned read-only pricing tier. Until that tier exists, the path serves the full tool set, shaped. `MCP_SHAPED_PROFILES` is a comma list that replaces this default when set, even to an empty string. The `full` profile, an unset profile and every other domain profile stay raw and byte-identical to before, unless the caller passes `fields`. The cockpit reads the untiered `/mcp` endpoint and depends on that. One cockpit call changes: it passes `fields` to `cw_search_members`, which never declared it, so the SDK used to drop it and return whole member records. That call now gets the projected records. The Copilot agents bound to the `opportunities` and `sales` domain profiles now get shaped output.
+**Which endpoints are shaped.** `l1`, `l2`, `l3`, `opportunities`, `sales` and `pricing` (`SHAPED_PROFILES_DEFAULT`). `pricing` is the read-only pricing tier: 20 catalogue, product, agreement, company, configuration and opportunity read tools, 21 with the universal work role read, and no write tool at all. `MCP_SHAPED_PROFILES` is a comma list that replaces this default when set, even to an empty string. The `full` profile, an unset profile and every other domain profile stay raw and byte-identical to before, unless the caller passes `fields`. The cockpit reads the untiered `/mcp` endpoint and depends on that. One cockpit call changes: it passes `fields` to `cw_search_members`, which never declared it, so the SDK used to drop it and return whole member records. That call now gets the projected records. The Copilot agents bound to the `opportunities` and `sales` domain profiles now get shaped output.
 
 **What shaping does.**
 - Drops nulls, empty strings, empty arrays and empty objects. `0`, `false` and `"0"` are kept.

@@ -98,7 +98,8 @@ import { assertSafeGatewayUrl } from "./url-guard.js";
 export class CwManageClient {
   private readonly authHeader: string;
   private readonly clientId: string;
-  private readonly apiBase: string;
+  /** Resolved API root, exposed so callers can key per-instance caches. */
+  readonly apiBase: string;
   private readonly rejectUnauthorized: boolean;
   private tlsAgent?: unknown;
   private readonly untrustedBaseUrl: string | undefined;

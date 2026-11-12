@@ -32,8 +32,9 @@
  *
  * Tool profile selection — URL path takes precedence, JWT role is fallback:
  *   /mcp/l1  → L1 helpdesk engineer profile (73 tools)
- *   /mcp/l2  → L2 management profile (71 tools)
- *   /mcp/l3  → L3 finance/accounting profile (72 tools)
+ *   /mcp/l2  → L2 management profile (73 tools)
+ *   /mcp/l3  → L3 finance/accounting profile (75 tools)
+ *   /mcp/pricing → read-only pricing profile (21 tools)
  *   /mcp     → full tool set (JWT role or MCP_TOOL_PROFILE env var applies)
  *   Azure AD app role "CWM.L1" / "CWM.L2" / "CWM.L3" → profile fallback when hitting /mcp directly
  */
@@ -352,6 +353,8 @@ async function startHttpTransport(): Promise<void> {
             } else {
               identity = await validateToken(token, entraConfig, jwksClient!);
             }
+            const store = requestContext.getStore();
+            if (store) store.identity = { upn: identity.upn, oid: identity.oid };
             console.error(
               `[audit] ${identity.oid} | ${new Date().toISOString()} | POST ${url.pathname} | cid:${requestContext.getStore()?.correlationId ?? "-"}`,
             );
@@ -446,7 +449,7 @@ async function startHttpTransport(): Promise<void> {
     res.end(
       JSON.stringify({
         error: "Not found",
-        endpoints: ["/mcp", "/mcp/l1", "/mcp/l2", "/mcp/l3", "/mcp/full", "/health"],
+        endpoints: ["/mcp", "/mcp/l1", "/mcp/l2", "/mcp/l3", "/mcp/pricing", "/mcp/full", "/health"],
       }),
     );
     }); // end requestContext.run
@@ -457,8 +460,9 @@ async function startHttpTransport(): Promise<void> {
       console.error(`ConnectWise Manage MCP server listening on http://${host}:${port}`);
       console.error(`  Copilot Studio Server URL → profile:`);
       console.error(`    https://<domain>/l1  →  L1 helpdesk engineer (73 tools)`);
-      console.error(`    https://<domain>/l2  →  L2 management (71 tools)`);
-      console.error(`    https://<domain>/l3  →  L3 finance/accounting (72 tools)`);
+      console.error(`    https://<domain>/l2  →  L2 management (73 tools)`);
+      console.error(`    https://<domain>/l3  →  L3 finance/accounting (75 tools)`);
+      console.error(`    https://<domain>/pricing  →  read-only pricing (21 tools)`);
       console.error(`    https://<domain>     →  full tool set (JWT role / env fallback)`);
       console.error(`  /health — health check`);
       console.error(

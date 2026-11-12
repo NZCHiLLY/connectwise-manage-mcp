@@ -129,7 +129,7 @@ const L1_TOOLS = new Set([
 
 /**
  * L2 management profile — operational oversight across tickets, projects,
- * time, assets, finance, and reporting. Currently 70 tools — that figure is
+ * time, assets, finance, and reporting. Currently 73 tools, universal tools included. That figure is
  * historical rather than a hard limit; see the note on L1 about the Copilot cap.
  */
 const L2_TOOLS = new Set([
@@ -178,6 +178,10 @@ const L2_TOOLS = new Set([
   "cw_get_invoice",
   "cw_list_invoice_payments",
   "cw_list_work_roles",
+
+  // ── Products (read) ───────────────────────────────────────────────────────
+  "cw_search_products",
+  "cw_get_product",
 
   // ── Configurations / assets ───────────────────────────────────────────────
   "cw_search_configurations",
@@ -235,7 +239,7 @@ const L2_TOOLS = new Set([
  * Read-heavy with approval/write actions limited to the billing workflow.
  * No destructive operations (no deletes, no agreement create/cancel).
  * Served to claude.ai connectors only (not Copilot Studio), so the 70-tool
- * Copilot cap does not apply; currently 72 tools.
+ * Copilot cap does not apply; currently 75 tools, universal tools included.
  */
 const L3_TOOLS = new Set([
   // ── Invoices / payments / billing ─────────────────────────────────────────
@@ -275,6 +279,11 @@ const L3_TOOLS = new Set([
   "cw_list_agreement_types",
   "cw_list_agreement_workroles",
   "cw_list_agreement_worktypes",
+  "cw_list_agreement_configurations",
+
+  // ── Configurations (deployed counts behind agreement additions) ──────────
+  "cw_search_configurations",
+  "cw_get_configuration",
 
   // ── Expense review / approval ─────────────────────────────────────────────
   "cw_search_expense_reports",
@@ -471,6 +480,8 @@ const SALES_TOOLS = new Set([
   "cw_create_sales_territory", "cw_update_sales_territory",
   "cw_list_sales_teams", "cw_get_sales_team",
   "cw_list_sales_order_statuses", "cw_get_sales_order_status",
+  // Read access to the opportunities that quotes hang off
+  "cw_search_opportunities", "cw_get_opportunity",
 ]);
 
 const OPPORTUNITIES_TOOLS = new Set([
@@ -492,9 +503,9 @@ const OPPORTUNITIES_TOOLS = new Set([
   "cw_count_activities", "cw_create_activity",
   "cw_update_activity", "cw_replace_activity",
   "cw_list_activity_types", "cw_get_activity_type",
-  "cw_create_activity_type", "cw_update_activity_type",
   "cw_list_activity_statuses", "cw_get_activity_status",
-  "cw_create_activity_status", "cw_update_activity_status",
+  // Lookups: resolve company, contact and member ids for create_opportunity
+  "cw_search_companies", "cw_search_contacts", "cw_search_members",
 ]);
 
 const FINANCE_AGREEMENTS_TOOLS = new Set([
@@ -648,6 +659,30 @@ const KB_TOOLS = new Set([
   "cw_test_connection",
 ]);
 
+/**
+ * Read-only pricing tier for claude.ai tender and quote work. Catalogue, products,
+ * agreement additions and configurations in one place, with no write tool at all.
+ * Served to claude.ai connectors only, so it is not in DOMAIN_PROFILES (Copilot-bound).
+ */
+const PRICING_TOOLS = new Set([
+  // ── Catalogue ─────────────────────────────────────────────────────────────
+  "cw_search_catalog_items", "cw_get_catalog_item", "cw_count_catalog_items",
+  "cw_list_catalog_pricing", "cw_get_catalog_pricing",
+  "cw_list_catalog_categories", "cw_list_catalog_sub_categories",
+  // ── Products ──────────────────────────────────────────────────────────────
+  "cw_search_products", "cw_get_product",
+  // ── Agreements ────────────────────────────────────────────────────────────
+  "cw_search_agreements", "cw_get_agreement",
+  "cw_get_agreement_additions", "cw_get_agreement_addition",
+  "cw_list_agreement_configurations",
+  // ── Companies ─────────────────────────────────────────────────────────────
+  "cw_search_companies", "cw_get_company",
+  // ── Configurations ────────────────────────────────────────────────────────
+  "cw_search_configurations",
+  // ── Opportunities ─────────────────────────────────────────────────────────
+  "cw_search_opportunities", "cw_get_opportunity", "cw_list_opportunity_products",
+]);
+
 const DOMAIN_PROFILES: Record<string, Set<string>> = {
   "tickets":                TICKETS_TOOLS,
   "service-boards":         SERVICE_BOARDS_TOOLS,
@@ -675,7 +710,7 @@ const DOMAIN_PROFILES: Record<string, Set<string>> = {
  * the work role rate card is readable from every profile and writable from none.
  */
 export const PROFILE_NAMES: readonly string[] = [
-  "l1", "l2", "l3", ...Object.keys(DOMAIN_PROFILES),
+  "l1", "l2", "l3", "pricing", ...Object.keys(DOMAIN_PROFILES),
 ];
 
 /**
@@ -689,8 +724,8 @@ export const PROFILE_NAMES: readonly string[] = [
  * no corresponding write: no tier has a business need to mutate the rate card,
  * and the create/update/delete tools are not registered at all.
  *
- * Kept to one tool: L2 sits exactly on the 70-tool Copilot Studio cap, so each
- * addition here costs a slot in every capped profile. cw_list_work_roles accepts
+ * Kept to one tool: each addition here costs a slot in every capped profile,
+ * and the domain profiles are held to 40 tools, universal tools included. cw_list_work_roles accepts
  * conditions (e.g. "id = 5"), which covers by-ID lookup; profiles with room list
  * cw_get_work_role explicitly.
  */
@@ -699,8 +734,8 @@ const UNIVERSAL_READ_TOOLS: readonly string[] = ["cw_list_work_roles"];
 /**
  * Maps an Azure AD app role to a tool profile name.
  * CWM.L1  → "l1"  (helpdesk engineer, 73 ticket- and time-focused tools)
- * CWM.L2  → "l2"  (management, 71 operational-oversight tools)
- * CWM.L3  → "l3"  (finance/accounting, 72 billing-focused tools)
+ * CWM.L2  → "l2"  (management, 73 operational-oversight tools)
+ * CWM.L3  → "l3"  (finance/accounting, 75 billing-focused tools)
  * Unrecognised roles fall through to the MCP_TOOL_PROFILE env var.
  */
 const ROLE_PROFILE_MAP: Record<string, string> = {
@@ -955,6 +990,7 @@ export function applyToolProfile(
     profile === "l1" ? L1_TOOLS :
     profile === "l2" ? L2_TOOLS :
     profile === "l3" ? L3_TOOLS :
+    profile === "pricing" ? PRICING_TOOLS :
     profile && DOMAIN_PROFILES[profile] !== undefined ? DOMAIN_PROFILES[profile] :
     profile && profile !== "full" ? null :  // unknown profile → warn, allow all
     undefined;                              // full or unset → no filtering

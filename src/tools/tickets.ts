@@ -2,6 +2,8 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
 import { auditLog } from "../audit/log.js";
+import { resolveCallerMemberId } from "../attribution.js";
+import { getCallerIdentity } from "../context.js";
 import { patchOp, normaliseIdArgs } from "./shared.js";
 
 export function registerTicketTools(server: McpServer, client: CwManageClient) {
@@ -329,11 +331,20 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_merge_tickets",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Merge one or more source tickets into a target ticket. Source tickets are closed and their notes/time/products move to the target.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Merge one or more source tickets into a target ticket. Source tickets are closed and their notes/time/products move to the target. Refuses when a source ticket has time entries (they must be moved to the target first, per Michael Morrison, 2 Sep 2026), when the target is closed, or when agreements differ. An allow flag is only for use after the user has seen the refusal and explicitly confirmed the merge.",
     {
       targetTicketId: z.number().describe("Surviving ticket ID"),
       mergeTicketIds: z.array(z.number()).describe("IDs of tickets to merge into the target"),
       statusId: z.number().optional().describe("Status to apply to closed source tickets"),
+      allowTimeEntries: z.boolean().optional().default(false).describe(
+        "Override: merge even though a source ticket has time entries. Only set this after the user has seen the refusal and explicitly confirmed the merge. Default false.",
+      ),
+      allowClosedTarget: z.boolean().optional().default(false).describe(
+        "Override: merge into a target ticket that is closed. Only set this after the user has seen the refusal and explicitly confirmed the merge. Default false.",
+      ),
+      allowAgreementMismatch: z.boolean().optional().default(false).describe(
+        "Override: merge tickets that sit on different agreements. Only set this after the user has seen the refusal and explicitly confirmed the merge. Default false.",
+      ),
       user_intent: z.string().min(20).describe(
         "Plain-English description of what the user asked for. " +
           "Must be at least 20 characters. Example: " +
@@ -344,8 +355,77 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
     },
-    async ({ targetTicketId, mergeTicketIds, statusId, user_intent, user_quote }) => {
-      await auditLog({ tool: "cw_merge_tickets", entityType: "ticket", entityId: targetTicketId, userIntent: user_intent, userQuote: user_quote });
+    async ({ targetTicketId, mergeTicketIds, statusId, allowTimeEntries, allowClosedTarget, allowAgreementMismatch, user_intent, user_quote }) => {
+      // Pre-flight reads run before auditLog so a refused merge is not audited
+      // as an intended one. Any unreadable ticket refuses the merge: a guard
+      // that fails open on a 403 is no guard.
+      type MergeTicket = { closedFlag?: boolean; agreement?: { id: number } | null };
+      const ticketFields = "id,closedFlag,company/id,agreement/id";
+      const readOrRefuse = async <T>(label: string, read: () => Promise<T>): Promise<T> => {
+        try {
+          return await read();
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          throw new Error(`Merge refused: could not read ${label}. ${msg}`);
+        }
+      };
+      const target = await readOrRefuse(`target ticket ${targetTicketId}`, () =>
+        client.get<MergeTicket>(`/service/tickets/${targetTicketId}`, { fields: ticketFields }));
+      const sources = new Map<number, MergeTicket>();
+      for (const id of mergeTicketIds) {
+        sources.set(id, await readOrRefuse(`source ticket ${id}`, () =>
+          client.get<MergeTicket>(`/service/tickets/${id}`, { fields: ticketFields })));
+      }
+      const timeEntries: Record<number, number> = {};
+      for (const id of mergeTicketIds) {
+        const res = await readOrRefuse(`time entry count for source ticket ${id}`, () =>
+          client.get<{ count?: number }>("/time/entries/count", {
+            conditions: `chargeToType = "ServiceTicket" and chargeToId = ${id}`,
+          }));
+        if (typeof res?.count !== "number") {
+          throw new Error(`Merge refused: time entry count for source ticket ${id} was unreadable`);
+        }
+        timeEntries[id] = res.count;
+      }
+
+      const refusals: string[] = [];
+      if (!allowTimeEntries) {
+        for (const id of mergeTicketIds) {
+          if (timeEntries[id] > 0) {
+            refusals.push(
+              `Source ticket ${id} has ${timeEntries[id]} time entries. Merging it leaves broken records that cannot be modified afterwards; shift them to the target ticket first. Only set allowTimeEntries after the user has seen this refusal and explicitly confirmed the merge.`,
+            );
+          }
+        }
+      }
+      if (!allowClosedTarget && target.closedFlag) {
+        refusals.push(
+          `Target ticket ${targetTicketId} is closed. Reopen it or choose an open target. Only set allowClosedTarget after the user has seen this refusal and explicitly confirmed the merge.`,
+        );
+      }
+      if (!allowAgreementMismatch) {
+        const targetAgreement = target.agreement?.id ?? null;
+        for (const id of mergeTicketIds) {
+          const sourceAgreement = sources.get(id)?.agreement?.id ?? null;
+          if (sourceAgreement !== targetAgreement) {
+            refusals.push(
+              `Source ticket ${id} is on agreement ${sourceAgreement ?? "none"} but target ticket ${targetTicketId} is on agreement ${targetAgreement ?? "none"}. Merging leaves orphaned links to the old agreement. Only set allowAgreementMismatch after the user has seen this refusal and explicitly confirmed the merge.`,
+            );
+          }
+        }
+      }
+      if (refusals.length > 0) {
+        throw new Error(`Merge refused. ${refusals.join(" ")}`);
+      }
+
+      await auditLog({
+        tool: "cw_merge_tickets",
+        entityType: "ticket",
+        entityId: targetTicketId,
+        userIntent: user_intent,
+        userQuote: user_quote,
+        operations: { allowTimeEntries, allowClosedTarget, allowAgreementMismatch, timeEntries },
+      });
       // mergeTicketIds is a list of bare integers, not id-references. Sending
       // [{ id: 123 }] makes CW's deserialiser hit '{' where it wants a number
       // and 500 with "Unexpected character encountered while parsing value: {".
@@ -440,7 +520,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_add_ticket_note",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Add a note to a service ticket. Use detailDescriptionFlag for a description note, internalAnalysisFlag for an internal-only note, or resolutionFlag for a resolution note. Defaults to a plain discussion note visible to the customer.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Add a note to a service ticket. Use detailDescriptionFlag for a description note, internalAnalysisFlag for an internal-only note, or resolutionFlag for a resolution note. Defaults to a plain discussion note visible to the customer. When neither memberId nor contactId is given, the author defaults to the signed-in person's own ConnectWise member when that can be resolved uniquely.",
     {
       ticketId: z.number().describe("Ticket ID"),
       text: z.string().describe("Note text content"),
@@ -449,7 +529,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       resolutionFlag: z.boolean().optional().describe("Mark as resolution note (default: false)"),
       customerUpdatedFlag: z.boolean().optional().describe("Flag that the customer was updated (default: false)"),
       processNotifications: z.boolean().optional().describe("Trigger workflow / email notifications"),
-      memberId: z.number().optional().describe("Member who authored the note"),
+      memberId: z.number().optional().describe("Member who authored the note. Defaults to the signed-in person's member when it resolves uniquely and no contactId is given"),
       contactId: z.number().optional().describe("Contact who authored the note (if not a member)"),
       user_intent: z.string().min(20).describe(
         "Plain-English description of what the user asked for. " +
@@ -462,7 +542,36 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       ),
     },
     async ({ ticketId, text, detailDescriptionFlag, internalAnalysisFlag, resolutionFlag, customerUpdatedFlag, processNotifications, memberId, contactId, user_intent, user_quote }) => {
-      await auditLog({ tool: "cw_add_ticket_note", entityType: "ticket_note", entityId: ticketId, userIntent: user_intent, userQuote: user_quote });
+      // Resolve before the audit entry and before any write. A signed-in caller who
+      // cannot be resolved is refused; the static bearer keeps sending no member.
+      const resolvedMemberId = memberId === undefined && contactId === undefined
+        ? await resolveCallerMemberId(client)
+        : undefined;
+      const caller = getCallerIdentity();
+      if (
+        memberId === undefined && contactId === undefined && resolvedMemberId === undefined &&
+        caller !== undefined && caller.oid !== "static"
+      ) {
+        throw new Error(
+          "memberId or contactId is required: your sign-in did not resolve to exactly one active ConnectWise member",
+        );
+      }
+      const sentMemberId = memberId ?? resolvedMemberId ?? null;
+      const memberSource = memberId !== undefined
+        ? "explicit"
+        : resolvedMemberId !== undefined
+          ? "resolved"
+          : contactId !== undefined
+            ? "contact"
+            : "none";
+      await auditLog({
+        tool: "cw_add_ticket_note",
+        entityType: "ticket_note",
+        entityId: ticketId,
+        userIntent: user_intent,
+        userQuote: user_quote,
+        operations: { memberId: sentMemberId, memberSource, resolvedMemberId: resolvedMemberId ?? null },
+      });
       const body: Record<string, unknown> = { text };
       if (detailDescriptionFlag !== undefined) body.detailDescriptionFlag = detailDescriptionFlag;
       if (internalAnalysisFlag !== undefined) body.internalAnalysisFlag = internalAnalysisFlag;
@@ -471,6 +580,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       if (processNotifications !== undefined) body.processNotifications = processNotifications;
       if (memberId !== undefined) body.member = { id: memberId };
       if (contactId !== undefined) body.contact = { id: contactId };
+      if (resolvedMemberId !== undefined) body.member = { id: resolvedMemberId };
       const result = await client.post(`/service/tickets/${ticketId}/notes`, body);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
