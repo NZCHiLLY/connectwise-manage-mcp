@@ -174,6 +174,18 @@ describe("normaliseQueryArgs", () => {
     ).toEqual({ conditions: "closedDate != null" });
   });
 
+  it("aliases closedFlag on cw_count_opportunities", () => {
+    expect(
+      normaliseQueryArgs("cw_count_opportunities", { conditions: "closedFlag = false" }),
+    ).toEqual({ conditions: "closedDate = null" });
+  });
+
+  it("leaves closedFlag alone on opportunity statuses, where it is a real field", () => {
+    expect(
+      normaliseQueryArgs("cw_list_opportunity_statuses", { conditions: "closedFlag = true" }),
+    ).toEqual({ conditions: "closedFlag = true" });
+  });
+
   it("does not rewrite already-qualified paths", () => {
     expect(
       normaliseQueryArgs("cw_search_opportunities", { conditions: "status/closedFlag = false" }),
