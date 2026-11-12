@@ -124,6 +124,9 @@ jobs:
           tags: |
             acrcwmmcp.azurecr.io/connectwise-manage-mcp:latest
             acrcwmmcp.azurecr.io/connectwise-manage-mcp:${{ steps.tag.outputs.image-tag }}
+          build-args: |
+            COMMIT_SHA=${{ github.sha }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -153,3 +156,27 @@ jobs:
             --resource-group "${{ secrets.ACA_RESOURCE_GROUP }}" \
             --image "$IMAGE" \
             --set-env-vars "IMAGE_VERSION=${{ needs.docker.outputs.image-tag }}"
+
+      - name: Verify the running image
+        run: |
+          IMAGE="acrcwmmcp.azurecr.io/connectwise-manage-mcp:${{ needs.docker.outputs.image-tag }}"
+          RUNNING=$(az containerapp show             --name "${{ secrets.ACA_APP_NAME }}"             --resource-group "${{ secrets.ACA_RESOURCE_GROUP }}"             --query "properties.template.containers[0].image" -o tsv)
+          if [ "$RUNNING" != "$IMAGE" ]; then
+            echo "::error::Running image is '$RUNNING', expected '$IMAGE'"
+            exit 1
+          fi
+          echo "Running image matches: $RUNNING"
+
+          FQDN=$(az containerapp show             --name "${{ secrets.ACA_APP_NAME }}"             --resource-group "${{ secrets.ACA_RESOURCE_GROUP }}"             --query properties.configuration.ingress.fqdn -o tsv)
+          EXPECTED="${GITHUB_SHA::7}"
+          for i in $(seq 1 20); do
+            SHA=$(curl -fsS "https://$FQDN/health" | jq -r '.build.sha // empty' || true)
+            if [ -n "$SHA" ] && [[ "$SHA" == "$EXPECTED"* ]]; then
+              echo "/health reports build.sha $SHA"
+              exit 0
+            fi
+            echo "Attempt $i/20: /health build.sha is '${SHA:-none}', waiting for '$EXPECTED'"
+            sleep 15
+          done
+          echo "::error::/health never reported build.sha starting with $EXPECTED"
+          exit 1
