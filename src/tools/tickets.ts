@@ -329,11 +329,20 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_merge_tickets",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Merge one or more source tickets into a target ticket. Source tickets are closed and their notes/time/products move to the target.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Merge one or more source tickets into a target ticket. Source tickets are closed and their notes/time/products move to the target. Refuses when a source ticket has time entries (they must be moved to the target first, per Michael Morrison, 2 Sep 2026), when the target is closed, or when agreements differ, unless the matching allow flag is set.",
     {
       targetTicketId: z.number().describe("Surviving ticket ID"),
       mergeTicketIds: z.array(z.number()).describe("IDs of tickets to merge into the target"),
       statusId: z.number().optional().describe("Status to apply to closed source tickets"),
+      allowTimeEntries: z.boolean().optional().default(false).describe(
+        "Override: merge even though a source ticket has time entries. Default false.",
+      ),
+      allowClosedTarget: z.boolean().optional().default(false).describe(
+        "Override: merge into a target ticket that is closed. Default false.",
+      ),
+      allowAgreementMismatch: z.boolean().optional().default(false).describe(
+        "Override: merge tickets that sit on different agreements. Default false.",
+      ),
       user_intent: z.string().min(20).describe(
         "Plain-English description of what the user asked for. " +
           "Must be at least 20 characters. Example: " +
@@ -344,8 +353,74 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
     },
-    async ({ targetTicketId, mergeTicketIds, statusId, user_intent, user_quote }) => {
-      await auditLog({ tool: "cw_merge_tickets", entityType: "ticket", entityId: targetTicketId, userIntent: user_intent, userQuote: user_quote });
+    async ({ targetTicketId, mergeTicketIds, statusId, allowTimeEntries, allowClosedTarget, allowAgreementMismatch, user_intent, user_quote }) => {
+      // Pre-flight reads run before auditLog so a refused merge is not audited
+      // as an intended one. Any unreadable ticket refuses the merge: a guard
+      // that fails open on a 403 is no guard.
+      type MergeTicket = { closedFlag?: boolean; agreement?: { id: number } | null };
+      const ticketFields = "id,closedFlag,company/id,agreement/id";
+      const readOrRefuse = async <T>(label: string, read: () => Promise<T>): Promise<T> => {
+        try {
+          return await read();
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          throw new Error(`Merge refused: could not read ${label}. ${msg}`);
+        }
+      };
+      const target = await readOrRefuse(`target ticket ${targetTicketId}`, () =>
+        client.get<MergeTicket>(`/service/tickets/${targetTicketId}`, { fields: ticketFields }));
+      const sources = new Map<number, MergeTicket>();
+      for (const id of mergeTicketIds) {
+        sources.set(id, await readOrRefuse(`source ticket ${id}`, () =>
+          client.get<MergeTicket>(`/service/tickets/${id}`, { fields: ticketFields })));
+      }
+      const timeEntries: Record<number, number> = {};
+      for (const id of mergeTicketIds) {
+        const res = await readOrRefuse(`time entry count for source ticket ${id}`, () =>
+          client.get<{ count?: number }>("/time/entries/count", {
+            conditions: `chargeToType = "ServiceTicket" and chargeToId = ${id}`,
+          }));
+        timeEntries[id] = res?.count ?? 0;
+      }
+
+      const refusals: string[] = [];
+      if (!allowTimeEntries) {
+        for (const id of mergeTicketIds) {
+          if (timeEntries[id] > 0) {
+            refusals.push(
+              `Source ticket ${id} has ${timeEntries[id]} time entries. Merging it leaves broken records that cannot be modified afterwards; shift them to the target ticket first, or set allowTimeEntries to override.`,
+            );
+          }
+        }
+      }
+      if (!allowClosedTarget && target.closedFlag) {
+        refusals.push(
+          `Target ticket ${targetTicketId} is closed. Reopen it or choose an open target, or set allowClosedTarget to override.`,
+        );
+      }
+      if (!allowAgreementMismatch) {
+        const targetAgreement = target.agreement?.id ?? null;
+        for (const id of mergeTicketIds) {
+          const sourceAgreement = sources.get(id)?.agreement?.id ?? null;
+          if (sourceAgreement !== targetAgreement) {
+            refusals.push(
+              `Source ticket ${id} is on agreement ${sourceAgreement ?? "none"} but target ticket ${targetTicketId} is on agreement ${targetAgreement ?? "none"}. Merging leaves orphaned links to the old agreement; set allowAgreementMismatch to override.`,
+            );
+          }
+        }
+      }
+      if (refusals.length > 0) {
+        throw new Error(`Merge refused. ${refusals.join(" ")}`);
+      }
+
+      await auditLog({
+        tool: "cw_merge_tickets",
+        entityType: "ticket",
+        entityId: targetTicketId,
+        userIntent: user_intent,
+        userQuote: user_quote,
+        operations: { allowTimeEntries, allowClosedTarget, allowAgreementMismatch, timeEntries },
+      });
       // mergeTicketIds is a list of bare integers, not id-references. Sending
       // [{ id: 123 }] makes CW's deserialiser hit '{' where it wants a number
       // and 500 with "Unexpected character encountered while parsing value: {".
