@@ -10,6 +10,10 @@ import {
 const DISCLAIMER =
   "This message and its attachments contain confidential information. If you are not the intended recipient, you are strictly prohibited to disclose, copy, distribute or take any action in reliance on the contents of this information. Any views expressed are those of the sender. No liability is accepted for any viruses transmitted by this email.";
 
+// The full Tomizone disclaimer, copied from scripts/make-oversize-notes-fixture.mjs.
+const FULL_DISCLAIMER =
+  "This message and its attachments contain confidential information. If you are not the intended recipient, you are strictly prohibited to disclose, copy, distribute or take any action in reliance on the contents of this information. E-mail transmission cannot be guaranteed to be secure or error-free, as information could be intercepted, corrupted, lost, destroyed, arrive late or incomplete, or contain viruses. The sender therefore does not accept liability for any errors or omissions in the contents of this message, which arise as a result of e-mail transmission. If verification is required please request a hard-copy version. Tomizone accepts no liability for the content of this email, or for the consequences of any actions taken on the basis of the information provided, unless that information is subsequently confirmed in writing. Any views or opinions presented in this email are solely those of the author and do not necessarily represent those of Tomizone. WARNING: Computer viruses can be transmitted via email. The recipient should check this email and any attachments for the presence of viruses. Tomizone accepts no liability for any damage caused by any virus transmitted by this email.";
+
 describe("compactValue", () => {
   it("drops _info and empty values", () => {
     const input = {
@@ -40,6 +44,14 @@ describe("stripBoilerplate", () => {
   it("strips the disclaimer and keeps the message", () => {
     const input = `Ran some fixes and asked how it's going\n\n${DISCLAIMER}`;
     expect(stripBoilerplate(input)).toBe("Ran some fixes and asked how it's going");
+  });
+
+  it("strips the real full disclaimer and keeps the text before it", () => {
+    const before = "Restarted the print spooler and the queue is clear.\n\nRegards,\nSupport Analyst";
+    const out = stripBoilerplate(`${before}\n\n${FULL_DISCLAIMER}`);
+    expect(out).toBe(before);
+    expect(out).not.toContain("confidential information");
+    expect(out).not.toContain("transmitted by this email");
   });
 
   it("strips the external sender banner and inline signature images", () => {
@@ -115,9 +127,7 @@ describe("shapeToolText", () => {
   });
 
   it("leaves text untouched when maxTextChars is undefined", () => {
-    const note = { id: 9, text: `${"y".repeat(5000)}
-
-${DISCLAIMER}` };
+    const note = { id: 9, text: `${"y".repeat(5000)}\n\n${DISCLAIMER}` };
     const out = shapeToolText(JSON.stringify(note), { budget: 40000 });
     expect(JSON.parse(out)).toStrictEqual(note);
   });

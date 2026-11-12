@@ -209,9 +209,7 @@ describe("shaping wired into applyToolProfile", () => {
   });
 
   it("leaves a write tool's text untouched on shaped profiles", async () => {
-    const posted = { id: 77, ticketId: 9, text: `${"b".repeat(5000)}
-
-${DISCLAIMER}` };
+    const posted = { id: 77, ticketId: 9, text: `${"b".repeat(5000)}\n\n${DISCLAIMER}` };
     mockClient.post.mockResolvedValue(posted);
     const res = await call(build("l1"), "cw_add_ticket_note", {
       ticketId: 9,
@@ -352,13 +350,23 @@ describe("recorded worst case", () => {
       omitted?: number;
       pageTotal?: number;
     };
-    expect(out.returned).toBe(out.items.length);
-    if (out.truncated) {
-      expect(out.pageTotal).toBe(50);
-      expect(out.omitted).toBe(50 - out.returned);
-    } else {
-      expect(out.returned).toBe(50);
-      expect(out.omitted).toBeUndefined();
+    // Pinned at the 40,000 budget with the current marker and hint. A change here means
+    // the shaping or the envelope grew or shrank, so re-measure rather than loosen.
+    expect(out.truncated).toBe(true);
+    expect(out.returned).toBe(42);
+    expect(out.items).toHaveLength(42);
+    expect(out.omitted).toBe(8);
+    expect(out.pageTotal).toBe(50);
+
+    // 900001 and 900004 are short notes, so only the strip, not the 2,000 cap, removes
+    // their disclaimer.
+    for (const id of [900001, 900004]) {
+      const source = FIXTURE.find((n) => n.id === id);
+      const shaped = out.items.find((n) => n.id === id);
+      expect(source?.text).toContain("This message and its attachments contain confidential information");
+      expect(source?.text.length).toBeLessThan(2000);
+      expect(shaped?.text).not.toContain("This message and its attachments");
+      expect(shaped?.text.endsWith("Example Services Ltd")).toBe(true);
     }
 
     const marker = /\[display cut: \d+ more characters stored\]$/;
