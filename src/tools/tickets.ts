@@ -187,6 +187,15 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
           "Use cw_list_service_locations to resolve the name to an ID.",
       ),
       requiredDate: z.string().optional().describe("Due date in ISO 8601 format, e.g. '2025-06-30T00:00:00Z'"),
+      agreementId: z.number().optional().describe(
+        "Agreement ID to bill the ticket against. Changing company does not move the agreement, so set it explicitly.",
+      ),
+      automaticEmailCcFlag: z.boolean().optional().describe(
+        "Whether the ticket auto-CCs the addresses in automaticEmailCc. Changing company can pull in the new client's auto-CC, so check this afterwards.",
+      ),
+      automaticEmailCc: z.string().optional().describe("Auto-CC email addresses (semicolon separated)"),
+      automaticEmailContactFlag: z.boolean().optional().describe("Whether the ticket notifies the contact automatically"),
+      automaticEmailResourceFlag: z.boolean().optional().describe("Whether the ticket notifies the resources automatically"),
     },
     async ({ id, user_intent, user_quote, ...fields }) => {
       const ops: { op: string; path: string; value: unknown }[] = [];
@@ -204,8 +213,13 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       if (fields.siteId !== undefined)      ops.push({ op: "replace", path: "/site/id",      value: fields.siteId });
       if (fields.serviceLocationId !== undefined) ops.push({ op: "replace", path: "/serviceLocation/id", value: fields.serviceLocationId });
       if (fields.requiredDate !== undefined) ops.push({ op: "replace", path: "/requiredDate", value: fields.requiredDate });
+      if (fields.agreementId !== undefined) ops.push({ op: "replace", path: "/agreement/id", value: fields.agreementId });
+      if (fields.automaticEmailCcFlag !== undefined) ops.push({ op: "replace", path: "/automaticEmailCcFlag", value: fields.automaticEmailCcFlag });
+      if (fields.automaticEmailCc !== undefined) ops.push({ op: "replace", path: "/automaticEmailCc", value: fields.automaticEmailCc });
+      if (fields.automaticEmailContactFlag !== undefined) ops.push({ op: "replace", path: "/automaticEmailContactFlag", value: fields.automaticEmailContactFlag });
+      if (fields.automaticEmailResourceFlag !== undefined) ops.push({ op: "replace", path: "/automaticEmailResourceFlag", value: fields.automaticEmailResourceFlag });
       if (ops.length === 0) {
-        return { content: [{ type: "text", text: "cw_update_ticket: no fields to update were provided. Specify at least one of: summary, statusId, priorityId, boardId, typeId, subTypeId, itemId, ownerId, teamId, contactId, companyId, siteId, requiredDate." }], isError: true };
+        return { content: [{ type: "text", text: "cw_update_ticket: no fields to update were provided. Specify at least one of: summary, statusId, priorityId, boardId, typeId, subTypeId, itemId, ownerId, teamId, contactId, companyId, siteId, serviceLocationId, requiredDate, agreementId, automaticEmailCcFlag, automaticEmailCc, automaticEmailContactFlag, automaticEmailResourceFlag." }], isError: true };
       }
       await auditLog({ tool: "cw_update_ticket", entityType: "ticket", entityId: id, userIntent: user_intent, userQuote: user_quote, operations: ops });
       const result = await client.patch(`/service/tickets/${id}`, ops);

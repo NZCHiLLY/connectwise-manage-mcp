@@ -81,7 +81,7 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
 
   server.tool(
     "cw_create_opportunity",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a new sales opportunity. name, companyId, typeId, primarySalesRepId, stageId are required.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a new sales opportunity. name, companyId, typeId, primarySalesRepId, stageId, contactId are required.",
     {
       name: z.string().describe("Opportunity name (required)"),
       companyId: z.number().describe("Customer company ID (required)"),
@@ -91,9 +91,9 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
       statusId: z.number().optional().describe("Opportunity status ID"),
       ratingId: z.number().optional().describe("Rating ID"),
       priorityId: z.number().optional().describe("Priority ID"),
-      probability: z.number().optional().describe("Win probability (0–100)"),
+      probabilityId: z.number().optional().describe("Sales probability ID (use cw_list_sales_probabilities)"),
       source: z.string().optional().describe("Lead source"),
-      contactId: z.number().optional().describe("Contact ID"),
+      contactId: z.number().describe("Contact ID (required)"),
       siteId: z.number().optional().describe("Site ID"),
       campaignId: z.number().optional().describe("Campaign ID"),
       expectedCloseDate: z.string().optional().describe("YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
@@ -102,7 +102,6 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
       lastStageChangeDate: z.string().optional().describe("YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
       closedDate: z.string().optional().describe("YYYY-MM-DDTHH:MM:SSZ (UTC, no enclosing brackets)"),
       notes: z.string().optional().describe("Opportunity notes"),
-      businessUnitId: z.number().optional().describe("Business unit ID"),
       locationId: z.number().optional().describe("Location ID"),
       departmentId: z.number().optional().describe("Department ID"),
       territoryId: z.number().optional().describe("Territory ID"),
@@ -119,13 +118,13 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
         type: { id: args.typeId },
         primarySalesRep: { id: args.primarySalesRepId },
         stage: { id: args.stageId },
+        contact: { id: args.contactId },
       };
       if (args.statusId !== undefined) body.status = { id: args.statusId };
       if (args.ratingId !== undefined) body.rating = { id: args.ratingId };
       if (args.priorityId !== undefined) body.priority = { id: args.priorityId };
-      if (args.probability !== undefined) body.probability = { id: args.probability };
+      if (args.probabilityId !== undefined) body.probability = { id: args.probabilityId };
       if (args.source) body.source = args.source;
-      if (args.contactId !== undefined) body.contact = { id: args.contactId };
       if (args.siteId !== undefined) body.site = { id: args.siteId };
       if (args.campaignId !== undefined) body.campaign = { id: args.campaignId };
       if (args.expectedCloseDate) body.expectedCloseDate = args.expectedCloseDate;
@@ -134,7 +133,6 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
       if (args.lastStageChangeDate) body.lastStageChangeDate = args.lastStageChangeDate;
       if (args.closedDate) body.closedDate = args.closedDate;
       if (args.notes) body.notes = args.notes;
-      if (args.businessUnitId !== undefined) body.businessUnit = { id: args.businessUnitId };
       if (args.locationId !== undefined) body.location = { id: args.locationId };
       if (args.departmentId !== undefined) body.department = { id: args.departmentId };
       if (args.territoryId !== undefined) body.territory = { id: args.territoryId };
