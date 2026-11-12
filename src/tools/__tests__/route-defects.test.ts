@@ -616,6 +616,12 @@ describe("applyPatch safety", () => {
     expect(({} as Record<string, unknown>).x).toBeUndefined();
   });
 
+  it("applyPatch walks into arrays by index", () => {
+    const doc = { c: [{ v: 1 }] };
+    expect(applyPatch(doc, [{ op: "replace", path: "/c/0/v", value: 2 }])).toEqual({ c: [{ v: 2 }] });
+    expect(doc).toEqual({ c: [{ v: 1 }] });
+  });
+
   it("applyPatch rejects a primitive intermediate", () => {
     expect(() =>
       applyPatch({ timeStart: "2026-11-12T00:00:00Z" }, [{ op: "replace", path: "/timeStart/x", value: 1 }]),

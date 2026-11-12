@@ -38,7 +38,7 @@ export function applyPatch(doc: Record<string, unknown>, ops: PatchOp[]): Record
           break;
         }
         node[key] = {};
-      } else if (typeof next !== "object" || Array.isArray(next)) {
+      } else if (typeof next !== "object") {
         throw new Error(`Patch path ${path} walks into a non-object`);
       }
       node = node[key] as Record<string, unknown>;
