@@ -1,5 +1,14 @@
+import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { auditOutcome } from "../audit/log.js";
+import { requestContext } from "../context.js";
+import {
+  CONDITIONS_HELP,
+  ORDERBY_HELP,
+  normaliseQueryArgs,
+  projectFields,
+  shapeToolText,
+} from "./shaping.js";
 
 /**
  * L1 helpdesk engineer profile — deep ticket management, own-time editing, plus
@@ -712,18 +721,160 @@ export function profileFromRoles(roles: string[]): string | undefined {
 }
 
 /**
+ * Profiles whose output is shaped: compacted, text-capped, budgeted and wrapped in a
+ * paging envelope. These are the endpoints the claude.ai connectors bind to.
+ */
+export const SHAPED_PROFILES_DEFAULT: readonly string[] = [
+  "l1", "l2", "l3", "opportunities", "sales", "pricing",
+];
+
+/**
+ * True when the profile's output is shaped. MCP_SHAPED_PROFILES (a comma list) replaces
+ * the default set when it is set, even to an empty string. Full and unset are always raw:
+ * the cockpit reads the untiered endpoint and depends on its exact output.
+ */
+export function isShapedProfile(profile: string | undefined): boolean {
+  if (profile === undefined || profile === "full") return false;
+  const env = process.env.MCP_SHAPED_PROFILES;
+  const list = env === undefined
+    ? SHAPED_PROFILES_DEFAULT
+    : env.split(",").map((p) => p.trim()).filter((p) => p !== "");
+  return list.includes(profile);
+}
+
+const READ_TOOL_RE = /^cw_(search|list|get|count)_/;
+const NOTE_TOOL_RE = /note/;
+const SHAPED_MAX_PAGE_SIZE = 100;
+const DEFAULT_MAX_TEXT_CHARS = 2000;
+const SHAPED_BUDGET = 40_000;
+
+function isPlainRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+/** A raw shape is a plain object of zod types, as opposed to a built zod schema. */
+function isRawShape(v: unknown): v is Record<string, unknown> {
+  return isPlainRecord(v) && !("_zod" in v) && !("parseAsync" in v);
+}
+
+function describeAs(schema: unknown, description: string): unknown {
+  const s = schema as { describe?: (d: string) => unknown } | undefined;
+  return typeof s?.describe === "function" ? s.describe(description) : schema;
+}
+
+/**
+ * Returns a copy of a tool's raw shape with the shaping arguments added, and the names of
+ * the keys that were added. The original is never mutated: tool modules spread shared
+ * pieces such as sentinelParams into their shapes. Without the injection the SDK strips
+ * an undeclared `fields` before the handler sees it.
+ */
+function injectShape(
+  toolName: string,
+  raw: Record<string, unknown>,
+): { shape: Record<string, unknown>; injected: Set<string> } {
+  const shape = { ...raw };
+  const injected = new Set<string>();
+  if (READ_TOOL_RE.test(toolName) && !("fields" in shape)) {
+    shape.fields = z.string().optional()
+      .describe("Comma-separated fields to keep, for example id,name,company/name.");
+    injected.add("fields");
+  }
+  if (NOTE_TOOL_RE.test(toolName) && !("maxTextChars" in shape)) {
+    shape.maxTextChars = z.number().int().positive().optional().describe(
+      `Maximum characters kept from each note's text (default ${DEFAULT_MAX_TEXT_CHARS}). Applies where output is shaped.`,
+    );
+    injected.add("maxTextChars");
+  }
+  if ("conditions" in shape) shape.conditions = describeAs(shape.conditions, CONDITIONS_HELP);
+  if ("orderBy" in shape) shape.orderBy = describeAs(shape.orderBy, ORDERBY_HELP);
+  return { shape, injected };
+}
+
+function parseFields(v: unknown): string[] | undefined {
+  if (typeof v !== "string") return undefined;
+  const list = v.split(",").map((f) => f.trim()).filter((f) => f !== "");
+  return list.length > 0 ? list : undefined;
+}
+
+/** Projection alone, for raw profiles: no compaction, no envelope, the handler's indentation. */
+function projectText(text: string, fields: string[]): string {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return text;
+  }
+  if (!Array.isArray(parsed) && !isPlainRecord(parsed)) return text;
+  const indent = /^[[{]\r?\n( +)/.exec(text)?.[1].length ?? 0;
+  return JSON.stringify(projectFields(parsed, fields), null, indent);
+}
+
+function shapeResult(
+  result: unknown,
+  shaped: boolean,
+  fields: string[] | undefined,
+  maxTextChars: number,
+): unknown {
+  if (!shaped && fields === undefined) return result;
+  if (!isPlainRecord(result) || result.isError === true || !Array.isArray(result.content)) {
+    return result;
+  }
+  const paging = requestContext.getStore()?.paging;
+  const content = result.content.map((item: unknown) => {
+    if (!isPlainRecord(item) || item.type !== "text" || typeof item.text !== "string") return item;
+    const text = shaped
+      ? shapeToolText(item.text, { fields, maxTextChars, budget: SHAPED_BUDGET, paging })
+      : projectText(item.text, fields ?? []);
+    return { ...item, text };
+  });
+  return { ...result, content };
+}
+
+interface WrapOptions {
+  profile: string | undefined;
+  /** True when the tool was registered with a raw shape, so its first argument is the args. */
+  hasArgs: boolean;
+  /** Keys applyToolProfile added to the shape; removed before the original handler runs. */
+  injected: ReadonlySet<string>;
+}
+
+/**
  * Wraps the tool handler to catch errors and return structured MCP error
  * responses (isError: true) instead of throwing. Also records failure
  * outcomes in the audit log.
+ *
+ * Around the call it repairs query arguments on every profile and clamps pageSize on
+ * shaped profiles. Afterwards it shapes text output: fully on shaped profiles, and by
+ * projection alone on raw profiles when the caller passed `fields`. Error results are
+ * never shaped.
  */
 function wrapHandler(
   toolName: string,
   handler: (...args: unknown[]) => Promise<unknown>,
+  opts: WrapOptions,
 ): (...args: unknown[]) => Promise<unknown> {
   return async (...args: unknown[]) => {
     try {
-      const result = await handler(...args);
-      return result;
+      const shaped = isShapedProfile(opts.profile);
+      let fields: string[] | undefined;
+      let maxTextChars = DEFAULT_MAX_TEXT_CHARS;
+      let callArgs = args;
+      if (opts.hasArgs && isPlainRecord(args[0])) {
+        const toolArgs = normaliseQueryArgs(toolName, args[0]);
+        fields = parseFields(toolArgs.fields);
+        if (typeof toolArgs.maxTextChars === "number") maxTextChars = toolArgs.maxTextChars;
+        // Injected keys must not reach a handler that spreads its args into a request.
+        for (const key of opts.injected) delete toolArgs[key];
+        if (shaped && typeof toolArgs.pageSize === "number" && toolArgs.pageSize > SHAPED_MAX_PAGE_SIZE) {
+          toolArgs.pageSize = SHAPED_MAX_PAGE_SIZE;
+        }
+        callArgs = [toolArgs, ...args.slice(1)];
+      }
+      // The paging read after the call must describe this call, not an earlier one.
+      const store = requestContext.getStore();
+      if (store) store.paging = undefined;
+      const result = await handler(...callArgs);
+      return shapeResult(result, shaped, fields, maxTextChars);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[tool:${toolName}] error: ${msg}`);
@@ -802,18 +953,30 @@ export function applyToolProfile(
         if (allowlist && !allowlist.has(name)) return;
 
         const wrappedRest = [...rest];
-
-        // Wrap handler (always last arg) for isError responses + audit outcomes
         const handlerIdx = wrappedRest.length - 1;
+        const schemaIdx = wrappedRest.length - 2;
+
+        // Inject the shaping arguments into a raw shape (second-to-last arg) on every
+        // profile, so `fields` works wherever a caller asks for it.
+        let injected: ReadonlySet<string> = new Set();
+        let hasArgs = false;
+        if (schemaIdx >= 0 && isRawShape(wrappedRest[schemaIdx])) {
+          const out = injectShape(name, wrappedRest[schemaIdx] as Record<string, unknown>);
+          wrappedRest[schemaIdx] = out.shape;
+          injected = out.injected;
+          hasArgs = true;
+        }
+
+        // Wrap handler (always last arg) for isError responses, audit outcomes and shaping
         if (typeof wrappedRest[handlerIdx] === "function") {
           wrappedRest[handlerIdx] = wrapHandler(
             name,
             wrappedRest[handlerIdx] as (...a: unknown[]) => Promise<unknown>,
+            { profile, hasArgs, injected },
           );
         }
 
         // Wrap schema (second-to-last arg) for parse failure logging
-        const schemaIdx = wrappedRest.length - 2;
         if (schemaIdx >= 0) {
           const maybeSchema = wrappedRest[schemaIdx];
           if (maybeSchema !== null && typeof maybeSchema === "object" && "parseAsync" in (maybeSchema as object)) {
