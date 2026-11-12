@@ -369,12 +369,13 @@ describe("opportunity products live under /procurement/products", () => {
   });
 
   it("cw_get_opportunity_product GETs /procurement/products/{productId}", async () => {
-    // The ownership check and the read both hit the same path, so both mocked reads return the product.
+    // The ownership check is the read: one GET, and its product is what the tool returns.
     getMock().mockResolvedValueOnce({ id: 401, opportunity: { id: 301 } });
     await getTool(server, "cw_get_opportunity_product").handler(
       { opportunityId: 301, productId: 401 },
       {},
     );
+    expect(mockClient.get).toHaveBeenCalledTimes(1);
     expect(mockClient.get).toHaveBeenCalledWith("/procurement/products/401");
   });
 
