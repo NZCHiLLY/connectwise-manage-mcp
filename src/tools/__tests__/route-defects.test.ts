@@ -487,3 +487,18 @@ describe("quote tools report that this instance has no quotes API", () => {
     );
   });
 });
+
+describe("cw_list_audit_trail takes the type and id ConnectWise requires", () => {
+  it("requires type and id", async () => {
+    const { inputSchema } = getTool(server, "cw_list_audit_trail");
+    await expect(inputSchema.parseAsync({ conditions: "x" })).rejects.toThrow();
+  });
+
+  it("sends type and id as query parameters", async () => {
+    await getTool(server, "cw_list_audit_trail").handler({ type: "Ticket", id: 106507 }, {});
+    expect(mockClient.get).toHaveBeenCalledWith(
+      "/system/audittrail",
+      expect.objectContaining({ type: "Ticket", id: 106507, page: 1, pageSize: 25 }),
+    );
+  });
+});
