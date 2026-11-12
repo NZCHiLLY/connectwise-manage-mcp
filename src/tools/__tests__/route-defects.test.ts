@@ -679,3 +679,20 @@ describe("cw_create_opportunity body shape", () => {
     await expect(inputSchema.parseAsync(without)).rejects.toThrow();
   });
 });
+
+describe("cw_update_time_entry keeps the entry's own id", () => {
+  it("PUTs a body whose id matches the URL even when the patch rewrites /id", async () => {
+    (mockClient.get as unknown as { mockResolvedValueOnce(v: unknown): void }).mockResolvedValueOnce({
+      id: 601,
+      notes: "before",
+      _info: {},
+    });
+    await getTool(server, "cw_update_time_entry").handler(
+      { id: 601, patch: [{ op: "replace", path: "/id", value: 999 }], ...SENTINEL },
+      {},
+    );
+    const call = (mockClient.put as unknown as { mock: { calls: unknown[][] } }).mock.calls[0];
+    expect(call[0]).toBe("/time/entries/601");
+    expect((call[1] as Record<string, unknown>).id).toBe(601);
+  });
+});
