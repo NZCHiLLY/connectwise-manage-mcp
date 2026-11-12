@@ -5,6 +5,7 @@ import { registerTimeEntryTools } from "../time-entries.js";
 import { registerTicketTools } from "../tickets.js";
 import { auditLog } from "../../audit/log.js";
 import { resolveCallerMemberId } from "../../attribution.js";
+import { getCallerIdentity } from "../../context.js";
 
 vi.mock("../../audit/log.js", () => ({
   auditLog: vi.fn().mockResolvedValue(undefined),
@@ -12,6 +13,13 @@ vi.mock("../../audit/log.js", () => ({
 vi.mock("../../attribution.js", () => ({
   resolveCallerMemberId: vi.fn(),
 }));
+
+vi.mock("../../context.js", () => ({
+  getCallerIdentity: vi.fn(),
+  getCorrelationId: vi.fn().mockReturnValue("-"),
+}));
+
+const caller = getCallerIdentity as unknown as ReturnType<typeof vi.fn>;
 
 const mockClient = {
   get: vi.fn().mockResolvedValue({}),
@@ -48,6 +56,7 @@ let server: McpServer;
 
 beforeEach(() => {
   vi.clearAllMocks();
+  caller.mockReturnValue(undefined);
   server = new McpServer({ name: "cw-attribution-tools", version: "0.0.0" });
   registerTimeEntryTools(server, mockClient);
   registerTicketTools(server, mockClient);
@@ -104,9 +113,34 @@ describe("cw_add_ticket_note attribution", () => {
     expect(body).not.toHaveProperty("member");
   });
 
-  it("note with no resolved member and no ids sends no member", async () => {
+  it("a signed-in caller who does not resolve is refused before any audit or write", async () => {
+    caller.mockReturnValue({ upn: "someone@tomizone.com", oid: "abc-123" });
+    resolve.mockResolvedValue(undefined);
+    await expect(getHandler(server, "cw_add_ticket_note")(NOTE, {})).rejects.toThrow(
+      "memberId or contactId is required: your sign-in did not resolve to exactly one active ConnectWise member",
+    );
+    expect(post).not.toHaveBeenCalled();
+    expect(auditLog).not.toHaveBeenCalled();
+  });
+
+  it("a static caller with no ids still posts, sending no member", async () => {
+    caller.mockReturnValue({ upn: "static", oid: "static" });
     resolve.mockResolvedValue(undefined);
     await getHandler(server, "cw_add_ticket_note")(NOTE, {});
     expect(postedBody()).not.toHaveProperty("member");
+  });
+
+  it("no caller context at all still posts, sending no member", async () => {
+    caller.mockReturnValue(undefined);
+    resolve.mockResolvedValue(undefined);
+    await getHandler(server, "cw_add_ticket_note")(NOTE, {});
+    expect(postedBody()).not.toHaveProperty("member");
+  });
+
+  it("a signed-in caller with an explicit contact is not refused", async () => {
+    caller.mockReturnValue({ upn: "someone@tomizone.com", oid: "abc-123" });
+    resolve.mockResolvedValue(undefined);
+    await getHandler(server, "cw_add_ticket_note")({ ...NOTE, contactId: 77 }, {});
+    expect(postedBody().contact).toStrictEqual({ id: 77 });
   });
 });
