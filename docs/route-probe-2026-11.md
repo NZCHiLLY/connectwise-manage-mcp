@@ -25,6 +25,12 @@ Both controls returned the expected status, so the probe is trustworthy for the 
 
 ## Quotes
 
-`/sales/quotes`, `/sales/quotes/count` and `/procurement/quotes` all return 404. Only `/sales/orders` returns 200. There is no quotes route on this instance.
+None of the three quote candidates probed (`/sales/quotes`, `/sales/quotes/count`, `/procurement/quotes`) returned 200. They all returned 404.
 
-Decision for Jayson: point the quote tools at sales orders, or mark them unavailable. Not decided here.
+Caveat: the 200 on `/sales/orders` only shows that the route exists and answers a GET. It does not show quote semantics, field parity, or that any rows exist.
+
+## Decision
+
+Ruling of 12 Nov 2026: the quote tools stay registered and return a clear error naming this evidence, without calling ConnectWise. They are not repointed to sales orders, because sales orders are a different object.
+
+The note types route used is `/company/noteTypes`. The note type href on the opportunity note was returned with a doubled leading slash (`//company/noteTypes/2`), which is how ConnectWise returned it.
