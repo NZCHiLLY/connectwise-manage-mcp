@@ -283,6 +283,18 @@ describe("cw_merge_tickets guard", () => {
     expect(mockClient.post).not.toHaveBeenCalled();
   });
 
+  it("an unreadable time entry count refuses and posts nothing", async () => {
+    const { handler } = getTool(server, "cw_merge_tickets");
+    mockGet.mockResolvedValueOnce(ticket(200));
+    mockGet.mockResolvedValueOnce(ticket(201));
+    mockGet.mockResolvedValueOnce({});
+    await expect(
+      handler({ targetTicketId: 200, mergeTicketIds: [201], ...SENTINEL }, {}),
+    ).rejects.toThrow("Merge refused: time entry count for source ticket 201 was unreadable");
+    expect(mockClient.post).not.toHaveBeenCalled();
+    expect(auditLog).not.toHaveBeenCalled();
+  });
+
   it("clean merge still posts mergeTicketIds as integers", async () => {
     const { handler } = getTool(server, "cw_merge_tickets");
     queueClean();

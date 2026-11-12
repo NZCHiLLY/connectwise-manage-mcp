@@ -381,7 +381,10 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
           client.get<{ count?: number }>("/time/entries/count", {
             conditions: `chargeToType = "ServiceTicket" and chargeToId = ${id}`,
           }));
-        timeEntries[id] = res?.count ?? 0;
+        if (typeof res?.count !== "number") {
+          throw new Error(`Merge refused: time entry count for source ticket ${id} was unreadable`);
+        }
+        timeEntries[id] = res.count;
       }
 
       const refusals: string[] = [];
