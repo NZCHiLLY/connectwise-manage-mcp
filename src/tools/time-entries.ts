@@ -72,7 +72,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
       childConditions: z.string().optional().describe("Child object conditions query string"),
       customFieldConditions: z.string().optional().describe("Custom field conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
       orderBy: z.string().optional().describe("Field to order by"),
       fields: z.string().optional().describe("Comma-separated list of fields to return"),
     },
@@ -352,7 +352,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
       orderBy: z.string().optional().describe("Field to order by"),
     },
     async ({ conditions, page, pageSize, orderBy }) => {
@@ -479,7 +479,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
       chargeCodeId: z.number().describe("Charge code ID"),
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async ({ chargeCodeId, conditions, page, pageSize }) => {
       const result = await client.get(`/time/chargeCodes/${chargeCodeId}/expenseTypes`, {
@@ -499,7 +499,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
       orderBy: z.string().optional().describe("Field to order by"),
     },
     async ({ conditions, page, pageSize, orderBy }) => {
@@ -625,7 +625,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
       orderBy: z.string().optional().describe("Field to order by"),
     },
     async ({ conditions, page, pageSize, orderBy }) => {
@@ -749,7 +749,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
       sheetId: z.number().describe("Time sheet ID"),
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async ({ sheetId, conditions, page, pageSize }) => {
       const result = await client.get(`/time/sheets/${sheetId}/audits`, {
@@ -769,7 +769,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/time/accruals", {
@@ -801,7 +801,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/time/periods", {
@@ -831,7 +831,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/time/periodSetups", {
@@ -851,7 +851,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/time/stopwatches", {

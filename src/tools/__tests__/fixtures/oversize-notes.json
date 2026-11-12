@@ -1,0 +1,1920 @@
+[
+  {
+    "id": 900000,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "Thanks, that has fixed it on my side.",
+    "detailDescriptionFlag": true,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1000,
+      "identifier": "analyst0",
+      "name": "Support Analyst 0",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1000",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1000/image"
+      }
+    },
+    "contact": {
+      "id": 5000,
+      "name": "Example Contact 0"
+    },
+    "createdBy": "Example Contact 0",
+    "processNotifications": true,
+    "dateCreated": "2026-10-01T08:00:00Z",
+    "noteType": "Email Contact",
+    "_info": {
+      "lastUpdated": "2026-10-01T08:00:00Z",
+      "updatedBy": "Example Contact 0",
+      "dateEntered": "2026-10-01T08:00:00Z",
+      "enteredBy": "Example Contact 0",
+      "sortByDate": "2026-10-01T08:00:00Z"
+    }
+  },
+  {
+    "id": 900001,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "We checked the device in the remote console and the agent was last seen roughly twenty minutes earlier. Event logs show repeated authentication warnings from the same service account over the weekend. The firewall rule was reviewed and no changes were found in the last thirty days. A test message was sent from an external address and arrived without delay.\n\nRegards,\nSupport Analyst 1\nExample Services Ltd\n\nThis message and its attachments contain confidential information. If you are not the intended recipient, you are strictly prohibited to disclose, copy, distribute or take any action in reliance on the contents of this information. E-mail transmission cannot be guaranteed to be secure or error-free, as information could be intercepted, corrupted, lost, destroyed, arrive late or incomplete, or contain viruses. The sender therefore does not accept liability for any errors or omissions in the contents of this message, which arise as a result of e-mail transmission. If verification is required please request a hard-copy version. Tomizone accepts no liability for the content of this email, or for the consequences of any actions taken on the basis of the information provided, unless that information is subsequently confirmed in writing. Any views or opinions presented in this email are solely those of the author and do not necessarily represent those of Tomizone. WARNING: Computer viruses can be transmitted via email. The recipient should check this email and any attachments for the presence of viruses. Tomizone accepts no liability for any damage caused by any virus transmitted by this email.",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": true,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1001,
+      "identifier": "analyst1",
+      "name": "Support Analyst 1",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1001",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1001/image"
+      }
+    },
+    "createdBy": "analyst1",
+    "processNotifications": true,
+    "dateCreated": "2026-10-01T09:07:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-01T09:07:00Z",
+      "updatedBy": "analyst1",
+      "dateEntered": "2026-10-01T09:07:00Z",
+      "enteredBy": "analyst1",
+      "sortByDate": "2026-10-01T09:07:00Z"
+    }
+  },
+  {
+    "id": 900002,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "THIS EMAIL IS FROM AN EXTERNAL SENDER. PLEASE BE CAUTIOUS OF ATTACHMENTS AND LINKS.\n\nEvent logs show repeated authentication warnings from the same service account over the weekend. The firewall rule was reviewed and no changes were found in the last thirty days.\n\nRegards,\nSupport Analyst 2\nExample Services Ltd\n![\\[image\\]](https://aus.myconnectwise.net/v4_6_release/api/inlineimages/tomizone/00000000-0000-0000-0000-000000000000)",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1002,
+      "identifier": "analyst2",
+      "name": "Support Analyst 2",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1002",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1002/image"
+      }
+    },
+    "createdBy": "analyst2",
+    "processNotifications": true,
+    "dateCreated": "2026-10-01T10:14:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-01T10:14:00Z",
+      "updatedBy": "analyst2",
+      "dateEntered": "2026-10-01T10:14:00Z",
+      "enteredBy": "analyst2",
+      "sortByDate": "2026-10-01T10:14:00Z"
+    }
+  },
+  {
+    "id": 900003,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "The firewall rule was reviewed and no changes were found in the last thirty days. A test message was sent from an external address and arrived without delay. The printer queue was cleared, the spooler service restarted and a test page printed successfully. We have asked the user to leave the laptop on the dock overnight so the pending updates can complete. No further errors were logged after the change, so the ticket will stay open for another day for monitoring.\n\nWe have asked the user to leave the laptop on the dock overnight so the pending updates can complete. No further errors were logged after the change, so the ticket will stay open for another day for monitoring. The user reports that the shared mailbox intermittently stops syncing after the morning restart. We checked the device in the remote console and the agent was last seen roughly twenty minutes earlier. Event logs show repeated authentication warnings from the same service account over the weekend.\n\nThe user reports that the shared mailbox intermittently stops syncing after the morning restart. We checked the device in the remote console and the agent was last seen roughly twenty minutes earlier. Event logs show repeated authentication warnings from the same service account over the weekend. The firewall rule was reviewed and no changes were found in the last thirty days. A test message was sent from an external address and arrived without delay.\n\nA test message was sent from an external address and arrived without delay. The printer queue was cleared, the spooler service restarted and a test page printed successfully. We have asked the user to leave the laptop on the dock overnight so the pending updates can complete. No further errors were logged after the change, so the ticket will stay open for another day for monitoring. The user reports that the shared mailbox intermittently stops syncing after the morning restart.\n\nRegards,\nSupport Analyst 3\nExample Services Ltd\n![\\[image\\]](https://aus.myconnectwise.net/v4_6_release/api/inlineimages/tomizone/00000000-0000-0000-0000-000000000000)\n\nThis message and its attachments contain confidential information. If you are not the intended recipient, you are strictly prohibited to disclose, copy, distribute or take any action in reliance on the contents of this information. E-mail transmission cannot be guaranteed to be secure or error-free, as information could be intercepted, corrupted, lost, destroyed, arrive late or incomplete, or contain viruses. The sender therefore does not accept liability for any errors or omissions in the contents of this message, which arise as a result of e-mail transmission. If verification is required please request a hard-copy version. Tomizone accepts no liability for the content of this email, or for the consequences of any actions taken on the basis of the information provided, unless that information is subsequently confirmed in writing. Any views or opinions presented in this email are solely those of the author and do not necessarily represent those of Tomizone. WARNING: Computer viruses can be transmitted via email. The recipient should check this email and any attachments for the presence of viruses. Tomizone accepts no liability for any damage caused by any virus transmitted by this email.",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1003,
+      "identifier": "analyst3",
+      "name": "Support Analyst 3",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1003",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1003/image"
+      }
+    },
+    "contact": {
+      "id": 5003,
+      "name": "Example Contact 3"
+    },
+    "createdBy": "Example Contact 3",
+    "processNotifications": true,
+    "dateCreated": "2026-10-02T11:21:00Z",
+    "noteType": "Email Contact",
+    "_info": {
+      "lastUpdated": "2026-10-02T11:21:00Z",
+      "updatedBy": "Example Contact 3",
+      "dateEntered": "2026-10-02T11:21:00Z",
+      "enteredBy": "Example Contact 3",
+      "sortByDate": "2026-10-02T11:21:00Z"
+    }
+  },
+  {
+    "id": 900004,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "THIS EMAIL IS FROM AN EXTERNAL SENDER. PLEASE BE CAUTIOUS OF ATTACHMENTS AND LINKS.\n\nA test message was sent from an external address and arrived without delay. The printer queue was cleared, the spooler service restarted and a test page printed successfully.\n\nRegards,\nSupport Analyst 4\nExample Services Ltd\n![\\[image\\]](https://aus.myconnectwise.net/v4_6_release/api/inlineimages/tomizone/00000000-0000-0000-0000-000000000000)\n\nThis message and its attachments contain confidential information. If you are not the intended recipient, you are strictly prohibited to disclose, copy, distribute or take any action in reliance on the contents of this information. E-mail transmission cannot be guaranteed to be secure or error-free, as information could be intercepted, corrupted, lost, destroyed, arrive late or incomplete, or contain viruses. The sender therefore does not accept liability for any errors or omissions in the contents of this message, which arise as a result of e-mail transmission. If verification is required please request a hard-copy version. Tomizone accepts no liability for the content of this email, or for the consequences of any actions taken on the basis of the information provided, unless that information is subsequently confirmed in writing. Any views or opinions presented in this email are solely those of the author and do not necessarily represent those of Tomizone. WARNING: Computer viruses can be transmitted via email. The recipient should check this email and any attachments for the presence of viruses. Tomizone accepts no liability for any damage caused by any virus transmitted by this email.",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1004,
+      "identifier": "analyst4",
+      "name": "Support Analyst 4",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1004",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1004/image"
+      }
+    },
+    "createdBy": "analyst4",
+    "processNotifications": true,
+    "dateCreated": "2026-10-02T12:28:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-02T12:28:00Z",
+      "updatedBy": "analyst4",
+      "dateEntered": "2026-10-02T12:28:00Z",
+      "enteredBy": "analyst4",
+      "sortByDate": "2026-10-02T12:28:00Z"
+    }
+  },
+  {
+    "id": 900005,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "Thanks, that has fixed it on my side.",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": true,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1000,
+      "identifier": "analyst0",
+      "name": "Support Analyst 0",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1000",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1000/image"
+      }
+    },
+    "createdBy": "analyst0",
+    "processNotifications": true,
+    "dateCreated": "2026-10-02T13:35:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-02T13:35:00Z",
+      "updatedBy": "analyst0",
+      "dateEntered": "2026-10-02T13:35:00Z",
+      "enteredBy": "analyst0",
+      "sortByDate": "2026-10-02T13:35:00Z"
+    }
+  },
+  {
+    "id": 900006,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "We have asked the user to leave the laptop on the dock overnight so the pending updates can complete. No further errors were logged after the change, so the ticket will stay open for another day for monitoring.\n\nRegards,\nSupport Analyst 6\nExample Services Ltd\n![\\[image\\]](https://aus.myconnectwise.net/v4_6_release/api/inlineimages/tomizone/00000000-0000-0000-0000-000000000000)",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1001,
+      "identifier": "analyst1",
+      "name": "Support Analyst 1",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1001",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1001/image"
+      }
+    },
+    "contact": {
+      "id": 5002,
+      "name": "Example Contact 2"
+    },
+    "createdBy": "Example Contact 2",
+    "processNotifications": true,
+    "dateCreated": "2026-10-03T14:42:00Z",
+    "noteType": "Email Contact",
+    "_info": {
+      "lastUpdated": "2026-10-03T14:42:00Z",
+      "updatedBy": "Example Contact 2",
+      "dateEntered": "2026-10-03T14:42:00Z",
+      "enteredBy": "Example Contact 2",
+      "sortByDate": "2026-10-03T14:42:00Z"
+    }
+  },
+  {
+    "id": 900007,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "THIS EMAIL IS FROM AN EXTERNAL SENDER. PLEASE BE CAUTIOUS OF ATTACHMENTS AND LINKS.\n\nNo further errors were logged after the change, so the ticket will stay open for another day for monitoring. The user reports that the shared mailbox intermittently stops syncing after the morning restart. We checked the device in the remote console and the agent was last seen roughly twenty minutes earlier. Event logs show repeated authentication warnings from the same service account over the weekend. The firewall rule was reviewed and no changes were found in the last thirty days.\n\nWe checked the device in the remote console and the agent was last seen roughly twenty minutes earlier. Event logs show repeated authentication warnings from the same service account over the weekend. The firewall rule was reviewed and no changes were found in the last thirty days. A test message was sent from an external address and arrived without delay. The printer queue was cleared, the spooler service restarted and a test page printed successfully.\n\nThe firewall rule was reviewed and no changes were found in the last thirty days. A test message was sent from an external address and arrived without delay. The printer queue was cleared, the spooler service restarted and a test page printed successfully. We have asked the user to leave the laptop on the dock overnight so the pending updates can complete.\n\nRegards,\nSupport Analyst 7\nExample Services Ltd\n\nThis message and its attachments contain confidential information. If you are not the intended recipient, you are strictly prohibited to disclose, copy, distribute or take any action in reliance on the contents of this information. E-mail transmission cannot be guaranteed to be secure or error-free, as information could be intercepted, corrupted, lost, destroyed, arrive late or incomplete, or contain viruses. The sender therefore does not accept liability for any errors or omissions in the contents of this message, which arise as a result of e-mail transmission. If verification is required please request a hard-copy version. Tomizone accepts no liability for the content of this email, or for the consequences of any actions taken on the basis of the information provided, unless that information is subsequently confirmed in writing. Any views or opinions presented in this email are solely those of the author and do not necessarily represent those of Tomizone. WARNING: Computer viruses can be transmitted via email. The recipient should check this email and any attachments for the presence of viruses. Tomizone accepts no liability for any damage caused by any virus transmitted by this email.",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1002,
+      "identifier": "analyst2",
+      "name": "Support Analyst 2",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1002",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1002/image"
+      }
+    },
+    "createdBy": "analyst2",
+    "processNotifications": true,
+    "dateCreated": "2026-10-03T15:49:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-03T15:49:00Z",
+      "updatedBy": "analyst2",
+      "dateEntered": "2026-10-03T15:49:00Z",
+      "enteredBy": "analyst2",
+      "sortByDate": "2026-10-03T15:49:00Z"
+    }
+  },
+  {
+    "id": 900008,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "The user reports that the shared mailbox intermittently stops syncing after the morning restart. We checked the device in the remote console and the agent was last seen roughly twenty minutes earlier.\n\nRegards,\nSupport Analyst 8\nExample Services Ltd",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1003,
+      "identifier": "analyst3",
+      "name": "Support Analyst 3",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1003",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1003/image"
+      }
+    },
+    "createdBy": "analyst3",
+    "processNotifications": true,
+    "dateCreated": "2026-10-03T16:56:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-03T16:56:00Z",
+      "updatedBy": "analyst3",
+      "dateEntered": "2026-10-03T16:56:00Z",
+      "enteredBy": "analyst3",
+      "sortByDate": "2026-10-03T16:56:00Z"
+    }
+  },
+  {
+    "id": 900009,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "We checked the device in the remote console and the agent was last seen roughly twenty minutes earlier. Event logs show repeated authentication warnings from the same service account over the weekend.\n\nRegards,\nSupport Analyst 9\nExample Services Ltd",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": true,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1004,
+      "identifier": "analyst4",
+      "name": "Support Analyst 4",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1004",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1004/image"
+      }
+    },
+    "contact": {
+      "id": 5001,
+      "name": "Example Contact 1"
+    },
+    "createdBy": "Example Contact 1",
+    "processNotifications": true,
+    "dateCreated": "2026-10-04T08:03:00Z",
+    "noteType": "Email Contact",
+    "_info": {
+      "lastUpdated": "2026-10-04T08:03:00Z",
+      "updatedBy": "Example Contact 1",
+      "dateEntered": "2026-10-04T08:03:00Z",
+      "enteredBy": "Example Contact 1",
+      "sortByDate": "2026-10-04T08:03:00Z"
+    }
+  },
+  {
+    "id": 900010,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "Thanks, that has fixed it on my side.",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1000,
+      "identifier": "analyst0",
+      "name": "Support Analyst 0",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1000",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1000/image"
+      }
+    },
+    "createdBy": "analyst0",
+    "processNotifications": true,
+    "dateCreated": "2026-10-04T09:10:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-04T09:10:00Z",
+      "updatedBy": "analyst0",
+      "dateEntered": "2026-10-04T09:10:00Z",
+      "enteredBy": "analyst0",
+      "sortByDate": "2026-10-04T09:10:00Z"
+    }
+  },
+  {
+    "id": 900011,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "The firewall rule was reviewed and no changes were found in the last thirty days. A test message was sent from an external address and arrived without delay. The printer queue was cleared, the spooler service restarted and a test page printed successfully. We have asked the user to leave the laptop on the dock overnight so the pending updates can complete.\n\nRegards,\nSupport Analyst 11\nExample Services Ltd",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1001,
+      "identifier": "analyst1",
+      "name": "Support Analyst 1",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1001",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1001/image"
+      }
+    },
+    "createdBy": "analyst1",
+    "processNotifications": true,
+    "dateCreated": "2026-10-04T10:17:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-04T10:17:00Z",
+      "updatedBy": "analyst1",
+      "dateEntered": "2026-10-04T10:17:00Z",
+      "enteredBy": "analyst1",
+      "sortByDate": "2026-10-04T10:17:00Z"
+    }
+  },
+  {
+    "id": 900012,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "THIS EMAIL IS FROM AN EXTERNAL SENDER. PLEASE BE CAUTIOUS OF ATTACHMENTS AND LINKS.\n\nA test message was sent from an external address and arrived without delay. The printer queue was cleared, the spooler service restarted and a test page printed successfully.\n\nRegards,\nSupport Analyst 12\nExample Services Ltd\n![\\[image\\]](https://aus.myconnectwise.net/v4_6_release/api/inlineimages/tomizone/00000000-0000-0000-0000-000000000000)",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1002,
+      "identifier": "analyst2",
+      "name": "Support Analyst 2",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1002",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1002/image"
+      }
+    },
+    "contact": {
+      "id": 5000,
+      "name": "Example Contact 0"
+    },
+    "createdBy": "Example Contact 0",
+    "processNotifications": true,
+    "dateCreated": "2026-10-05T11:24:00Z",
+    "noteType": "Email Contact",
+    "_info": {
+      "lastUpdated": "2026-10-05T11:24:00Z",
+      "updatedBy": "Example Contact 0",
+      "dateEntered": "2026-10-05T11:24:00Z",
+      "enteredBy": "Example Contact 0",
+      "sortByDate": "2026-10-05T11:24:00Z"
+    }
+  },
+  {
+    "id": 900013,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "The printer queue was cleared, the spooler service restarted and a test page printed successfully. We have asked the user to leave the laptop on the dock overnight so the pending updates can complete.\n\nRegards,\nSupport Analyst 13\nExample Services Ltd\n![\\[image\\]](https://aus.myconnectwise.net/v4_6_release/api/inlineimages/tomizone/00000000-0000-0000-0000-000000000000)",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": true,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1003,
+      "identifier": "analyst3",
+      "name": "Support Analyst 3",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1003",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1003/image"
+      }
+    },
+    "createdBy": "analyst3",
+    "processNotifications": true,
+    "dateCreated": "2026-10-05T12:31:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-05T12:31:00Z",
+      "updatedBy": "analyst3",
+      "dateEntered": "2026-10-05T12:31:00Z",
+      "enteredBy": "analyst3",
+      "sortByDate": "2026-10-05T12:31:00Z"
+    }
+  },
+  {
+    "id": 900014,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "THIS EMAIL IS FROM AN EXTERNAL SENDER. PLEASE BE CAUTIOUS OF ATTACHMENTS AND LINKS.\n\nWe have asked the user to leave the laptop on the dock overnight so the pending updates can complete. No further errors were logged after the change, so the ticket will stay open for another day for monitoring.\n\nRegards,\nSupport Analyst 14\nExample Services Ltd",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1004,
+      "identifier": "analyst4",
+      "name": "Support Analyst 4",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1004",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1004/image"
+      }
+    },
+    "createdBy": "analyst4",
+    "processNotifications": true,
+    "dateCreated": "2026-10-05T13:38:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-05T13:38:00Z",
+      "updatedBy": "analyst4",
+      "dateEntered": "2026-10-05T13:38:00Z",
+      "enteredBy": "analyst4",
+      "sortByDate": "2026-10-05T13:38:00Z"
+    }
+  },
+  {
+    "id": 900015,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "Thanks, that has fixed it on my side.",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1000,
+      "identifier": "analyst0",
+      "name": "Support Analyst 0",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1000",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1000/image"
+      }
+    },
+    "contact": {
+      "id": 5003,
+      "name": "Example Contact 3"
+    },
+    "createdBy": "Example Contact 3",
+    "processNotifications": true,
+    "dateCreated": "2026-10-06T14:45:00Z",
+    "noteType": "Email Contact",
+    "_info": {
+      "lastUpdated": "2026-10-06T14:45:00Z",
+      "updatedBy": "Example Contact 3",
+      "dateEntered": "2026-10-06T14:45:00Z",
+      "enteredBy": "Example Contact 3",
+      "sortByDate": "2026-10-06T14:45:00Z"
+    }
+  },
+  {
+    "id": 900016,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "The user reports that the shared mailbox intermittently stops syncing after the morning restart. We checked the device in the remote console and the agent was last seen roughly twenty minutes earlier.\n\nRegards,\nSupport Analyst 16\nExample Services Ltd\n![\\[image\\]](https://aus.myconnectwise.net/v4_6_release/api/inlineimages/tomizone/00000000-0000-0000-0000-000000000000)",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1001,
+      "identifier": "analyst1",
+      "name": "Support Analyst 1",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1001",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1001/image"
+      }
+    },
+    "createdBy": "analyst1",
+    "processNotifications": true,
+    "dateCreated": "2026-10-06T15:52:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-06T15:52:00Z",
+      "updatedBy": "analyst1",
+      "dateEntered": "2026-10-06T15:52:00Z",
+      "enteredBy": "analyst1",
+      "sortByDate": "2026-10-06T15:52:00Z"
+    }
+  },
+  {
+    "id": 900017,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "THIS EMAIL IS FROM AN EXTERNAL SENDER. PLEASE BE CAUTIOUS OF ATTACHMENTS AND LINKS.\n\nWe checked the device in the remote console and the agent was last seen roughly twenty minutes earlier. Event logs show repeated authentication warnings from the same service account over the weekend.\n\nRegards,\nSupport Analyst 17\nExample Services Ltd",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": true,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1002,
+      "identifier": "analyst2",
+      "name": "Support Analyst 2",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1002",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1002/image"
+      }
+    },
+    "createdBy": "analyst2",
+    "processNotifications": true,
+    "dateCreated": "2026-10-06T16:59:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-06T16:59:00Z",
+      "updatedBy": "analyst2",
+      "dateEntered": "2026-10-06T16:59:00Z",
+      "enteredBy": "analyst2",
+      "sortByDate": "2026-10-06T16:59:00Z"
+    }
+  },
+  {
+    "id": 900018,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "Event logs show repeated authentication warnings from the same service account over the weekend. The firewall rule was reviewed and no changes were found in the last thirty days.\n\nRegards,\nSupport Analyst 18\nExample Services Ltd",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1003,
+      "identifier": "analyst3",
+      "name": "Support Analyst 3",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1003",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1003/image"
+      }
+    },
+    "contact": {
+      "id": 5002,
+      "name": "Example Contact 2"
+    },
+    "createdBy": "Example Contact 2",
+    "processNotifications": true,
+    "dateCreated": "2026-10-07T08:06:00Z",
+    "noteType": "Email Contact",
+    "_info": {
+      "lastUpdated": "2026-10-07T08:06:00Z",
+      "updatedBy": "Example Contact 2",
+      "dateEntered": "2026-10-07T08:06:00Z",
+      "enteredBy": "Example Contact 2",
+      "sortByDate": "2026-10-07T08:06:00Z"
+    }
+  },
+  {
+    "id": 900019,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "The firewall rule was reviewed and no changes were found in the last thirty days. A test message was sent from an external address and arrived without delay.\n\nRegards,\nSupport Analyst 19\nExample Services Ltd",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1004,
+      "identifier": "analyst4",
+      "name": "Support Analyst 4",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1004",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1004/image"
+      }
+    },
+    "createdBy": "analyst4",
+    "processNotifications": true,
+    "dateCreated": "2026-10-07T09:13:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-07T09:13:00Z",
+      "updatedBy": "analyst4",
+      "dateEntered": "2026-10-07T09:13:00Z",
+      "enteredBy": "analyst4",
+      "sortByDate": "2026-10-07T09:13:00Z"
+    }
+  },
+  {
+    "id": 900020,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "Thanks, that has fixed it on my side.",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1000,
+      "identifier": "analyst0",
+      "name": "Support Analyst 0",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1000",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1000/image"
+      }
+    },
+    "createdBy": "analyst0",
+    "processNotifications": true,
+    "dateCreated": "2026-10-07T10:20:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-07T10:20:00Z",
+      "updatedBy": "analyst0",
+      "dateEntered": "2026-10-07T10:20:00Z",
+      "enteredBy": "analyst0",
+      "sortByDate": "2026-10-07T10:20:00Z"
+    }
+  },
+  {
+    "id": 900021,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "The printer queue was cleared, the spooler service restarted and a test page printed successfully. We have asked the user to leave the laptop on the dock overnight so the pending updates can complete. No further errors were logged after the change, so the ticket will stay open for another day for monitoring. The user reports that the shared mailbox intermittently stops syncing after the morning restart.\n\nRegards,\nSupport Analyst 21\nExample Services Ltd\n\nThis message and its attachments contain confidential information. If you are not the intended recipient, you are strictly prohibited to disclose, copy, distribute or take any action in reliance on the contents of this information. E-mail transmission cannot be guaranteed to be secure or error-free, as information could be intercepted, corrupted, lost, destroyed, arrive late or incomplete, or contain viruses. The sender therefore does not accept liability for any errors or omissions in the contents of this message, which arise as a result of e-mail transmission. If verification is required please request a hard-copy version. Tomizone accepts no liability for the content of this email, or for the consequences of any actions taken on the basis of the information provided, unless that information is subsequently confirmed in writing. Any views or opinions presented in this email are solely those of the author and do not necessarily represent those of Tomizone. WARNING: Computer viruses can be transmitted via email. The recipient should check this email and any attachments for the presence of viruses. Tomizone accepts no liability for any damage caused by any virus transmitted by this email.",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": true,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1001,
+      "identifier": "analyst1",
+      "name": "Support Analyst 1",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1001",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1001/image"
+      }
+    },
+    "contact": {
+      "id": 5001,
+      "name": "Example Contact 1"
+    },
+    "createdBy": "Example Contact 1",
+    "processNotifications": true,
+    "dateCreated": "2026-10-08T11:27:00Z",
+    "noteType": "Email Contact",
+    "_info": {
+      "lastUpdated": "2026-10-08T11:27:00Z",
+      "updatedBy": "Example Contact 1",
+      "dateEntered": "2026-10-08T11:27:00Z",
+      "enteredBy": "Example Contact 1",
+      "sortByDate": "2026-10-08T11:27:00Z"
+    }
+  },
+  {
+    "id": 900022,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "THIS EMAIL IS FROM AN EXTERNAL SENDER. PLEASE BE CAUTIOUS OF ATTACHMENTS AND LINKS.\n\nWe have asked the user to leave the laptop on the dock overnight so the pending updates can complete. No further errors were logged after the change, so the ticket will stay open for another day for monitoring.\n\nRegards,\nSupport Analyst 22\nExample Services Ltd\n![\\[image\\]](https://aus.myconnectwise.net/v4_6_release/api/inlineimages/tomizone/00000000-0000-0000-0000-000000000000)",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1002,
+      "identifier": "analyst2",
+      "name": "Support Analyst 2",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1002",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1002/image"
+      }
+    },
+    "createdBy": "analyst2",
+    "processNotifications": true,
+    "dateCreated": "2026-10-08T12:34:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-08T12:34:00Z",
+      "updatedBy": "analyst2",
+      "dateEntered": "2026-10-08T12:34:00Z",
+      "enteredBy": "analyst2",
+      "sortByDate": "2026-10-08T12:34:00Z"
+    }
+  },
+  {
+    "id": 900023,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "No further errors were logged after the change, so the ticket will stay open for another day for monitoring. The user reports that the shared mailbox intermittently stops syncing after the morning restart. We checked the device in the remote console and the agent was last seen roughly twenty minutes earlier. Event logs show repeated authentication warnings from the same service account over the weekend. The firewall rule was reviewed and no changes were found in the last thirty days.\n\nEvent logs show repeated authentication warnings from the same service account over the weekend. The firewall rule was reviewed and no changes were found in the last thirty days. A test message was sent from an external address and arrived without delay. The printer queue was cleared, the spooler service restarted and a test page printed successfully. We have asked the user to leave the laptop on the dock overnight so the pending updates can complete.\n\nA test message was sent from an external address and arrived without delay. The printer queue was cleared, the spooler service restarted and a test page printed successfully. We have asked the user to leave the laptop on the dock overnight so the pending updates can complete. No further errors were logged after the change, so the ticket will stay open for another day for monitoring. The user reports that the shared mailbox intermittently stops syncing after the morning restart.\n\nThe user reports that the shared mailbox intermittently stops syncing after the morning restart. We checked the device in the remote console and the agent was last seen roughly twenty minutes earlier. Event logs show repeated authentication warnings from the same service account over the weekend. The firewall rule was reviewed and no changes were found in the last thirty days. A test message was sent from an external address and arrived without delay.\n\nRegards,\nSupport Analyst 23\nExample Services Ltd\n![\\[image\\]](https://aus.myconnectwise.net/v4_6_release/api/inlineimages/tomizone/00000000-0000-0000-0000-000000000000)\n\nThis message and its attachments contain confidential information. If you are not the intended recipient, you are strictly prohibited to disclose, copy, distribute or take any action in reliance on the contents of this information. E-mail transmission cannot be guaranteed to be secure or error-free, as information could be intercepted, corrupted, lost, destroyed, arrive late or incomplete, or contain viruses. The sender therefore does not accept liability for any errors or omissions in the contents of this message, which arise as a result of e-mail transmission. If verification is required please request a hard-copy version. Tomizone accepts no liability for the content of this email, or for the consequences of any actions taken on the basis of the information provided, unless that information is subsequently confirmed in writing. Any views or opinions presented in this email are solely those of the author and do not necessarily represent those of Tomizone. WARNING: Computer viruses can be transmitted via email. The recipient should check this email and any attachments for the presence of viruses. Tomizone accepts no liability for any damage caused by any virus transmitted by this email.",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1003,
+      "identifier": "analyst3",
+      "name": "Support Analyst 3",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1003",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1003/image"
+      }
+    },
+    "createdBy": "analyst3",
+    "processNotifications": true,
+    "dateCreated": "2026-10-08T13:41:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-08T13:41:00Z",
+      "updatedBy": "analyst3",
+      "dateEntered": "2026-10-08T13:41:00Z",
+      "enteredBy": "analyst3",
+      "sortByDate": "2026-10-08T13:41:00Z"
+    }
+  },
+  {
+    "id": 900024,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "THIS EMAIL IS FROM AN EXTERNAL SENDER. PLEASE BE CAUTIOUS OF ATTACHMENTS AND LINKS.\n\nThe user reports that the shared mailbox intermittently stops syncing after the morning restart. We checked the device in the remote console and the agent was last seen roughly twenty minutes earlier.\n\nRegards,\nSupport Analyst 24\nExample Services Ltd\n![\\[image\\]](https://aus.myconnectwise.net/v4_6_release/api/inlineimages/tomizone/00000000-0000-0000-0000-000000000000)\n\nThis message and its attachments contain confidential information. If you are not the intended recipient, you are strictly prohibited to disclose, copy, distribute or take any action in reliance on the contents of this information. E-mail transmission cannot be guaranteed to be secure or error-free, as information could be intercepted, corrupted, lost, destroyed, arrive late or incomplete, or contain viruses. The sender therefore does not accept liability for any errors or omissions in the contents of this message, which arise as a result of e-mail transmission. If verification is required please request a hard-copy version. Tomizone accepts no liability for the content of this email, or for the consequences of any actions taken on the basis of the information provided, unless that information is subsequently confirmed in writing. Any views or opinions presented in this email are solely those of the author and do not necessarily represent those of Tomizone. WARNING: Computer viruses can be transmitted via email. The recipient should check this email and any attachments for the presence of viruses. Tomizone accepts no liability for any damage caused by any virus transmitted by this email.",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1004,
+      "identifier": "analyst4",
+      "name": "Support Analyst 4",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1004",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1004/image"
+      }
+    },
+    "contact": {
+      "id": 5000,
+      "name": "Example Contact 0"
+    },
+    "createdBy": "Example Contact 0",
+    "processNotifications": true,
+    "dateCreated": "2026-10-09T14:48:00Z",
+    "noteType": "Email Contact",
+    "_info": {
+      "lastUpdated": "2026-10-09T14:48:00Z",
+      "updatedBy": "Example Contact 0",
+      "dateEntered": "2026-10-09T14:48:00Z",
+      "enteredBy": "Example Contact 0",
+      "sortByDate": "2026-10-09T14:48:00Z"
+    }
+  },
+  {
+    "id": 900025,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "Thanks, that has fixed it on my side.",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": true,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1000,
+      "identifier": "analyst0",
+      "name": "Support Analyst 0",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1000",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1000/image"
+      }
+    },
+    "createdBy": "analyst0",
+    "processNotifications": true,
+    "dateCreated": "2026-10-09T15:55:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-09T15:55:00Z",
+      "updatedBy": "analyst0",
+      "dateEntered": "2026-10-09T15:55:00Z",
+      "enteredBy": "analyst0",
+      "sortByDate": "2026-10-09T15:55:00Z"
+    }
+  },
+  {
+    "id": 900026,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "Event logs show repeated authentication warnings from the same service account over the weekend. The firewall rule was reviewed and no changes were found in the last thirty days.\n\nRegards,\nSupport Analyst 26\nExample Services Ltd\n![\\[image\\]](https://aus.myconnectwise.net/v4_6_release/api/inlineimages/tomizone/00000000-0000-0000-0000-000000000000)",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1001,
+      "identifier": "analyst1",
+      "name": "Support Analyst 1",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1001",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1001/image"
+      }
+    },
+    "createdBy": "analyst1",
+    "processNotifications": true,
+    "dateCreated": "2026-10-09T16:02:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-09T16:02:00Z",
+      "updatedBy": "analyst1",
+      "dateEntered": "2026-10-09T16:02:00Z",
+      "enteredBy": "analyst1",
+      "sortByDate": "2026-10-09T16:02:00Z"
+    }
+  },
+  {
+    "id": 900027,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "THIS EMAIL IS FROM AN EXTERNAL SENDER. PLEASE BE CAUTIOUS OF ATTACHMENTS AND LINKS.\n\nThe firewall rule was reviewed and no changes were found in the last thirty days. A test message was sent from an external address and arrived without delay. The printer queue was cleared, the spooler service restarted and a test page printed successfully. We have asked the user to leave the laptop on the dock overnight so the pending updates can complete. No further errors were logged after the change, so the ticket will stay open for another day for monitoring.\n\nThe printer queue was cleared, the spooler service restarted and a test page printed successfully. We have asked the user to leave the laptop on the dock overnight so the pending updates can complete. No further errors were logged after the change, so the ticket will stay open for another day for monitoring. The user reports that the shared mailbox intermittently stops syncing after the morning restart. We checked the device in the remote console and the agent was last seen roughly twenty minutes earlier.\n\nNo further errors were logged after the change, so the ticket will stay open for another day for monitoring. The user reports that the shared mailbox intermittently stops syncing after the morning restart. We checked the device in the remote console and the agent was last seen roughly twenty minutes earlier. Event logs show repeated authentication warnings from the same service account over the weekend.\n\nRegards,\nSupport Analyst 27\nExample Services Ltd\n\nThis message and its attachments contain confidential information. If you are not the intended recipient, you are strictly prohibited to disclose, copy, distribute or take any action in reliance on the contents of this information. E-mail transmission cannot be guaranteed to be secure or error-free, as information could be intercepted, corrupted, lost, destroyed, arrive late or incomplete, or contain viruses. The sender therefore does not accept liability for any errors or omissions in the contents of this message, which arise as a result of e-mail transmission. If verification is required please request a hard-copy version. Tomizone accepts no liability for the content of this email, or for the consequences of any actions taken on the basis of the information provided, unless that information is subsequently confirmed in writing. Any views or opinions presented in this email are solely those of the author and do not necessarily represent those of Tomizone. WARNING: Computer viruses can be transmitted via email. The recipient should check this email and any attachments for the presence of viruses. Tomizone accepts no liability for any damage caused by any virus transmitted by this email.",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1002,
+      "identifier": "analyst2",
+      "name": "Support Analyst 2",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1002",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1002/image"
+      }
+    },
+    "contact": {
+      "id": 5003,
+      "name": "Example Contact 3"
+    },
+    "createdBy": "Example Contact 3",
+    "processNotifications": true,
+    "dateCreated": "2026-10-10T08:09:00Z",
+    "noteType": "Email Contact",
+    "_info": {
+      "lastUpdated": "2026-10-10T08:09:00Z",
+      "updatedBy": "Example Contact 3",
+      "dateEntered": "2026-10-10T08:09:00Z",
+      "enteredBy": "Example Contact 3",
+      "sortByDate": "2026-10-10T08:09:00Z"
+    }
+  },
+  {
+    "id": 900028,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "A test message was sent from an external address and arrived without delay. The printer queue was cleared, the spooler service restarted and a test page printed successfully.\n\nRegards,\nSupport Analyst 28\nExample Services Ltd",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1003,
+      "identifier": "analyst3",
+      "name": "Support Analyst 3",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1003",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1003/image"
+      }
+    },
+    "createdBy": "analyst3",
+    "processNotifications": true,
+    "dateCreated": "2026-10-10T09:16:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-10T09:16:00Z",
+      "updatedBy": "analyst3",
+      "dateEntered": "2026-10-10T09:16:00Z",
+      "enteredBy": "analyst3",
+      "sortByDate": "2026-10-10T09:16:00Z"
+    }
+  },
+  {
+    "id": 900029,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "The printer queue was cleared, the spooler service restarted and a test page printed successfully. We have asked the user to leave the laptop on the dock overnight so the pending updates can complete.\n\nRegards,\nSupport Analyst 29\nExample Services Ltd",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": true,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1004,
+      "identifier": "analyst4",
+      "name": "Support Analyst 4",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1004",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1004/image"
+      }
+    },
+    "createdBy": "analyst4",
+    "processNotifications": true,
+    "dateCreated": "2026-10-10T10:23:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-10T10:23:00Z",
+      "updatedBy": "analyst4",
+      "dateEntered": "2026-10-10T10:23:00Z",
+      "enteredBy": "analyst4",
+      "sortByDate": "2026-10-10T10:23:00Z"
+    }
+  },
+  {
+    "id": 900030,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "Thanks, that has fixed it on my side.",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1000,
+      "identifier": "analyst0",
+      "name": "Support Analyst 0",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1000",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1000/image"
+      }
+    },
+    "contact": {
+      "id": 5002,
+      "name": "Example Contact 2"
+    },
+    "createdBy": "Example Contact 2",
+    "processNotifications": true,
+    "dateCreated": "2026-10-11T11:30:00Z",
+    "noteType": "Email Contact",
+    "_info": {
+      "lastUpdated": "2026-10-11T11:30:00Z",
+      "updatedBy": "Example Contact 2",
+      "dateEntered": "2026-10-11T11:30:00Z",
+      "enteredBy": "Example Contact 2",
+      "sortByDate": "2026-10-11T11:30:00Z"
+    }
+  },
+  {
+    "id": 900031,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "No further errors were logged after the change, so the ticket will stay open for another day for monitoring. The user reports that the shared mailbox intermittently stops syncing after the morning restart. We checked the device in the remote console and the agent was last seen roughly twenty minutes earlier. Event logs show repeated authentication warnings from the same service account over the weekend.\n\nRegards,\nSupport Analyst 31\nExample Services Ltd",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1001,
+      "identifier": "analyst1",
+      "name": "Support Analyst 1",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1001",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1001/image"
+      }
+    },
+    "createdBy": "analyst1",
+    "processNotifications": true,
+    "dateCreated": "2026-10-11T12:37:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-11T12:37:00Z",
+      "updatedBy": "analyst1",
+      "dateEntered": "2026-10-11T12:37:00Z",
+      "enteredBy": "analyst1",
+      "sortByDate": "2026-10-11T12:37:00Z"
+    }
+  },
+  {
+    "id": 900032,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "THIS EMAIL IS FROM AN EXTERNAL SENDER. PLEASE BE CAUTIOUS OF ATTACHMENTS AND LINKS.\n\nThe user reports that the shared mailbox intermittently stops syncing after the morning restart. We checked the device in the remote console and the agent was last seen roughly twenty minutes earlier.\n\nRegards,\nSupport Analyst 32\nExample Services Ltd\n![\\[image\\]](https://aus.myconnectwise.net/v4_6_release/api/inlineimages/tomizone/00000000-0000-0000-0000-000000000000)",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1002,
+      "identifier": "analyst2",
+      "name": "Support Analyst 2",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1002",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1002/image"
+      }
+    },
+    "createdBy": "analyst2",
+    "processNotifications": true,
+    "dateCreated": "2026-10-11T13:44:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-11T13:44:00Z",
+      "updatedBy": "analyst2",
+      "dateEntered": "2026-10-11T13:44:00Z",
+      "enteredBy": "analyst2",
+      "sortByDate": "2026-10-11T13:44:00Z"
+    }
+  },
+  {
+    "id": 900033,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "We checked the device in the remote console and the agent was last seen roughly twenty minutes earlier. Event logs show repeated authentication warnings from the same service account over the weekend.\n\nRegards,\nSupport Analyst 33\nExample Services Ltd\n![\\[image\\]](https://aus.myconnectwise.net/v4_6_release/api/inlineimages/tomizone/00000000-0000-0000-0000-000000000000)",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": true,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1003,
+      "identifier": "analyst3",
+      "name": "Support Analyst 3",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1003",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1003/image"
+      }
+    },
+    "contact": {
+      "id": 5001,
+      "name": "Example Contact 1"
+    },
+    "createdBy": "Example Contact 1",
+    "processNotifications": true,
+    "dateCreated": "2026-10-12T14:51:00Z",
+    "noteType": "Email Contact",
+    "_info": {
+      "lastUpdated": "2026-10-12T14:51:00Z",
+      "updatedBy": "Example Contact 1",
+      "dateEntered": "2026-10-12T14:51:00Z",
+      "enteredBy": "Example Contact 1",
+      "sortByDate": "2026-10-12T14:51:00Z"
+    }
+  },
+  {
+    "id": 900034,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "THIS EMAIL IS FROM AN EXTERNAL SENDER. PLEASE BE CAUTIOUS OF ATTACHMENTS AND LINKS.\n\nEvent logs show repeated authentication warnings from the same service account over the weekend. The firewall rule was reviewed and no changes were found in the last thirty days.\n\nRegards,\nSupport Analyst 34\nExample Services Ltd",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1004,
+      "identifier": "analyst4",
+      "name": "Support Analyst 4",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1004",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1004/image"
+      }
+    },
+    "createdBy": "analyst4",
+    "processNotifications": true,
+    "dateCreated": "2026-10-12T15:58:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-12T15:58:00Z",
+      "updatedBy": "analyst4",
+      "dateEntered": "2026-10-12T15:58:00Z",
+      "enteredBy": "analyst4",
+      "sortByDate": "2026-10-12T15:58:00Z"
+    }
+  },
+  {
+    "id": 900035,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "Thanks, that has fixed it on my side.",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1000,
+      "identifier": "analyst0",
+      "name": "Support Analyst 0",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1000",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1000/image"
+      }
+    },
+    "createdBy": "analyst0",
+    "processNotifications": true,
+    "dateCreated": "2026-10-12T16:05:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-12T16:05:00Z",
+      "updatedBy": "analyst0",
+      "dateEntered": "2026-10-12T16:05:00Z",
+      "enteredBy": "analyst0",
+      "sortByDate": "2026-10-12T16:05:00Z"
+    }
+  },
+  {
+    "id": 900036,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "A test message was sent from an external address and arrived without delay. The printer queue was cleared, the spooler service restarted and a test page printed successfully.\n\nRegards,\nSupport Analyst 36\nExample Services Ltd\n![\\[image\\]](https://aus.myconnectwise.net/v4_6_release/api/inlineimages/tomizone/00000000-0000-0000-0000-000000000000)",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1001,
+      "identifier": "analyst1",
+      "name": "Support Analyst 1",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1001",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1001/image"
+      }
+    },
+    "contact": {
+      "id": 5000,
+      "name": "Example Contact 0"
+    },
+    "createdBy": "Example Contact 0",
+    "processNotifications": true,
+    "dateCreated": "2026-10-13T08:12:00Z",
+    "noteType": "Email Contact",
+    "_info": {
+      "lastUpdated": "2026-10-13T08:12:00Z",
+      "updatedBy": "Example Contact 0",
+      "dateEntered": "2026-10-13T08:12:00Z",
+      "enteredBy": "Example Contact 0",
+      "sortByDate": "2026-10-13T08:12:00Z"
+    }
+  },
+  {
+    "id": 900037,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "THIS EMAIL IS FROM AN EXTERNAL SENDER. PLEASE BE CAUTIOUS OF ATTACHMENTS AND LINKS.\n\nThe printer queue was cleared, the spooler service restarted and a test page printed successfully. We have asked the user to leave the laptop on the dock overnight so the pending updates can complete.\n\nRegards,\nSupport Analyst 37\nExample Services Ltd",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": true,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1002,
+      "identifier": "analyst2",
+      "name": "Support Analyst 2",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1002",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1002/image"
+      }
+    },
+    "createdBy": "analyst2",
+    "processNotifications": true,
+    "dateCreated": "2026-10-13T09:19:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-13T09:19:00Z",
+      "updatedBy": "analyst2",
+      "dateEntered": "2026-10-13T09:19:00Z",
+      "enteredBy": "analyst2",
+      "sortByDate": "2026-10-13T09:19:00Z"
+    }
+  },
+  {
+    "id": 900038,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "We have asked the user to leave the laptop on the dock overnight so the pending updates can complete. No further errors were logged after the change, so the ticket will stay open for another day for monitoring.\n\nRegards,\nSupport Analyst 38\nExample Services Ltd",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1003,
+      "identifier": "analyst3",
+      "name": "Support Analyst 3",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1003",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1003/image"
+      }
+    },
+    "createdBy": "analyst3",
+    "processNotifications": true,
+    "dateCreated": "2026-10-13T10:26:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-13T10:26:00Z",
+      "updatedBy": "analyst3",
+      "dateEntered": "2026-10-13T10:26:00Z",
+      "enteredBy": "analyst3",
+      "sortByDate": "2026-10-13T10:26:00Z"
+    }
+  },
+  {
+    "id": 900039,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "No further errors were logged after the change, so the ticket will stay open for another day for monitoring. The user reports that the shared mailbox intermittently stops syncing after the morning restart.\n\nRegards,\nSupport Analyst 39\nExample Services Ltd",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1004,
+      "identifier": "analyst4",
+      "name": "Support Analyst 4",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1004",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1004/image"
+      }
+    },
+    "contact": {
+      "id": 5003,
+      "name": "Example Contact 3"
+    },
+    "createdBy": "Example Contact 3",
+    "processNotifications": true,
+    "dateCreated": "2026-10-14T11:33:00Z",
+    "noteType": "Email Contact",
+    "_info": {
+      "lastUpdated": "2026-10-14T11:33:00Z",
+      "updatedBy": "Example Contact 3",
+      "dateEntered": "2026-10-14T11:33:00Z",
+      "enteredBy": "Example Contact 3",
+      "sortByDate": "2026-10-14T11:33:00Z"
+    }
+  },
+  {
+    "id": 900040,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "Thanks, that has fixed it on my side.",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1000,
+      "identifier": "analyst0",
+      "name": "Support Analyst 0",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1000",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1000/image"
+      }
+    },
+    "createdBy": "analyst0",
+    "processNotifications": true,
+    "dateCreated": "2026-10-14T12:40:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-14T12:40:00Z",
+      "updatedBy": "analyst0",
+      "dateEntered": "2026-10-14T12:40:00Z",
+      "enteredBy": "analyst0",
+      "sortByDate": "2026-10-14T12:40:00Z"
+    }
+  },
+  {
+    "id": 900041,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "We checked the device in the remote console and the agent was last seen roughly twenty minutes earlier. Event logs show repeated authentication warnings from the same service account over the weekend. The firewall rule was reviewed and no changes were found in the last thirty days. A test message was sent from an external address and arrived without delay.\n\nRegards,\nSupport Analyst 41\nExample Services Ltd\n\nThis message and its attachments contain confidential information. If you are not the intended recipient, you are strictly prohibited to disclose, copy, distribute or take any action in reliance on the contents of this information. E-mail transmission cannot be guaranteed to be secure or error-free, as information could be intercepted, corrupted, lost, destroyed, arrive late or incomplete, or contain viruses. The sender therefore does not accept liability for any errors or omissions in the contents of this message, which arise as a result of e-mail transmission. If verification is required please request a hard-copy version. Tomizone accepts no liability for the content of this email, or for the consequences of any actions taken on the basis of the information provided, unless that information is subsequently confirmed in writing. Any views or opinions presented in this email are solely those of the author and do not necessarily represent those of Tomizone. WARNING: Computer viruses can be transmitted via email. The recipient should check this email and any attachments for the presence of viruses. Tomizone accepts no liability for any damage caused by any virus transmitted by this email.",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": true,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1001,
+      "identifier": "analyst1",
+      "name": "Support Analyst 1",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1001",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1001/image"
+      }
+    },
+    "createdBy": "analyst1",
+    "processNotifications": true,
+    "dateCreated": "2026-10-14T13:47:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-14T13:47:00Z",
+      "updatedBy": "analyst1",
+      "dateEntered": "2026-10-14T13:47:00Z",
+      "enteredBy": "analyst1",
+      "sortByDate": "2026-10-14T13:47:00Z"
+    }
+  },
+  {
+    "id": 900042,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "THIS EMAIL IS FROM AN EXTERNAL SENDER. PLEASE BE CAUTIOUS OF ATTACHMENTS AND LINKS.\n\nEvent logs show repeated authentication warnings from the same service account over the weekend. The firewall rule was reviewed and no changes were found in the last thirty days.\n\nRegards,\nSupport Analyst 42\nExample Services Ltd\n![\\[image\\]](https://aus.myconnectwise.net/v4_6_release/api/inlineimages/tomizone/00000000-0000-0000-0000-000000000000)",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1002,
+      "identifier": "analyst2",
+      "name": "Support Analyst 2",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1002",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1002/image"
+      }
+    },
+    "contact": {
+      "id": 5002,
+      "name": "Example Contact 2"
+    },
+    "createdBy": "Example Contact 2",
+    "processNotifications": true,
+    "dateCreated": "2026-10-15T14:54:00Z",
+    "noteType": "Email Contact",
+    "_info": {
+      "lastUpdated": "2026-10-15T14:54:00Z",
+      "updatedBy": "Example Contact 2",
+      "dateEntered": "2026-10-15T14:54:00Z",
+      "enteredBy": "Example Contact 2",
+      "sortByDate": "2026-10-15T14:54:00Z"
+    }
+  },
+  {
+    "id": 900043,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "The firewall rule was reviewed and no changes were found in the last thirty days. A test message was sent from an external address and arrived without delay. The printer queue was cleared, the spooler service restarted and a test page printed successfully. We have asked the user to leave the laptop on the dock overnight so the pending updates can complete. No further errors were logged after the change, so the ticket will stay open for another day for monitoring.\n\nWe have asked the user to leave the laptop on the dock overnight so the pending updates can complete. No further errors were logged after the change, so the ticket will stay open for another day for monitoring. The user reports that the shared mailbox intermittently stops syncing after the morning restart. We checked the device in the remote console and the agent was last seen roughly twenty minutes earlier. Event logs show repeated authentication warnings from the same service account over the weekend.\n\nThe user reports that the shared mailbox intermittently stops syncing after the morning restart. We checked the device in the remote console and the agent was last seen roughly twenty minutes earlier. Event logs show repeated authentication warnings from the same service account over the weekend. The firewall rule was reviewed and no changes were found in the last thirty days. A test message was sent from an external address and arrived without delay.\n\nA test message was sent from an external address and arrived without delay. The printer queue was cleared, the spooler service restarted and a test page printed successfully. We have asked the user to leave the laptop on the dock overnight so the pending updates can complete. No further errors were logged after the change, so the ticket will stay open for another day for monitoring. The user reports that the shared mailbox intermittently stops syncing after the morning restart.\n\nRegards,\nSupport Analyst 43\nExample Services Ltd\n![\\[image\\]](https://aus.myconnectwise.net/v4_6_release/api/inlineimages/tomizone/00000000-0000-0000-0000-000000000000)\n\nThis message and its attachments contain confidential information. If you are not the intended recipient, you are strictly prohibited to disclose, copy, distribute or take any action in reliance on the contents of this information. E-mail transmission cannot be guaranteed to be secure or error-free, as information could be intercepted, corrupted, lost, destroyed, arrive late or incomplete, or contain viruses. The sender therefore does not accept liability for any errors or omissions in the contents of this message, which arise as a result of e-mail transmission. If verification is required please request a hard-copy version. Tomizone accepts no liability for the content of this email, or for the consequences of any actions taken on the basis of the information provided, unless that information is subsequently confirmed in writing. Any views or opinions presented in this email are solely those of the author and do not necessarily represent those of Tomizone. WARNING: Computer viruses can be transmitted via email. The recipient should check this email and any attachments for the presence of viruses. Tomizone accepts no liability for any damage caused by any virus transmitted by this email.",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1003,
+      "identifier": "analyst3",
+      "name": "Support Analyst 3",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1003",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1003/image"
+      }
+    },
+    "createdBy": "analyst3",
+    "processNotifications": true,
+    "dateCreated": "2026-10-15T15:01:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-15T15:01:00Z",
+      "updatedBy": "analyst3",
+      "dateEntered": "2026-10-15T15:01:00Z",
+      "enteredBy": "analyst3",
+      "sortByDate": "2026-10-15T15:01:00Z"
+    }
+  },
+  {
+    "id": 900044,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "THIS EMAIL IS FROM AN EXTERNAL SENDER. PLEASE BE CAUTIOUS OF ATTACHMENTS AND LINKS.\n\nA test message was sent from an external address and arrived without delay. The printer queue was cleared, the spooler service restarted and a test page printed successfully.\n\nRegards,\nSupport Analyst 44\nExample Services Ltd\n![\\[image\\]](https://aus.myconnectwise.net/v4_6_release/api/inlineimages/tomizone/00000000-0000-0000-0000-000000000000)\n\nThis message and its attachments contain confidential information. If you are not the intended recipient, you are strictly prohibited to disclose, copy, distribute or take any action in reliance on the contents of this information. E-mail transmission cannot be guaranteed to be secure or error-free, as information could be intercepted, corrupted, lost, destroyed, arrive late or incomplete, or contain viruses. The sender therefore does not accept liability for any errors or omissions in the contents of this message, which arise as a result of e-mail transmission. If verification is required please request a hard-copy version. Tomizone accepts no liability for the content of this email, or for the consequences of any actions taken on the basis of the information provided, unless that information is subsequently confirmed in writing. Any views or opinions presented in this email are solely those of the author and do not necessarily represent those of Tomizone. WARNING: Computer viruses can be transmitted via email. The recipient should check this email and any attachments for the presence of viruses. Tomizone accepts no liability for any damage caused by any virus transmitted by this email.",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1004,
+      "identifier": "analyst4",
+      "name": "Support Analyst 4",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1004",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1004/image"
+      }
+    },
+    "createdBy": "analyst4",
+    "processNotifications": true,
+    "dateCreated": "2026-10-15T16:08:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-15T16:08:00Z",
+      "updatedBy": "analyst4",
+      "dateEntered": "2026-10-15T16:08:00Z",
+      "enteredBy": "analyst4",
+      "sortByDate": "2026-10-15T16:08:00Z"
+    }
+  },
+  {
+    "id": 900045,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "Thanks, that has fixed it on my side.",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": true,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1000,
+      "identifier": "analyst0",
+      "name": "Support Analyst 0",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1000",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1000/image"
+      }
+    },
+    "contact": {
+      "id": 5001,
+      "name": "Example Contact 1"
+    },
+    "createdBy": "Example Contact 1",
+    "processNotifications": true,
+    "dateCreated": "2026-10-16T08:15:00Z",
+    "noteType": "Email Contact",
+    "_info": {
+      "lastUpdated": "2026-10-16T08:15:00Z",
+      "updatedBy": "Example Contact 1",
+      "dateEntered": "2026-10-16T08:15:00Z",
+      "enteredBy": "Example Contact 1",
+      "sortByDate": "2026-10-16T08:15:00Z"
+    }
+  },
+  {
+    "id": 900046,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "We have asked the user to leave the laptop on the dock overnight so the pending updates can complete. No further errors were logged after the change, so the ticket will stay open for another day for monitoring.\n\nRegards,\nSupport Analyst 46\nExample Services Ltd\n![\\[image\\]](https://aus.myconnectwise.net/v4_6_release/api/inlineimages/tomizone/00000000-0000-0000-0000-000000000000)",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1001,
+      "identifier": "analyst1",
+      "name": "Support Analyst 1",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1001",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1001/image"
+      }
+    },
+    "createdBy": "analyst1",
+    "processNotifications": true,
+    "dateCreated": "2026-10-16T09:22:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-16T09:22:00Z",
+      "updatedBy": "analyst1",
+      "dateEntered": "2026-10-16T09:22:00Z",
+      "enteredBy": "analyst1",
+      "sortByDate": "2026-10-16T09:22:00Z"
+    }
+  },
+  {
+    "id": 900047,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "THIS EMAIL IS FROM AN EXTERNAL SENDER. PLEASE BE CAUTIOUS OF ATTACHMENTS AND LINKS.\n\nNo further errors were logged after the change, so the ticket will stay open for another day for monitoring. The user reports that the shared mailbox intermittently stops syncing after the morning restart. We checked the device in the remote console and the agent was last seen roughly twenty minutes earlier. Event logs show repeated authentication warnings from the same service account over the weekend. The firewall rule was reviewed and no changes were found in the last thirty days.\n\nWe checked the device in the remote console and the agent was last seen roughly twenty minutes earlier. Event logs show repeated authentication warnings from the same service account over the weekend. The firewall rule was reviewed and no changes were found in the last thirty days. A test message was sent from an external address and arrived without delay. The printer queue was cleared, the spooler service restarted and a test page printed successfully.\n\nThe firewall rule was reviewed and no changes were found in the last thirty days. A test message was sent from an external address and arrived without delay. The printer queue was cleared, the spooler service restarted and a test page printed successfully. We have asked the user to leave the laptop on the dock overnight so the pending updates can complete.\n\nRegards,\nSupport Analyst 47\nExample Services Ltd\n\nThis message and its attachments contain confidential information. If you are not the intended recipient, you are strictly prohibited to disclose, copy, distribute or take any action in reliance on the contents of this information. E-mail transmission cannot be guaranteed to be secure or error-free, as information could be intercepted, corrupted, lost, destroyed, arrive late or incomplete, or contain viruses. The sender therefore does not accept liability for any errors or omissions in the contents of this message, which arise as a result of e-mail transmission. If verification is required please request a hard-copy version. Tomizone accepts no liability for the content of this email, or for the consequences of any actions taken on the basis of the information provided, unless that information is subsequently confirmed in writing. Any views or opinions presented in this email are solely those of the author and do not necessarily represent those of Tomizone. WARNING: Computer viruses can be transmitted via email. The recipient should check this email and any attachments for the presence of viruses. Tomizone accepts no liability for any damage caused by any virus transmitted by this email.",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1002,
+      "identifier": "analyst2",
+      "name": "Support Analyst 2",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1002",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1002/image"
+      }
+    },
+    "createdBy": "analyst2",
+    "processNotifications": true,
+    "dateCreated": "2026-10-16T10:29:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-16T10:29:00Z",
+      "updatedBy": "analyst2",
+      "dateEntered": "2026-10-16T10:29:00Z",
+      "enteredBy": "analyst2",
+      "sortByDate": "2026-10-16T10:29:00Z"
+    }
+  },
+  {
+    "id": 900048,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "The user reports that the shared mailbox intermittently stops syncing after the morning restart. We checked the device in the remote console and the agent was last seen roughly twenty minutes earlier.\n\nRegards,\nSupport Analyst 48\nExample Services Ltd",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": false,
+    "resolutionFlag": false,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1003,
+      "identifier": "analyst3",
+      "name": "Support Analyst 3",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1003",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1003/image"
+      }
+    },
+    "contact": {
+      "id": 5000,
+      "name": "Example Contact 0"
+    },
+    "createdBy": "Example Contact 0",
+    "processNotifications": true,
+    "dateCreated": "2026-10-17T11:36:00Z",
+    "noteType": "Email Contact",
+    "_info": {
+      "lastUpdated": "2026-10-17T11:36:00Z",
+      "updatedBy": "Example Contact 0",
+      "dateEntered": "2026-10-17T11:36:00Z",
+      "enteredBy": "Example Contact 0",
+      "sortByDate": "2026-10-17T11:36:00Z"
+    }
+  },
+  {
+    "id": 900049,
+    "ticketId": 100000,
+    "ticket": {
+      "id": 100000,
+      "_info": {
+        "ticket_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/service/tickets/100000"
+      }
+    },
+    "text": "We checked the device in the remote console and the agent was last seen roughly twenty minutes earlier. Event logs show repeated authentication warnings from the same service account over the weekend.\n\nRegards,\nSupport Analyst 49\nExample Services Ltd",
+    "detailDescriptionFlag": false,
+    "internalAnalysisFlag": true,
+    "resolutionFlag": true,
+    "issueFlag": false,
+    "internalFlag": false,
+    "externalFlag": false,
+    "member": {
+      "id": 1004,
+      "identifier": "analyst4",
+      "name": "Support Analyst 4",
+      "_info": {
+        "member_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1004",
+        "image_href": "https://aus.myconnectwise.net/v4_6_release/apis/3.0/system/members/1004/image"
+      }
+    },
+    "createdBy": "analyst4",
+    "processNotifications": true,
+    "dateCreated": "2026-10-17T12:43:00Z",
+    "noteType": "Ticket Note",
+    "_info": {
+      "lastUpdated": "2026-10-17T12:43:00Z",
+      "updatedBy": "analyst4",
+      "dateEntered": "2026-10-17T12:43:00Z",
+      "enteredBy": "analyst4",
+      "sortByDate": "2026-10-17T12:43:00Z"
+    }
+  }
+]
