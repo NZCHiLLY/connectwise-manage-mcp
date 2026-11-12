@@ -2,7 +2,8 @@ import type { Paging } from "../context.js";
 
 export interface ShapeOptions {
   fields?: string[];
-  maxTextChars: number;
+  /** Undefined leaves text and notes fields untouched: no boilerplate strip, no cap. */
+  maxTextChars?: number;
   budget: number;
   paging?: Paging;
 }
@@ -15,6 +16,9 @@ export const CONDITIONS_HELP =
 export const ORDERBY_HELP = "Field then asc or desc, for example id desc or _info/dateEntered desc.";
 
 const TEXT_KEYS = new Set(["text", "notes"]);
+
+/** Starts the marker appended to capped text. A write carrying it was built from a shaped read. */
+export const DISPLAY_CUT = "[display cut:";
 
 const DISCLAIMER_RE =
   /This message and its attachments contain confidential information(?:(?!This message and its attachments)[\s\S]){0,1500}?transmitted by this email\.?/g;
@@ -86,7 +90,7 @@ export function stripBoilerplate(text: string): string {
 
 function capText(s: string, max: number): string {
   if (s.length <= max) return s;
-  return `${s.slice(0, max)}[... ${s.length - max} more characters]`;
+  return `${s.slice(0, max)}${DISPLAY_CUT} ${s.length - max} more characters stored]`;
 }
 
 function cleanText(v: unknown, max: number): unknown {
@@ -172,8 +176,10 @@ export function shapeToolText(text: string, opts: ShapeOptions): string {
   if (!Array.isArray(parsed) && !isPlainObject(parsed)) return text;
 
   let shaped: unknown = compactValue(parsed) ?? (Array.isArray(parsed) ? [] : {});
-  shaped = cleanText(shaped, opts.maxTextChars);
-  shaped = compactValue(shaped) ?? (Array.isArray(parsed) ? [] : {});
+  if (opts.maxTextChars !== undefined) {
+    shaped = cleanText(shaped, opts.maxTextChars);
+    shaped = compactValue(shaped) ?? (Array.isArray(parsed) ? [] : {});
+  }
   if (opts.fields && opts.fields.length > 0) shaped = projectFields(shaped, opts.fields);
 
   if (!Array.isArray(shaped)) return JSON.stringify(shaped);

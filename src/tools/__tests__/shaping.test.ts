@@ -111,7 +111,15 @@ describe("shapeToolText", () => {
     const note = { id: 9, text: "y".repeat(254912) };
     const out = shapeToolText(JSON.stringify(note), { maxTextChars: 2000, budget: 40000 });
     expect(out.length).toBeLessThan(40000);
-    expect(JSON.parse(out).text.endsWith("[... 252912 more characters]")).toBe(true);
+    expect(JSON.parse(out).text.endsWith("[display cut: 252912 more characters stored]")).toBe(true);
+  });
+
+  it("leaves text untouched when maxTextChars is undefined", () => {
+    const note = { id: 9, text: `${"y".repeat(5000)}
+
+${DISCLAIMER}` };
+    const out = shapeToolText(JSON.stringify(note), { budget: 40000 });
+    expect(JSON.parse(out)).toStrictEqual(note);
   });
 
   it("leaves non-JSON text alone", () => {
