@@ -264,6 +264,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
       await auditLog({ tool: "cw_update_time_entry", entityType: "time_entry", entityId: id, userIntent: user_intent, userQuote: user_quote, operations: { patch, preImage } });
       const next = applyPatch(current, patch);
       delete next._info;
+      next.id = id;
       const result = await client.put(`/time/entries/${id}`, next);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
