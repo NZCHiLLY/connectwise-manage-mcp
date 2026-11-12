@@ -189,6 +189,7 @@ describe("shaping wired into applyToolProfile", () => {
     // Native declarations are left as registered.
     expect(shapeOf(server, "cw_search_tickets").fields.description).toBe("Comma-separated fields to return");
     expect(shapeOf(server, "cw_update_ticket").fields).toBeUndefined();
+    expect(shapeOf(server, "cw_count_tickets").fields).toBeUndefined();
     expect(shapeOf(server, "cw_get_ticket_notes").maxTextChars).toBeDefined();
     expect(shapeOf(server, "cw_search_configurations").maxTextChars).toBeUndefined();
     expect(shapeOf(server, "cw_add_ticket_note").maxTextChars).toBeUndefined();
@@ -454,10 +455,15 @@ describe("end to end through the SDK's tools/list and tools/call", () => {
     const { tools } = await client.listTools();
     expect(tools.length).toBe(Object.keys((bare as unknown as { _registeredTools: object })._registeredTools).length);
     const readMissing = tools
-      .filter((t) => /^cw_(search|list|get|count)_/.test(t.name))
+      .filter((t) => /^cw_(search|list|get)_/.test(t.name))
       .filter((t) => !("fields" in ((t.inputSchema.properties ?? {}) as object)))
       .map((t) => t.name);
     expect(readMissing).toStrictEqual([]);
+    const countWithFields = tools
+      .filter((t) => t.name.startsWith("cw_count_"))
+      .filter((t) => "fields" in ((t.inputSchema.properties ?? {}) as object))
+      .map((t) => t.name);
+    expect(countWithFields).toStrictEqual([]);
     await client.close();
   });
 

@@ -744,6 +744,8 @@ export function isShapedProfile(profile: string | undefined): boolean {
 }
 
 const READ_TOOL_RE = /^cw_(search|list|get|count)_/;
+// A count returns {count}, so there is nothing for fields to project.
+const COUNT_TOOL_RE = /^cw_count_/;
 const NOTE_TOOL_RE = /note/;
 const SHAPED_MAX_PAGE_SIZE = 100;
 const DEFAULT_MAX_TEXT_CHARS = 2000;
@@ -775,7 +777,7 @@ function injectShape(
 ): { shape: Record<string, unknown>; injected: Set<string> } {
   const shape = { ...raw };
   const injected = new Set<string>();
-  if (READ_TOOL_RE.test(toolName) && !("fields" in shape)) {
+  if (READ_TOOL_RE.test(toolName) && !COUNT_TOOL_RE.test(toolName) && !("fields" in shape)) {
     shape.fields = z.string().optional()
       .describe("Comma-separated fields to keep, for example id,name,company/name.");
     injected.add("fields");
