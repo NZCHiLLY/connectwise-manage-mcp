@@ -170,3 +170,64 @@ export function shapeToolText(text: string, opts: ShapeOptions): string {
   }
   return wrapArray(shaped.slice(0, lo), opts, true);
 }
+
+const QUERY_KEYS = ["conditions", "childConditions", "customFieldConditions", "orderBy"] as const;
+
+const QUOTED_RE = /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g;
+
+function decodeEntities(s: string): string {
+  return s
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&amp;/g, "&");
+}
+
+function aliasNoteDates(s: string): string {
+  return s
+    .replace(/\bdateCreated\b|\bcreatedDate\b/g, "_info/dateEntered")
+    .replace(/(?<![\w/])dateEntered\b/g, "_info/dateEntered");
+}
+
+function aliasClosedFlag(s: string): string {
+  return s
+    .replace(/\bclosedFlag\s*=\s*false\b/gi, "closedDate = null")
+    .replace(/\bclosedFlag\s*=\s*true\b/gi, "closedDate != null");
+}
+
+/** Applies `fn` to the parts of a query outside quoted strings only. */
+function outsideQuotes(s: string, fn: (part: string) => string): string {
+  let out = "";
+  let last = 0;
+  for (const m of s.matchAll(QUOTED_RE)) {
+    out += fn(s.slice(last, m.index)) + m[0];
+    last = m.index + m[0].length;
+  }
+  return out + fn(s.slice(last));
+}
+
+/**
+ * Repairs known-bad query arguments: HTML-encoded operators, and field names that do not
+ * exist on the target resource. Touches conditions, childConditions, customFieldConditions
+ * and orderBy only, and never the contents of quoted strings.
+ */
+export function normaliseQueryArgs(
+  toolName: string,
+  args: Record<string, unknown>,
+): Record<string, unknown> {
+  const out = { ...args };
+  const isNote = /ticket_note/.test(toolName);
+  const isOpportunity = /opportunit/.test(toolName);
+  for (const key of QUERY_KEYS) {
+    const v = out[key];
+    if (typeof v !== "string") continue;
+    out[key] = outsideQuotes(decodeEntities(v), (part) => {
+      let p = part;
+      if (isNote) p = aliasNoteDates(p);
+      if (isOpportunity) p = aliasClosedFlag(p);
+      return p;
+    });
+  }
+  return out;
+}
