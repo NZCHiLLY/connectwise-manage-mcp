@@ -17,7 +17,7 @@ export const ORDERBY_HELP = "Field then asc or desc, for example id desc or _inf
 const TEXT_KEYS = new Set(["text", "notes"]);
 
 const DISCLAIMER_RE =
-  /This message and its attachments contain confidential information(?:(?!This message and its attachments)[\s\S]){0,600}?transmitted by this email\.?/g;
+  /This message and its attachments contain confidential information(?:(?!This message and its attachments)[\s\S]){0,1500}?transmitted by this email\.?/g;
 const EXTERNAL_BANNER_RE =
   /THIS EMAIL IS FROM AN EXTERNAL SENDER\.\s*PLEASE BE CAUTIOUS OF ATTACHMENTS AND LINKS\.?/g;
 const INLINE_IMAGE_RE = /!\[(?:\\.|[^\]\\])*\]\([^)]*inlineimages[^)]*\)/g;
