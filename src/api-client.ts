@@ -73,11 +73,12 @@ function envModeTimeoutMs(): number | undefined {
  */
 export function parseLinkHeader(header: string | null): Paging {
   if (!header) return { hasMore: false };
-  for (const entry of header.split(",")) {
-    const match = /<([^>]*)>\s*;(.*)/.exec(entry);
-    if (!match || !/\brel\s*=\s*"?next"?/i.test(match[2])) continue;
+  // matchAll on <url>; params, not a split on commas: a URL may contain commas (fields=id,summary).
+  for (const match of header.matchAll(/<([^>]*)>\s*;([^<]*)/g)) {
+    if (!/\brel\s*=\s*"?next"?(?=[\s";,]|$)/i.test(match[2])) continue;
     try {
-      const page = new URL(match[1]).searchParams.get("page");
+      // Base only makes a relative URL parseable; the page parameter is all we read.
+      const page = new URL(match[1], "http://placeholder").searchParams.get("page");
       if (page !== null && /^\d+$/.test(page)) {
         return { hasMore: true, nextPage: Number(page) };
       }
@@ -147,6 +148,9 @@ export class CwManageClient {
       params?: Record<string, string | number | undefined>;
     },
   ): Promise<T> {
+    // Cleared first so a failed call never leaves a previous call's paging behind.
+    const store = requestContext.getStore();
+    if (store) store.paging = undefined;
     // Re-checked per request so a hostname re-pointed after the last call is caught.
     // Known gap (documented, not closed): DNS can change between this lookup and
     // the connection. Closing it needs a lookup that pins the resolved address on
@@ -221,7 +225,6 @@ export class CwManageClient {
 
     // Best-effort: with no request store (stdio mode) there is nowhere to record it.
     // headers is optional-chained because a test double may omit it.
-    const store = requestContext.getStore();
     if (store) {
       store.paging =
         response.status === 204
