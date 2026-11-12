@@ -13,13 +13,14 @@ async function assertProductOnOpportunity(
   client: CwManageClient,
   opportunityId: number,
   productId: number,
-): Promise<void> {
+): Promise<unknown> {
   const product = (await client.get(`/procurement/products/${productId}`)) as
     | { opportunity?: { id?: number } }
     | undefined;
   if (product?.opportunity?.id !== opportunityId) {
     throw new Error(`Product ${productId} is not on opportunity ${opportunityId}`);
   }
+  return product;
 }
 
 export function registerOpportunityTools(server: McpServer, client: CwManageClient) {
@@ -368,8 +369,7 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
       productId: z.number().describe("Opportunity product ID"),
     },
     async ({ opportunityId, productId }) => {
-      await assertProductOnOpportunity(client, opportunityId, productId);
-      const result = await client.get(`/procurement/products/${productId}`);
+      const result = await assertProductOnOpportunity(client, opportunityId, productId);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
