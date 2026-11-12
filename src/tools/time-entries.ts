@@ -204,9 +204,11 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
         entityId: 0,
         userIntent: args.user_intent,
         userQuote: args.user_quote,
-        ...(args.memberId !== undefined && resolvedMemberId !== undefined && args.memberId !== resolvedMemberId
-          ? { operations: { memberId: args.memberId, resolvedMemberId } }
-          : {}),
+        operations: {
+          memberId,
+          memberSource: args.memberId !== undefined ? "explicit" : "resolved",
+          resolvedMemberId: resolvedMemberId ?? null,
+        },
       });
       const body: Record<string, unknown> = {
         chargeToId: args.chargeToId,

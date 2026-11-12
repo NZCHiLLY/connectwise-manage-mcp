@@ -81,6 +81,45 @@ describe("cw_create_time_entry attribution", () => {
     );
   });
 
+  it("audits a resolved member with its source", async () => {
+    resolve.mockResolvedValue(154);
+    await getHandler(server, "cw_create_time_entry")(ENTRY, {});
+    expect(auditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        operations: { memberId: 154, memberSource: "resolved", resolvedMemberId: 154 },
+      }),
+    );
+  });
+
+  it("audits an explicit member that matches the resolved one as explicit", async () => {
+    resolve.mockResolvedValue(154);
+    await getHandler(server, "cw_create_time_entry")({ ...ENTRY, memberId: 154 }, {});
+    expect(auditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        operations: { memberId: 154, memberSource: "explicit", resolvedMemberId: 154 },
+      }),
+    );
+  });
+
+  it("audits an explicit member with no resolution as explicit and null resolved", async () => {
+    resolve.mockResolvedValue(undefined);
+    await getHandler(server, "cw_create_time_entry")({ ...ENTRY, memberId: 160 }, {});
+    expect(auditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        operations: { memberId: 160, memberSource: "explicit", resolvedMemberId: null },
+      }),
+    );
+  });
+
+  it("looks up the default work role of the resolved member", async () => {
+    resolve.mockResolvedValue(154);
+    const get = mockClient.get as unknown as ReturnType<typeof vi.fn>;
+    get.mockResolvedValueOnce({ id: 154, defaultWorkRole: { id: 9 } });
+    await getHandler(server, "cw_create_time_entry")(ENTRY, {});
+    expect(get).toHaveBeenCalledWith("/system/members/154", expect.anything());
+    expect(postedBody().workRole).toStrictEqual({ id: 9 });
+  });
+
   it("static caller without memberId fails", async () => {
     resolve.mockResolvedValue(undefined);
     await expect(getHandler(server, "cw_create_time_entry")(ENTRY, {})).rejects.toThrow(
@@ -111,6 +150,48 @@ describe("cw_add_ticket_note attribution", () => {
     const body = postedBody();
     expect(body.contact).toStrictEqual({ id: 77 });
     expect(body).not.toHaveProperty("member");
+  });
+
+  it("audits a resolved note author", async () => {
+    resolve.mockResolvedValue(154);
+    await getHandler(server, "cw_add_ticket_note")(NOTE, {});
+    expect(auditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tool: "cw_add_ticket_note",
+        operations: { memberId: 154, memberSource: "resolved", resolvedMemberId: 154 },
+      }),
+    );
+  });
+
+  it("audits an explicit note member", async () => {
+    resolve.mockResolvedValue(154);
+    await getHandler(server, "cw_add_ticket_note")({ ...NOTE, memberId: 160 }, {});
+    expect(auditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        operations: { memberId: 160, memberSource: "explicit", resolvedMemberId: null },
+      }),
+    );
+  });
+
+  it("audits a contact note with a null member", async () => {
+    resolve.mockResolvedValue(154);
+    await getHandler(server, "cw_add_ticket_note")({ ...NOTE, contactId: 77 }, {});
+    expect(auditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        operations: { memberId: null, memberSource: "contact", resolvedMemberId: null },
+      }),
+    );
+  });
+
+  it("audits a static note with no member as none", async () => {
+    caller.mockReturnValue({ upn: "static", oid: "static" });
+    resolve.mockResolvedValue(undefined);
+    await getHandler(server, "cw_add_ticket_note")(NOTE, {});
+    expect(auditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        operations: { memberId: null, memberSource: "none", resolvedMemberId: null },
+      }),
+    );
   });
 
   it("a signed-in caller who does not resolve is refused before any audit or write", async () => {
