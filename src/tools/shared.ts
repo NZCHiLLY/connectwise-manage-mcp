@@ -82,5 +82,8 @@ export function normaliseIdArgs(
   if (value === undefined) {
     throw new Error(`${toolName}: ${canonical} is required (${alias} is accepted as an alias)`);
   }
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new Error(`${toolName}: ${canonical} must be a positive integer`);
+  }
   return value;
 }

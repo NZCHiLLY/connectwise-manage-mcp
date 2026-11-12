@@ -70,4 +70,24 @@ describe("id parameters", () => {
     await call("cw_get_agreement", { id: 5, agreementId: 5 });
     expect(get).toHaveBeenCalledTimes(1);
   });
+
+  it("rejects zero, negative and fractional ids without calling the client", async () => {
+    const tool = getTool(server, "cw_get_ticket");
+    for (const id of [0, -5, 1.5]) {
+      await expect(tool.handler({ id }, {})).rejects.toThrow(
+        "cw_get_ticket: id must be a positive integer",
+      );
+    }
+    expect(get).not.toHaveBeenCalled();
+  });
+
+  it("an empty string id coerces to 0 and is rejected; a non-numeric one fails the schema", async () => {
+    await expect(call("cw_get_ticket", { id: "" })).rejects.toThrow(
+      "cw_get_ticket: id must be a positive integer",
+    );
+    await expect(
+      getTool(server, "cw_get_ticket").inputSchema.parseAsync({ id: "abc" }),
+    ).rejects.toThrow();
+    expect(get).not.toHaveBeenCalled();
+  });
 });
