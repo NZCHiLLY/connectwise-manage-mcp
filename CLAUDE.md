@@ -76,6 +76,28 @@ The 70-tool Copilot Studio cap applies only to the **domain** profiles. No Copil
 agent binds to `/mcp/l1|l2|l3` (check `copilot-agents/agents/*.yaml`) — the role
 tiers are served to claude.ai connectors, where L1 and L3 both run at 72.
 
+## Output shaping
+
+Large ConnectWise results overflow the claude.ai client, which refuses a tool result near 50,000 characters. Shaped profiles keep every result under a 40,000-character budget. The logic is in `src/tools/shaping.ts`, wired up in `src/tools/profiles.ts`.
+
+**Which endpoints are shaped.** `l1`, `l2`, `l3`, `opportunities`, `sales` and `pricing` (`SHAPED_PROFILES_DEFAULT`). `MCP_SHAPED_PROFILES` is a comma list that replaces this default when set, even to an empty string. The `full` profile, an unset profile and every other domain profile stay raw and byte-identical to before. The cockpit reads the untiered `/mcp` endpoint and depends on that. The Copilot agents bound to the `opportunities` and `sales` domain profiles now get shaped output.
+
+**What shaping does.**
+- Drops nulls, empty strings, empty arrays and empty objects. `0`, `false` and `"0"` are kept.
+- Drops `_info` hrefs and nested objects. `_info` keeps its scalar date and user fields (`dateEntered`, `enteredBy`, `lastUpdated`, `updatedBy`), because notes are filtered on `_info/dateEntered` and ticket age is read from it.
+- Strips the Tomizone email disclaimer, the external sender banner and inline signature images from `text` and `notes` fields.
+- Caps each `text` and `notes` value at `maxTextChars` (default 2000), then appends a marker with the number of characters cut.
+- Clamps `pageSize` to 100.
+
+**Envelope.** An array result becomes `{ items, returned, hasMore, nextPage, truncated }`. `nextPage` comes from the ConnectWise `Link` header (`parseLinkHeader` in `src/api-client.ts`) and is absent when there is no next page. When the budget forces rows to be dropped, `truncated` is true and `omitted`, `pageTotal` and a `hint` are added. Rows are dropped from the end, the first row is always kept, and `hasMore` is forced true. Omitted rows are not on `nextPage`. The hint tells the caller to re-request the same page with a smaller `pageSize` or fewer `fields`. A single object over budget after text capping is returned as is.
+
+**Tool arguments.**
+- `fields` is injected on every read tool (`cw_search_*`, `cw_list_*`, `cw_get_*`, `cw_count_*`). It is comma-separated, with `/` for nesting, for example `id,summary,company/name`. It also works on raw profiles, where it projects and does nothing else.
+- `maxTextChars` is injected on note tools. It applies only where output is shaped.
+- `conditions` and `orderBy` carry help text describing the operator, string and date syntax.
+
+**Query argument repair.** On every profile, `conditions`, `childConditions`, `customFieldConditions` and `orderBy` are repaired outside quoted strings. HTML entities for angle brackets, quotes, apostrophes and ampersands are decoded. On ticket note tools, `dateCreated`, `createdDate` and `dateEntered` become `_info/dateEntered`. On opportunity tools, `closedFlag = false` becomes `closedDate = null` and `closedFlag = true` becomes `closedDate != null`.
+
 ## Docker
 
 Credentials are Docker secrets (files), not env vars:
