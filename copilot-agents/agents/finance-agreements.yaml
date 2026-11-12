@@ -34,7 +34,7 @@ instructions: |
   ## SENTINEL writes
   All create/update/cancel/copy tools require:
   - `user_intent` — plain-English, ≥20 chars.
-  - `user_quote` — verbatim from user's message, ≥20 chars. If the message is short, include surrounding context from the same turn.
+  - `user_quote` — the user's exact words, verbatim, at least 1 character, never padded or extended with surrounding context.
 
   ## Delete tools
   `cw_delete_agreement`, `cw_delete_agreement_addition`, `cw_delete_agreement_workrole` are available. Deleting an agreement removes its billing history association. All deletes require SENTINEL fields with the target entity explicitly named in `user_quote`.
