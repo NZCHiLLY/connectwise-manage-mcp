@@ -5,9 +5,9 @@ import type { CwManageClient } from "../api-client.js";
 
 const UPN = "jayson.chilman@tomizone.com";
 
-function fakeClient(result: unknown) {
+function fakeClient(result: unknown, instance = { companyId: "tomizone", apiBase: "https://a/v4_6_release/apis/3.0" }) {
   const get = vi.fn().mockResolvedValue(result);
-  return { client: { get } as unknown as CwManageClient, get };
+  return { client: { get, ...instance } as unknown as CwManageClient, get };
 }
 
 function asCaller<T>(identity: { upn: string; oid: string } | undefined, fn: () => Promise<T>): Promise<T> {
@@ -77,5 +77,38 @@ describe("resolveCallerMemberId", () => {
     await run();
     await run();
     expect(get).toHaveBeenCalledTimes(2);
+  });
+
+  it("same upn on a different company or base is looked up again", async () => {
+    const a = fakeClient([{ id: 154 }]);
+    const b = fakeClient([{ id: 7 }], { companyId: "other", apiBase: "https://a/v4_6_release/apis/3.0" });
+    const c = fakeClient([{ id: 9 }], { companyId: "tomizone", apiBase: "https://b/v4_6_release/apis/3.0" });
+    const run = (client: CwManageClient) => asCaller({ upn: UPN, oid: "o1" }, () => resolveCallerMemberId(client));
+    expect(await run(a.client)).toBe(154);
+    expect(await run(b.client)).toBe(7);
+    expect(await run(c.client)).toBe(9);
+    expect(a.get).toHaveBeenCalledTimes(1);
+    expect(b.get).toHaveBeenCalledTimes(1);
+    expect(c.get).toHaveBeenCalledTimes(1);
+  });
+
+  it("mixed-case upns share one cache entry", async () => {
+    const { client, get } = fakeClient([{ id: 154 }]);
+    await asCaller({ upn: UPN, oid: "o1" }, () => resolveCallerMemberId(client));
+    const id = await asCaller({ upn: UPN.toUpperCase(), oid: "o1" }, () => resolveCallerMemberId(client));
+    expect(id).toBe(154);
+    expect(get).toHaveBeenCalledTimes(1);
+  });
+
+  it("a failed lookup is unresolved, logged without the upn, and retried", async () => {
+    const get = vi.fn().mockRejectedValueOnce(new Error("403 Forbidden")).mockResolvedValue([{ id: 154 }]);
+    const client = { get, companyId: "tomizone", apiBase: "https://a/v4_6_release/apis/3.0" } as unknown as CwManageClient;
+    const spy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const run = () => asCaller({ upn: UPN, oid: "o1" }, () => resolveCallerMemberId(client));
+    expect(await run()).toBeUndefined();
+    expect(spy).toHaveBeenCalledWith("[attribution] member lookup failed: 403 Forbidden");
+    expect(await run()).toBe(154);
+    expect(get).toHaveBeenCalledTimes(2);
+    spy.mockRestore();
   });
 });
