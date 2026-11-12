@@ -248,7 +248,8 @@ export function normaliseQueryArgs(
 ): Record<string, unknown> {
   const out = { ...args };
   const isNote = /ticket_note/.test(toolName);
-  const isOpportunity = /opportunit/.test(toolName);
+  // Only the opportunity record lacks closedFlag. Opportunity statuses have a real one.
+  const isOpportunity = /^cw_(search|count)_opportunities$/.test(toolName);
   for (const key of QUERY_KEYS) {
     const v = out[key];
     if (typeof v !== "string") continue;
