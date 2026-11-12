@@ -7,6 +7,7 @@
  * tools/call end to end over the SDK's in-memory transport.
  */
 
+import { readFileSync } from "node:fs";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -229,6 +230,50 @@ describe("shaping wired into applyToolProfile", () => {
       await call(server, "cw_get_ticket_note", { id: 1, fields: "id", maxTextChars: 5 });
       expect(seen).toStrictEqual({ id: 1 });
     }
+  });
+});
+
+describe("recorded worst case", () => {
+  // Synthetic, built by scripts/make-oversize-notes-fixture.mjs from the shape of a real allNotes page.
+  const FIXTURE = JSON.parse(
+    readFileSync(new URL("./fixtures/oversize-notes.json", import.meta.url), "utf8"),
+  ) as { id: number; text: string; _info: { dateEntered: string } }[];
+
+  it("a 50-note page that overflowed in October fits after shaping", async () => {
+    expect(FIXTURE).toHaveLength(50);
+    expect(JSON.stringify(FIXTURE, null, 2).length).toBeGreaterThan(80_000);
+    mockClient.get.mockResolvedValue(FIXTURE);
+    const res = await call(build("l1"), "cw_get_ticket_notes", { ticketId: 100000, pageSize: 50 });
+    const text = res.content[0].text;
+    expect(text.length).toBeLessThan(40_000);
+
+    const out = JSON.parse(text) as {
+      items: { id: number; text: string; _info: { dateEntered: string } }[];
+      returned: number;
+      truncated: boolean;
+      omitted?: number;
+      pageTotal?: number;
+    };
+    expect(out.returned).toBe(out.items.length);
+    if (out.truncated) {
+      expect(out.pageTotal).toBe(50);
+      expect(out.omitted).toBe(50 - out.returned);
+    } else {
+      expect(out.returned).toBe(50);
+      expect(out.omitted).toBeUndefined();
+    }
+
+    const marker = /\[\.\.\. \d+ more characters\]$/;
+    out.items.forEach((item, i) => {
+      expect(item.id).toBe(FIXTURE[i].id);
+      expect(item._info.dateEntered).toBe(FIXTURE[i]._info.dateEntered);
+      expect(item.text).not.toContain("This message and its attachments");
+      expect(item.text).not.toContain("THIS EMAIL IS FROM AN EXTERNAL SENDER");
+      expect(item.text).not.toContain("inlineimages");
+      const body = item.text.replace(marker, "");
+      expect(body.length).toBeLessThanOrEqual(2000);
+      if (marker.test(item.text)) expect(body.length).toBe(2000);
+    });
   });
 });
 
