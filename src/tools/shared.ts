@@ -61,3 +61,26 @@ export const sentinelParams = {
       "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
   ),
 };
+
+/**
+ * Callers mix up the id parameter name between sibling tools (id vs ticketId,
+ * id vs agreementId). The schema accepts both and this picks whichever was sent.
+ * It must run in the handler: the SDK strips unknown keys before it is called.
+ */
+export function normaliseIdArgs(
+  args: Record<string, unknown>,
+  canonical: string,
+  alias: string,
+  toolName: string,
+): number {
+  const a = args[canonical] as number | undefined;
+  const b = args[alias] as number | undefined;
+  if (a !== undefined && b !== undefined && a !== b) {
+    throw new Error(`${toolName}: ${canonical} and ${alias} disagree`);
+  }
+  const value = a ?? b;
+  if (value === undefined) {
+    throw new Error(`${toolName}: ${canonical} is required (${alias} is accepted as an alias)`);
+  }
+  return value;
+}

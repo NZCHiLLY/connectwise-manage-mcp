@@ -2,7 +2,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
 import { auditLog } from "../audit/log.js";
-import { patchOp } from "./shared.js";
+import { patchOp, normaliseIdArgs } from "./shared.js";
 
 export function registerTicketTools(server: McpServer, client: CwManageClient) {
   // ── Core Ticket CRUD ─────────────────────────────────────────────────────
@@ -37,11 +37,13 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     "cw_get_ticket",
     "Get a single service ticket by ID.",
     {
-      id: z.number().describe("Ticket ID"),
+      id: z.coerce.number().optional().describe("Ticket ID (alias: ticketId)"),
+      ticketId: z.coerce.number().optional().describe("Ticket ID (alias: id)"),
       fields: z.string().optional().describe("Comma-separated fields to return"),
     },
-    async ({ id, fields }) => {
-      const result = await client.get(`/service/tickets/${id}`, { fields });
+    async (args) => {
+      const id = normaliseIdArgs(args, "id", "ticketId", "cw_get_ticket");
+      const result = await client.get(`/service/tickets/${id}`, { fields: args.fields });
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
@@ -388,13 +390,16 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     "cw_get_ticket_notes",
     "Get notes on a service ticket. Tries /allNotes first (includes child-ticket notes); falls back to /notes on older CWM versions. Supports conditions and orderBy for filtering.",
     {
-      ticketId: z.number().describe("Ticket ID"),
+      ticketId: z.coerce.number().optional().describe("Ticket ID (alias: id)"),
+      id: z.coerce.number().optional().describe("Ticket ID (alias: ticketId)"),
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       orderBy: z.string().optional().describe("Field to order by"),
       page: z.number().optional().describe("Page number (default: 1)"),
       pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
-    async ({ ticketId, conditions, orderBy, page, pageSize }) => {
+    async (args) => {
+      const { conditions, orderBy, page, pageSize } = args;
+      const ticketId = normaliseIdArgs(args, "ticketId", "id", "cw_get_ticket_notes");
       try {
         const result = await client.get(`/service/tickets/${ticketId}/allNotes`, {
           conditions,
