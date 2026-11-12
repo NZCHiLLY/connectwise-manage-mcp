@@ -51,6 +51,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { getConfig, CwManageClient } from "./api-client.js";
 import { resolveGatewayConfig, type CwManageConfig } from "./mcp-server.js";
+import { validateGatewayBaseUrl } from "./url-guard.js";
 import { getEntraConfig, createJwksClient, validateToken } from "./auth/middleware.js";
 import {
   handleProtectedResource,
@@ -83,6 +84,7 @@ import { registerServiceTools }       from "./tools/service.js";
 import { registerSystemTools }        from "./tools/system.js";
 import { registerTicketTools }        from "./tools/tickets.js";
 import { registerTimeEntryTools }     from "./tools/time-entries.js";
+import { isValidHostHeader, parseRequestTarget } from "./request-target.js";
 
 // ---------------------------------------------------------------------------
 // Security headers applied to every HTTP response
@@ -94,30 +96,6 @@ function applySecurityHeaders(res: ServerResponse): void {
   res.setHeader("Referrer-Policy", "no-referrer");
   res.setHeader("X-DNS-Prefetch-Control", "off");
   res.setHeader("Content-Security-Policy", "default-src 'none'");
-}
-
-// ---------------------------------------------------------------------------
-// Gateway mode: X-CW-URL validation
-// Prevents SSRF by rejecting non-HTTPS URLs and private/loopback addresses.
-// ---------------------------------------------------------------------------
-
-const PRIVATE_ADDR =
-  /^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|127\.|169\.254\.|0\.0\.0\.0$|::1$|fc00:|fd)/i;
-
-function validateCwBaseUrl(rawUrl: string): string {
-  let parsed: URL;
-  try {
-    parsed = new URL(rawUrl);
-  } catch {
-    throw new Error("X-CW-URL is not a valid URL");
-  }
-  if (parsed.protocol !== "https:") {
-    throw new Error("X-CW-URL must use HTTPS");
-  }
-  if (PRIVATE_ADDR.test(parsed.hostname)) {
-    throw new Error("X-CW-URL must not target a private or loopback address");
-  }
-  return parsed.origin;
 }
 
 // ---------------------------------------------------------------------------
@@ -236,10 +214,17 @@ async function startHttpTransport(): Promise<void> {
   httpServer = createServer((req: IncomingMessage, res: ServerResponse) => {
     requestContext.run({ correlationId: newCorrelationId() }, () => {
     applySecurityHeaders(res);
-    const url = new URL(
-      req.url || "/",
-      `http://${req.headers.host || "localhost"}`,
-    );
+    // The request target is parsed against a fixed base, never against the
+    // client-supplied Host header. A malformed Host or target is answered
+    // with 400: it must not be able to throw here and end the process.
+    const url = isValidHostHeader(req.headers.host)
+      ? parseRequestTarget(req.url)
+      : null;
+    if (!url) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "invalid_request" }));
+      return;
+    }
 
     // ------------------------------------------------------------------
     // OAuth discovery + proxy endpoints (always available when OAuth on)
@@ -408,11 +393,14 @@ async function startHttpTransport(): Promise<void> {
             res.end(JSON.stringify({ error: "Missing credentials", message: error }));
             return;
           }
-          // Validate CW_URL via the same SSRF guard used before
+          // X-CW-URL is caller-controlled. Check it here so a bad URL gets a 400
+          // up front; the client runs the same guard again before every request
+          // (src/url-guard.ts), so a hostname re-pointed mid-session is caught too.
+          // The base is cut to its origin, as before, and the API path re-added.
           const rawUrl = (req.headers as Record<string, string | undefined>)["x-cw-url"];
           if (rawUrl) {
             try {
-              config!.baseUrl = validateCwBaseUrl(rawUrl);
+              config!.baseUrl = await validateGatewayBaseUrl(rawUrl);
             } catch (err) {
               res.writeHead(400, { "Content-Type": "application/json" });
               res.end(JSON.stringify({ error: "invalid_url", message: (err as Error).message }));
