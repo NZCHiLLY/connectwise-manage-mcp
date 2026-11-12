@@ -4,6 +4,7 @@ import {
   stripBoilerplate,
   projectFields,
   shapeToolText,
+  normaliseQueryArgs,
 } from "../shaping.js";
 
 const DISCLAIMER =
@@ -97,5 +98,61 @@ describe("shapeToolText", () => {
       budget: 40000,
     });
     expect(JSON.parse(out).items).toEqual([{ id: 1, company: { name: "A" } }]);
+  });
+});
+
+describe("normaliseQueryArgs", () => {
+  it("decodes HTML entities", () => {
+    expect(
+      normaliseQueryArgs("cw_search_tickets", { conditions: "id &gt; 5 and id &lt;= 9 &amp;&amp; x" }),
+    ).toEqual({ conditions: "id > 5 and id <= 9 && x" });
+  });
+
+  it("aliases note dates", () => {
+    expect(
+      normaliseQueryArgs("cw_get_ticket_notes", {
+        orderBy: "dateCreated desc",
+        conditions: "dateCreated > [2026-11-01T00:00:00Z]",
+      }),
+    ).toEqual({
+      orderBy: "_info/dateEntered desc",
+      conditions: "_info/dateEntered > [2026-11-01T00:00:00Z]",
+    });
+  });
+
+  it("does not double-prefix _info/dateEntered", () => {
+    expect(
+      normaliseQueryArgs("cw_get_ticket_notes", { orderBy: "_info/dateEntered desc" }),
+    ).toEqual({ orderBy: "_info/dateEntered desc" });
+    expect(
+      normaliseQueryArgs("cw_get_ticket_notes", { orderBy: "dateEntered desc" }),
+    ).toEqual({ orderBy: "_info/dateEntered desc" });
+  });
+
+  it("aliases opportunity closedFlag", () => {
+    expect(
+      normaliseQueryArgs("cw_search_opportunities", { conditions: "closedFlag = false" }),
+    ).toEqual({ conditions: "closedDate = null" });
+    expect(
+      normaliseQueryArgs("cw_search_opportunities", { conditions: "closedFlag=true" }),
+    ).toEqual({ conditions: "closedDate != null" });
+  });
+
+  it("leaves other tools alone", () => {
+    expect(
+      normaliseQueryArgs("cw_search_tickets", { conditions: "closedFlag = false" }),
+    ).toEqual({ conditions: "closedFlag = false" });
+  });
+
+  it("does not touch values inside quoted strings", () => {
+    expect(
+      normaliseQueryArgs("cw_get_ticket_notes", { conditions: 'summary contains "dateCreated"' }),
+    ).toEqual({ conditions: 'summary contains "dateCreated"' });
+  });
+
+  it("touches only the four query arguments", () => {
+    expect(
+      normaliseQueryArgs("cw_get_ticket_notes", { text: "dateCreated &amp;", pageSize: 5 }),
+    ).toEqual({ text: "dateCreated &amp;", pageSize: 5 });
   });
 });
