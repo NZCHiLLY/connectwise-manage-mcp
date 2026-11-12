@@ -258,8 +258,10 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
       ),
     },
     async ({ id, patch, user_intent, user_quote }) => {
-      await auditLog({ tool: "cw_update_time_entry", entityType: "time_entry", entityId: id, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const current = (await client.get(`/time/entries/${id}`)) as Record<string, unknown>;
+      const { _info: _ignored, ...preImage } = current;
+      void _ignored;
+      await auditLog({ tool: "cw_update_time_entry", entityType: "time_entry", entityId: id, userIntent: user_intent, userQuote: user_quote, operations: { patch, preImage } as never });
       const next = applyPatch(current, patch);
       delete next._info;
       const result = await client.put(`/time/entries/${id}`, next);
