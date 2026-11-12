@@ -10,7 +10,7 @@ export interface ShapeOptions {
 const TEXT_KEYS = new Set(["text", "notes"]);
 
 const DISCLAIMER_RE =
-  /This message and its attachments contain confidential information[\s\S]*?transmitted by this email\.?/g;
+  /This message and its attachments contain confidential information(?:(?!This message and its attachments)[\s\S]){0,600}?transmitted by this email\.?/g;
 const EXTERNAL_BANNER_RE =
   /THIS EMAIL IS FROM AN EXTERNAL SENDER\.\s*PLEASE BE CAUTIOUS OF ATTACHMENTS AND LINKS\.?/g;
 const INLINE_IMAGE_RE = /!\[(?:\\.|[^\]\\])*\]\([^)]*inlineimages[^)]*\)/g;
@@ -31,6 +31,18 @@ export function compactValue(v: unknown): unknown {
   return compactInner(v, undefined);
 }
 
+// _info keeps its scalar dates and authors (dateEntered, enteredBy, lastUpdated, updatedBy):
+// the model filters notes on _info/dateEntered and needs ticket age. Links and nested objects go.
+function compactInfo(v: unknown): unknown {
+  if (!isPlainObject(v)) return undefined;
+  const out: Record<string, unknown> = {};
+  for (const [k, val] of Object.entries(v)) {
+    if (k.endsWith("_href") || isEmptyValue(val) || typeof val === "object") continue;
+    out[k] = val;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
 function compactInner(v: unknown, key: string | undefined): unknown {
   if (isEmptyValue(v)) return undefined;
   if (Array.isArray(v)) {
@@ -48,8 +60,7 @@ function compactInner(v: unknown, key: string | undefined): unknown {
   if (isPlainObject(v)) {
     const out: Record<string, unknown> = {};
     for (const [k, val] of Object.entries(v)) {
-      if (k === "_info") continue;
-      const c = compactInner(val, k);
+      const c = k === "_info" ? compactInfo(val) : compactInner(val, k);
       if (c !== undefined) out[k] = c;
     }
     return Object.keys(out).length > 0 ? out : undefined;
@@ -120,17 +131,20 @@ export function projectFields(v: unknown, fields: string[]): unknown {
   return out;
 }
 
-function wrapArray(items: unknown[], opts: ShapeOptions, truncated: boolean): string {
+function wrapArray(items: unknown[], opts: ShapeOptions, pageTotal?: number): string {
+  const truncated = pageTotal !== undefined && pageTotal > items.length;
   const wrapper: Record<string, unknown> = {
     items,
     returned: items.length,
-    hasMore: opts.paging?.hasMore ?? false,
+    // Dropped rows are not on nextPage, so a truncated page always has more to see.
+    hasMore: truncated ? true : (opts.paging?.hasMore ?? false),
   };
   if (opts.paging?.nextPage !== undefined) wrapper.nextPage = opts.paging.nextPage;
   wrapper.truncated = truncated;
   if (truncated) {
-    wrapper.hint =
-      "Output was cut to fit the size limit. Request fewer fields with fields= (for example fields=id,summary), use a smaller pageSize, or fetch later records with page=.";
+    wrapper.omitted = pageTotal - items.length;
+    wrapper.pageTotal = pageTotal;
+    wrapper.hint = `${pageTotal - items.length} of ${pageTotal} rows on this page were omitted to fit the size limit and are NOT on nextPage. Re-request this same page with pageSize=${items.length} or fewer fields= to see them.`;
   }
   return JSON.stringify(wrapper);
 }
@@ -157,18 +171,20 @@ export function shapeToolText(text: string, opts: ShapeOptions): string {
 
   if (!Array.isArray(shaped)) return JSON.stringify(shaped);
 
-  const full = wrapArray(shaped, opts, false);
+  const total = shaped.length;
+  const full = wrapArray(shaped, opts);
   if (full.length <= opts.budget) return full;
 
-  // Largest prefix that fits. Length is monotonic in the item count, so bisect.
-  let lo = 0;
-  let hi = shaped.length - 1;
+  // Largest prefix that fits, always keeping the first item. Length is monotonic in the
+  // item count, so bisect.
+  let lo = 1;
+  let hi = total - 1;
   while (lo < hi) {
     const mid = Math.ceil((lo + hi) / 2);
-    if (wrapArray(shaped.slice(0, mid), opts, true).length <= opts.budget) lo = mid;
+    if (wrapArray(shaped.slice(0, mid), opts, total).length <= opts.budget) lo = mid;
     else hi = mid - 1;
   }
-  return wrapArray(shaped.slice(0, lo), opts, true);
+  return wrapArray(shaped.slice(0, lo), opts, total);
 }
 
 const QUERY_KEYS = ["conditions", "childConditions", "customFieldConditions", "orderBy"] as const;
@@ -186,14 +202,14 @@ function decodeEntities(s: string): string {
 
 function aliasNoteDates(s: string): string {
   return s
-    .replace(/\bdateCreated\b|\bcreatedDate\b/g, "_info/dateEntered")
+    .replace(/(?<![\w/])(?:dateCreated|createdDate)\b/g, "_info/dateEntered")
     .replace(/(?<![\w/])dateEntered\b/g, "_info/dateEntered");
 }
 
 function aliasClosedFlag(s: string): string {
   return s
-    .replace(/\bclosedFlag\s*=\s*false\b/gi, "closedDate = null")
-    .replace(/\bclosedFlag\s*=\s*true\b/gi, "closedDate != null");
+    .replace(/(?<![\w/])closedFlag\s*=\s*false\b/gi, "closedDate = null")
+    .replace(/(?<![\w/])closedFlag\s*=\s*true\b/gi, "closedDate != null");
 }
 
 /** Applies `fn` to the parts of a query outside quoted strings only. */
