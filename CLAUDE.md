@@ -94,8 +94,14 @@ docker compose -f docker-compose.caddy.yml up -d     # with TLS termination
 ## Deployment
 
 ACA FQDN: `YOUR-ACA-APP.YOUR-ENV-ID.australiaeast.azurecontainerapps.io`
-Deploy: through the pipeline only, by merging to main (`.github/workflows/release.yml`). Do not deploy by hand: a manual `az containerapp update` can race the pipeline and leave an older image live. The deploy job reads the running image back and checks `/health` `build.sha` against the commit.
+Deploys go through the pipeline: a merge to main. Break-glass only, when GitHub Actions is unavailable and no release.yml run is queued or running:
 
+```powershell
+az acr build -r acrcwmmcp -t connectwise-manage-mcp:manual-<sha7>-<yyyymmddHHMM> --build-arg COMMIT_SHA=<full sha> .
+az containerapp update -n connectwise-manage-mcp -g rg-cwm-mcp --image acrcwmmcp.azurecr.io/connectwise-manage-mcp:<that tag> --set-env-vars IMAGE_VERSION=<that tag>
+```
+
+Then confirm `/health` shows that `build.sha` and `build.image`. Never deploy `:latest`. The next merge to main supersedes a break-glass deploy.
 
 ## Gotchas
 
