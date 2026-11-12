@@ -15,6 +15,7 @@ import { registerServiceTools } from "../service.js";
 import { registerTimeEntryTools } from "../time-entries.js";
 import { registerSystemTools } from "../system.js";
 import { registerOpportunityTools } from "../opportunities.js";
+import { auditLog } from "../../audit/log.js";
 import { applyPatch } from "../shared.js";
 import { registerSalesTools, QUOTES_UNAVAILABLE_MESSAGE } from "../sales.js";
 
@@ -596,6 +597,47 @@ describe("applyPatch", () => {
       { op: "remove", path: "/d" },
     ]);
     expect(out).toEqual({ a: { c: 2 } });
+  });
+});
+
+describe("applyPatch safety", () => {
+  it("applyPatch rejects a replace with no value", () => {
+    expect(() => applyPatch({ a: 1 }, [{ op: "replace", path: "/a" }])).toThrow(
+      "Patch op replace on /a needs a value",
+    );
+  });
+
+  it("applyPatch rejects __proto__", () => {
+    for (const path of ["/__proto__/x", "/a/constructor/x", "/prototype"]) {
+      expect(() => applyPatch({}, [{ op: "add", path, value: 1 }])).toThrow(
+        `Patch path ${path} is not allowed`,
+      );
+    }
+    expect(({} as Record<string, unknown>).x).toBeUndefined();
+  });
+
+  it("applyPatch rejects a primitive intermediate", () => {
+    expect(() =>
+      applyPatch({ timeStart: "2026-11-12T00:00:00Z" }, [{ op: "replace", path: "/timeStart/x", value: 1 }]),
+    ).toThrow("Patch path /timeStart/x walks into a non-object");
+  });
+});
+
+describe("cw_update_time_entry audit", () => {
+  it("cw_update_time_entry audits the pre-image", async () => {
+    (mockClient.get as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      id: 7,
+      notes: "a",
+      _info: { x: 1 },
+    });
+    const patch = [{ op: "replace", path: "/notes", value: "b" }];
+    await getTool(server, "cw_update_time_entry").handler({ id: 7, patch, ...SENTINEL }, {});
+    expect(auditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tool: "cw_update_time_entry",
+        operations: { patch, preImage: { id: 7, notes: "a" } },
+      }),
+    );
   });
 });
 

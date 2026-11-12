@@ -22,16 +22,24 @@ export function applyPatch(doc: Record<string, unknown>, ops: PatchOp[]): Record
   for (const { op, path, value } of ops) {
     const keys = path.split("/").filter((k) => k !== "");
     if (keys.length === 0) throw new Error(`applyPatch: empty path "${path}"`);
+    if (keys.some((k) => k === "__proto__" || k === "constructor" || k === "prototype")) {
+      throw new Error(`Patch path ${path} is not allowed`);
+    }
+    if (op !== "remove" && value === undefined) {
+      throw new Error(`Patch op ${op} on ${path} needs a value`);
+    }
     const last = keys[keys.length - 1];
     let node = out;
     for (const key of keys.slice(0, -1)) {
       const next = node[key];
-      if (next === undefined || next === null || typeof next !== "object") {
+      if (next === undefined || next === null) {
         if (op === "remove") {
           node = undefined as unknown as Record<string, unknown>;
           break;
         }
         node[key] = {};
+      } else if (typeof next !== "object" || Array.isArray(next)) {
+        throw new Error(`Patch path ${path} walks into a non-object`);
       }
       node = node[key] as Record<string, unknown>;
     }
