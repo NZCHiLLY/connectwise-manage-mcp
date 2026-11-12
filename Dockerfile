@@ -24,6 +24,10 @@ RUN npm run build
 # Production stage
 FROM node:22-alpine AS production
 
+# Re-declared: ARGs before a FROM do not carry into later stages
+ARG COMMIT_SHA="unknown"
+ARG BUILD_DATE="unknown"
+
 # Create a non-root user for security
 RUN addgroup -g 1001 -S cwmanage && \
     adduser -S cwmanage -u 1001 -G cwmanage
@@ -63,6 +67,10 @@ ENV MCP_TRANSPORT=http
 ENV MCP_HTTP_PORT=8080
 ENV MCP_HTTP_HOST=0.0.0.0
 ENV AUTH_MODE=env
+
+# Build identity, reported by /health and cw_test_connection
+ENV BUILD_SHA=${COMMIT_SHA}
+ENV BUILD_DATE=${BUILD_DATE}
 
 # Define volume for logs
 VOLUME ["/app/logs"]

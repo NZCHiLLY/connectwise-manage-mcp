@@ -94,15 +94,8 @@ docker compose -f docker-compose.caddy.yml up -d     # with TLS termination
 ## Deployment
 
 ACA FQDN: `YOUR-ACA-APP.YOUR-ENV-ID.australiaeast.azurecontainerapps.io`
-Deploy: `.\deploy-image-update.ps1` (requires local Docker). Without Docker, build in ACR:
+Deploy: through the pipeline only, by merging to main (`.github/workflows/release.yml`). Do not deploy by hand: a manual `az containerapp update` can race the pipeline and leave an older image live. The deploy job reads the running image back and checks `/health` `build.sha` against the commit.
 
-```powershell
-az acr build --registry acrcwmmcp --image connectwise-manage-mcp:latest .
-az containerapp update --name connectwise-manage-mcp --resource-group rg-cwm-mcp `
-  --image acrcwmmcp.azurecr.io/connectwise-manage-mcp:latest --revision-suffix <unique>
-```
-
-CI also builds to ACR on push to main.
 
 ## Gotchas
 
