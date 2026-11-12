@@ -4,6 +4,24 @@ import { CwManageClient } from "../api-client.js";
 import { auditLog } from "../audit/log.js";
 import { patchOp, sentinelParams } from "./shared.js";
 
+/**
+ * Opportunity products live at /procurement/products, which is keyed by product
+ * id alone. Check the product belongs to the opportunity the caller named, so a
+ * wrong pairing can never read, change or delete another opportunity's line.
+ */
+async function assertProductOnOpportunity(
+  client: CwManageClient,
+  opportunityId: number,
+  productId: number,
+): Promise<void> {
+  const product = (await client.get(`/procurement/products/${productId}`)) as
+    | { opportunity?: { id?: number } }
+    | undefined;
+  if (product?.opportunity?.id !== opportunityId) {
+    throw new Error(`Product ${productId} is not on opportunity ${opportunityId}`);
+  }
+}
+
 export function registerOpportunityTools(server: McpServer, client: CwManageClient) {
   // ── Opportunities ─────────────────────────────────────────────────────────────────
 
@@ -331,8 +349,10 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
       pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ opportunityId, conditions, page, pageSize }) => {
-      const result = await client.get(`/sales/opportunities/${opportunityId}/products`, {
-        conditions,
+      const result = await client.get("/procurement/products", {
+        conditions: conditions
+          ? `opportunity/id = ${opportunityId} and (${conditions})`
+          : `opportunity/id = ${opportunityId}`,
         page: page ?? 1,
         pageSize: pageSize ?? 25,
       });
@@ -348,7 +368,8 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
       productId: z.number().describe("Opportunity product ID"),
     },
     async ({ opportunityId, productId }) => {
-      const result = await client.get(`/sales/opportunities/${opportunityId}/products/${productId}`);
+      await assertProductOnOpportunity(client, opportunityId, productId);
+      const result = await client.get(`/procurement/products/${productId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
@@ -375,6 +396,7 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     async (args) => {
       await auditLog({ tool: "cw_create_opportunity_product", entityType: "opportunity_product", entityId: args.opportunityId, userIntent: args.user_intent, userQuote: args.user_quote });
       const body: Record<string, unknown> = {
+        opportunity: { id: args.opportunityId },
         catalogItem: { id: args.catalogItemId },
         quantity: args.quantity,
       };
@@ -388,7 +410,7 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
       if (args.dropshipFlag !== undefined) body.dropshipFlag = args.dropshipFlag;
       if (args.specialOrderFlag !== undefined) body.specialOrderFlag = args.specialOrderFlag;
       if (args.forecastDetailId !== undefined) body.forecastDetail = { id: args.forecastDetailId };
-      const result = await client.post(`/sales/opportunities/${args.opportunityId}/products`, body);
+      const result = await client.post("/procurement/products", body);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
@@ -404,7 +426,8 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     },
     async ({ opportunityId, productId, patch, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_update_opportunity_product", entityType: "opportunity_product", entityId: productId, userIntent: user_intent, userQuote: user_quote, operations: patch });
-      const result = await client.patch(`/sales/opportunities/${opportunityId}/products/${productId}`, patch);
+      await assertProductOnOpportunity(client, opportunityId, productId);
+      const result = await client.patch(`/procurement/products/${productId}`, patch);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
@@ -419,7 +442,8 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     },
     async ({ opportunityId, productId, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_delete_opportunity_product", entityType: "opportunity_product", entityId: productId, userIntent: user_intent, userQuote: user_quote });
-      const result = await client.request("DELETE", `/sales/opportunities/${opportunityId}/products/${productId}`);
+      await assertProductOnOpportunity(client, opportunityId, productId);
+      const result = await client.request("DELETE", `/procurement/products/${productId}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
@@ -603,7 +627,7 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
       pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
     async ({ conditions, page, pageSize }) => {
-      const result = await client.get("/sales/opportunities/notes/types", {
+      const result = await client.get("/company/noteTypes", {
         conditions,
         page: page ?? 1,
         pageSize: pageSize ?? 25,

@@ -14,6 +14,8 @@ import { registerTicketTools } from "../tickets.js";
 import { registerServiceTools } from "../service.js";
 import { registerTimeEntryTools } from "../time-entries.js";
 import { registerSystemTools } from "../system.js";
+import { registerOpportunityTools } from "../opportunities.js";
+import { registerSalesTools, QUOTES_UNAVAILABLE_MESSAGE } from "../sales.js";
 
 vi.mock("../../audit/log.js", () => ({
   auditLog: vi.fn().mockResolvedValue(undefined),
@@ -62,6 +64,8 @@ beforeEach(() => {
   registerServiceTools(server, mockClient);
   registerTimeEntryTools(server, mockClient);
   registerSystemTools(server, mockClient);
+  registerOpportunityTools(server, mockClient);
+  registerSalesTools(server, mockClient);
 });
 
 describe("work roles live under /time, not /finance", () => {
@@ -335,5 +339,150 @@ describe("report tools return rows, not a count", () => {
       pageSize: 25,
       orderBy: undefined,
     });
+  });
+});
+
+type MockFn = { mockResolvedValueOnce(v: unknown): void; mock: { calls: unknown[][] } };
+const getMock = () => mockClient.get as unknown as MockFn;
+
+describe("opportunity products live under /procurement/products", () => {
+  it("cw_list_opportunity_products filters procurement products by opportunity", async () => {
+    await getTool(server, "cw_list_opportunity_products").handler({ opportunityId: 2081 }, {});
+    expect(mockClient.get).toHaveBeenCalledWith("/procurement/products", {
+      conditions: "opportunity/id = 2081",
+      page: 1,
+      pageSize: 25,
+    });
+  });
+
+  it("ANDs caller conditions onto the opportunity filter", async () => {
+    await getTool(server, "cw_list_opportunity_products").handler(
+      { opportunityId: 2081, conditions: "cancelledFlag = false" },
+      {},
+    );
+    expect(mockClient.get).toHaveBeenCalledWith(
+      "/procurement/products",
+      expect.objectContaining({
+        conditions: "opportunity/id = 2081 and (cancelledFlag = false)",
+      }),
+    );
+  });
+
+  it("cw_get_opportunity_product GETs /procurement/products/{productId}", async () => {
+    // The ownership check and the read both hit the same path, so both mocked reads return the product.
+    getMock().mockResolvedValueOnce({ id: 95790, opportunity: { id: 2081 } });
+    await getTool(server, "cw_get_opportunity_product").handler(
+      { opportunityId: 2081, productId: 95790 },
+      {},
+    );
+    expect(mockClient.get).toHaveBeenCalledWith("/procurement/products/95790");
+  });
+
+  it("cw_get_opportunity_product refuses a product on another opportunity", async () => {
+    getMock().mockResolvedValueOnce({ id: 95790, opportunity: { id: 9999 } });
+    await expect(
+      getTool(server, "cw_get_opportunity_product").handler(
+        { opportunityId: 2081, productId: 95790 },
+        {},
+      ),
+    ).rejects.toThrow("Product 95790 is not on opportunity 2081");
+  });
+
+  it("cw_create_opportunity_product POSTs to /procurement/products with an opportunity reference", async () => {
+    await getTool(server, "cw_create_opportunity_product").handler(
+      { opportunityId: 2081, catalogItemId: 1516, quantity: 1, ...SENTINEL },
+      {},
+    );
+    expect(mockClient.post).toHaveBeenCalledWith(
+      "/procurement/products",
+      expect.objectContaining({
+        opportunity: { id: 2081 },
+        catalogItem: { id: 1516 },
+        quantity: 1,
+      }),
+    );
+  });
+
+  it("cw_update_opportunity_product verifies ownership then PATCHes /procurement/products/{id}", async () => {
+    getMock().mockResolvedValueOnce({ id: 95790, opportunity: { id: 2081 } });
+    const patch = [{ op: "replace", path: "/quantity", value: 2 }];
+    await getTool(server, "cw_update_opportunity_product").handler(
+      { opportunityId: 2081, productId: 95790, patch, ...SENTINEL },
+      {},
+    );
+    expect(mockClient.get).toHaveBeenCalledWith("/procurement/products/95790");
+    expect(mockClient.patch).toHaveBeenCalledWith("/procurement/products/95790", patch);
+  });
+
+  it("cw_update_opportunity_product does not write when the product is on another opportunity", async () => {
+    getMock().mockResolvedValueOnce({ id: 95790, opportunity: { id: 9999 } });
+    await expect(
+      getTool(server, "cw_update_opportunity_product").handler(
+        {
+          opportunityId: 2081,
+          productId: 95790,
+          patch: [{ op: "replace", path: "/quantity", value: 2 }],
+          ...SENTINEL,
+        },
+        {},
+      ),
+    ).rejects.toThrow("Product 95790 is not on opportunity 2081");
+    expect(mockClient.patch).not.toHaveBeenCalled();
+  });
+
+  it("cw_delete_opportunity_product verifies ownership then DELETEs /procurement/products/{id}", async () => {
+    getMock().mockResolvedValueOnce({ id: 95790, opportunity: { id: 2081 } });
+    await getTool(server, "cw_delete_opportunity_product").handler(
+      { opportunityId: 2081, productId: 95790, ...SENTINEL },
+      {},
+    );
+    expect(mockClient.request).toHaveBeenCalledWith("DELETE", "/procurement/products/95790");
+  });
+
+  it("cw_delete_opportunity_product does not write when the product is on another opportunity", async () => {
+    getMock().mockResolvedValueOnce({ id: 95790, opportunity: { id: 9999 } });
+    await expect(
+      getTool(server, "cw_delete_opportunity_product").handler(
+        { opportunityId: 2081, productId: 95790, ...SENTINEL },
+        {},
+      ),
+    ).rejects.toThrow("Product 95790 is not on opportunity 2081");
+    expect(mockClient.request).not.toHaveBeenCalled();
+  });
+});
+
+describe("opportunity note types live under /company/noteTypes", () => {
+  it("cw_list_opportunity_note_types GETs /company/noteTypes", async () => {
+    await getTool(server, "cw_list_opportunity_note_types").handler({}, {});
+    expect(mockClient.get).toHaveBeenCalledWith("/company/noteTypes", expect.anything());
+  });
+});
+
+describe("quote tools report that this instance has no quotes API", () => {
+  const quoteCalls: Array<[string, Record<string, unknown>]> = [
+    ["cw_search_quotes", {}],
+    ["cw_get_quote", { id: 1 }],
+    ["cw_count_quotes", {}],
+    ["cw_create_quote", { ...SENTINEL }],
+    ["cw_update_quote", { id: 1, patch: [], ...SENTINEL }],
+    ["cw_replace_quote", { id: 1, body: {}, ...SENTINEL }],
+    ["cw_delete_quote", { id: 1, ...SENTINEL }],
+  ];
+
+  it.each(quoteCalls)("%s rejects with the unavailable message and calls no client method", async (name, args) => {
+    await expect(getTool(server, name).handler(args, {})).rejects.toThrow(QUOTES_UNAVAILABLE_MESSAGE);
+    for (const method of ["get", "post", "patch", "request"] as const) {
+      expect(mockClient[method]).not.toHaveBeenCalled();
+    }
+  });
+
+  it.each(quoteCalls)("%s description starts with the unavailable marker", (name) => {
+    expect(getTool(server, name).description.startsWith("Unavailable on this instance:")).toBe(true);
+  });
+
+  it("the message is the exact agreed wording", () => {
+    expect(QUOTES_UNAVAILABLE_MESSAGE).toBe(
+      "This ConnectWise instance (v2025.1.10778) has no quotes API: /sales/quotes returned 404 on 12 Nov 2026. Quotes are held in ConnectWise Sell, which this server does not reach.",
+    );
   });
 });
