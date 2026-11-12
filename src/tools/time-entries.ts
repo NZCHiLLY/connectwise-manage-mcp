@@ -2,7 +2,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
 import { auditLog } from "../audit/log.js";
-import { patchOp } from "./shared.js";
+import { applyPatch, patchOp } from "./shared.js";
 
 /**
  * The member's own default work role, or undefined if it can't be resolved.
@@ -243,7 +243,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
 
   server.tool(
     "cw_update_time_entry",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a time entry via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a time entry via JSON Patch. Use to edit, amend, correct, revise or patch an existing record. Edits one or more fields and keeps every other field as it was. Implemented as read, apply, PUT, because the API member is refused PATCH on time entries.",
     {
       id: z.number().describe("Time entry ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
@@ -258,8 +258,14 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
       ),
     },
     async ({ id, patch, user_intent, user_quote }) => {
-      await auditLog({ tool: "cw_update_time_entry", entityType: "time_entry", entityId: id, userIntent: user_intent, userQuote: user_quote, operations: patch });
-      const result = await client.patch(`/time/entries/${id}`, patch);
+      const current = (await client.get(`/time/entries/${id}`)) as Record<string, unknown>;
+      const { _info: _ignored, ...preImage } = current;
+      void _ignored;
+      await auditLog({ tool: "cw_update_time_entry", entityType: "time_entry", entityId: id, userIntent: user_intent, userQuote: user_quote, operations: { patch, preImage } });
+      const next = applyPatch(current, patch);
+      delete next._info;
+      next.id = id;
+      const result = await client.put(`/time/entries/${id}`, next);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );

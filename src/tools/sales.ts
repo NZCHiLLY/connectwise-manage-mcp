@@ -4,6 +4,9 @@ import { CwManageClient } from "../api-client.js";
 import { auditLog } from "../audit/log.js";
 import { patchOp } from "./shared.js";
 
+export const QUOTES_UNAVAILABLE_MESSAGE =
+  "This ConnectWise instance (v2025.1.10778) has no quotes API: /sales/quotes returned 404 on 12 Nov 2026. Quotes are held in ConnectWise Sell, which this server does not reach.";
+
 export function registerSalesTools(server: McpServer, client: CwManageClient) {
   // ── Forecasts ─────────────────────────────────────────────────────────────
 
@@ -43,7 +46,7 @@ export function registerSalesTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_search_quotes",
-    "Search sales quotes (/sales/quotes).",
+    "Unavailable on this instance: Search sales quotes (/sales/quotes).",
     {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       childConditions: z.string().optional().describe("Child object conditions query string"),
@@ -53,50 +56,39 @@ export function registerSalesTools(server: McpServer, client: CwManageClient) {
       orderBy: z.string().optional().describe("Field to order by"),
       fields: z.string().optional().describe("Comma-separated list of fields to return"),
     },
-    async ({ conditions, childConditions, customFieldConditions, page, pageSize, orderBy, fields }) => {
-      const result = await client.get("/sales/quotes", {
-        conditions,
-        childConditions,
-        customFieldConditions,
-        page: page ?? 1,
-        pageSize: pageSize ?? 25,
-        orderBy,
-        fields,
-      });
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    async () => {
+      throw new Error(QUOTES_UNAVAILABLE_MESSAGE);
     },
   );
 
   server.tool(
     "cw_get_quote",
-    "Get a single quote by ID.",
+    "Unavailable on this instance: Get a single quote by ID.",
     {
       id: z.number().describe("Quote ID"),
       fields: z.string().optional().describe("Comma-separated list of fields to return"),
     },
-    async ({ id, fields }) => {
-      const result = await client.get(`/sales/quotes/${id}`, { fields });
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    async () => {
+      throw new Error(QUOTES_UNAVAILABLE_MESSAGE);
     },
   );
 
   server.tool(
     "cw_count_quotes",
-    "Count quotes matching a conditions query.",
+    "Unavailable on this instance: Count quotes matching a conditions query.",
     {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       childConditions: z.string().optional().describe("Child object conditions query string"),
       customFieldConditions: z.string().optional().describe("Custom field conditions query string"),
     },
-    async (args) => {
-      const result = await client.get("/sales/quotes/count", args);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    async () => {
+      throw new Error(QUOTES_UNAVAILABLE_MESSAGE);
     },
   );
 
   server.tool(
     "cw_create_quote",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a sales quote.",
+    "Unavailable on this instance: SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a sales quote.",
     {
       opportunityId: z.number().optional().describe("Opportunity ID to associate the quote with"),
       companyId: z.number().optional().describe("Company ID"),
@@ -124,33 +116,14 @@ export function registerSalesTools(server: McpServer, client: CwManageClient) {
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
     },
-    async (args) => {
-      await auditLog({ tool: "cw_create_quote", entityType: "quote", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
-      const body: Record<string, unknown> = {};
-      if (args.opportunityId !== undefined) body.opportunity = { id: args.opportunityId };
-      if (args.companyId !== undefined) body.company = { id: args.companyId };
-      if (args.contactId !== undefined) body.contact = { id: args.contactId };
-      if (args.siteId !== undefined) body.site = { id: args.siteId };
-      if (args.statusId !== undefined) body.status = { id: args.statusId };
-      if (args.typeId !== undefined) body.type = { id: args.typeId };
-      if (args.name) body.name = args.name;
-      if (args.number) body.number = args.number;
-      if (args.expirationDate) body.expirationDate = args.expirationDate;
-      if (args.issueDate) body.issueDate = args.issueDate;
-      if (args.taxableFlag !== undefined) body.taxableFlag = args.taxableFlag;
-      if (args.currencyId !== undefined) body.currency = { id: args.currencyId };
-      if (args.restrictDownPaymentFlag !== undefined) body.restrictDownPaymentFlag = args.restrictDownPaymentFlag;
-      if (args.ccEmail) body.ccEmail = args.ccEmail;
-      if (args.notes) body.notes = args.notes;
-      if (args.customFields) body.customFields = args.customFields;
-      const result = await client.post("/sales/quotes", body);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    async () => {
+      throw new Error(QUOTES_UNAVAILABLE_MESSAGE);
     },
   );
 
   server.tool(
     "cw_update_quote",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a quote via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
+    "Unavailable on this instance: SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a quote via JSON Patch. Use to edit, amend, correct, revise or patch an existing record.",
     {
       id: z.number().describe("Quote ID"),
       patch: z.array(patchOp).describe("JSON Patch operations to apply"),
@@ -164,16 +137,14 @@ export function registerSalesTools(server: McpServer, client: CwManageClient) {
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
     },
-    async ({ id, patch, user_intent, user_quote }) => {
-      await auditLog({ tool: "cw_update_quote", entityType: "quote", entityId: id, userIntent: user_intent, userQuote: user_quote, operations: patch });
-      const result = await client.patch(`/sales/quotes/${id}`, patch);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    async () => {
+      throw new Error(QUOTES_UNAVAILABLE_MESSAGE);
     },
   );
 
   server.tool(
     "cw_replace_quote",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Replace a quote via PUT.",
+    "Unavailable on this instance: SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Replace a quote via PUT.",
     {
       id: z.number().describe("Quote ID"),
       body: z.record(z.string(), z.unknown()).describe("Full replacement body for PUT"),
@@ -187,16 +158,14 @@ export function registerSalesTools(server: McpServer, client: CwManageClient) {
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
     },
-    async ({ id, body, user_intent, user_quote }) => {
-      await auditLog({ tool: "cw_replace_quote", entityType: "quote", entityId: id, userIntent: user_intent, userQuote: user_quote });
-      const result = await client.put(`/sales/quotes/${id}`, body);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    async () => {
+      throw new Error(QUOTES_UNAVAILABLE_MESSAGE);
     },
   );
 
   server.tool(
     "cw_delete_quote",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a quote.",
+    "Unavailable on this instance: SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a quote.",
     {
       id: z.number().describe("Quote ID"),
       user_intent: z.string().min(20).describe(
@@ -209,10 +178,8 @@ export function registerSalesTools(server: McpServer, client: CwManageClient) {
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
     },
-    async ({ id, user_intent, user_quote }) => {
-      await auditLog({ tool: "cw_delete_quote", entityType: "quote", entityId: id, userIntent: user_intent, userQuote: user_quote });
-      const result = await client.request("DELETE", `/sales/quotes/${id}`);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    async () => {
+      throw new Error(QUOTES_UNAVAILABLE_MESSAGE);
     },
   );
 

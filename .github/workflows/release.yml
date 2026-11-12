@@ -124,6 +124,9 @@ jobs:
           tags: |
             acrcwmmcp.azurecr.io/connectwise-manage-mcp:latest
             acrcwmmcp.azurecr.io/connectwise-manage-mcp:${{ steps.tag.outputs.image-tag }}
+          build-args: |
+            COMMIT_SHA=${{ github.sha }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -133,6 +136,7 @@ jobs:
     needs: [docker]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment: production
+    timeout-minutes: 15
     permissions:
       id-token: write
       contents: read
@@ -153,3 +157,35 @@ jobs:
             --resource-group "${{ secrets.ACA_RESOURCE_GROUP }}" \
             --image "$IMAGE" \
             --set-env-vars "IMAGE_VERSION=${{ needs.docker.outputs.image-tag }}"
+
+      - name: Verify the running image
+        run: |
+          IMAGE_TAG="${{ needs.docker.outputs.image-tag }}"
+          IMAGE="acrcwmmcp.azurecr.io/connectwise-manage-mcp:${IMAGE_TAG}"
+          RUNNING=$(az containerapp show \
+            --name "${{ secrets.ACA_APP_NAME }}" \
+            --resource-group "${{ secrets.ACA_RESOURCE_GROUP }}" \
+            --query "properties.template.containers[0].image" -o tsv)
+          if [ "$RUNNING" != "$IMAGE" ]; then
+            echo "::error::Running image is '$RUNNING', expected '$IMAGE'"
+            exit 1
+          fi
+          echo "Running image matches: $RUNNING"
+
+          FQDN=$(az containerapp show \
+            --name "${{ secrets.ACA_APP_NAME }}" \
+            --resource-group "${{ secrets.ACA_RESOURCE_GROUP }}" \
+            --query properties.configuration.ingress.fqdn -o tsv)
+          for i in $(seq 1 20); do
+            BODY=$(curl -fsS --max-time 10 --connect-timeout 5 "https://$FQDN/health" || true)
+            SHA=$(echo "$BODY" | jq -r '.build.sha // empty' 2>/dev/null || true)
+            BUILD_IMAGE=$(echo "$BODY" | jq -r '.build.image // empty' 2>/dev/null || true)
+            if [ "$SHA" = "$GITHUB_SHA" ] && [ "$BUILD_IMAGE" = "$IMAGE_TAG" ]; then
+              echo "/health reports build.sha $SHA and build.image $BUILD_IMAGE"
+              exit 0
+            fi
+            echo "Attempt $i/20: build.sha '${SHA:-none}' build.image '${BUILD_IMAGE:-none}', waiting for '$GITHUB_SHA' and '$IMAGE_TAG'"
+            sleep 15
+          done
+          echo "::error::/health never reported build.sha $GITHUB_SHA with build.image $IMAGE_TAG"
+          exit 1

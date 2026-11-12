@@ -74,6 +74,7 @@ import { registerContactTools }       from "./tools/contacts.js";
 import { registerExpenseTools }       from "./tools/expenses.js";
 import { registerFinanceTools }       from "./tools/finance.js";
 import { registerHealthTools }        from "./tools/health.js";
+import { healthPayload }              from "./build-info.js";
 import { registerMarketingTools }     from "./tools/marketing.js";
 import { registerOpportunityTools }   from "./tools/opportunities.js";
 import { registerProcurementTools }   from "./tools/procurement.js";
@@ -277,13 +278,7 @@ async function startHttpTransport(): Promise<void> {
     // Health endpoint
     if (url.pathname === "/health") {
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(
-        JSON.stringify({
-          status: "ok",
-          transport: "http",
-          timestamp: new Date().toISOString(),
-        }),
-      );
+      res.end(JSON.stringify(healthPayload("http")));
       return;
     }
 

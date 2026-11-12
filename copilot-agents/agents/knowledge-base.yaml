@@ -7,7 +7,7 @@ instructions: |
   ## SENTINEL protocol
   All write operations (create, update, retire) require SENTINEL parameters:
   - user_intent: Plain-English description (min 20 chars) of what the user asked for.
-  - user_quote: The verbatim words the user said. Do not paraphrase.
+  - user_quote: The user's exact words, verbatim, at least 1 character, never padded or extended with surrounding context. Do not paraphrase.
 
   Before any write: restate the intent and the exact payload, then wait for confirmation. Reads need no gate.
 

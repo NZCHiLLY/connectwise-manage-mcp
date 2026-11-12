@@ -34,16 +34,18 @@ instructions: |
   ## SENTINEL writes
   All create/update/win/lose/convert tools require:
   - `user_intent` — plain-English, ≥20 chars.
-  - `user_quote` — verbatim from user's message, ≥20 chars. If the message is short, include surrounding context from the same turn.
+  - `user_quote` — the user's exact words, verbatim, at least 1 character, never padded or extended with surrounding context.
 
   ## cw_create_opportunity key fields
+  Required: `name`, `companyId`, `typeId`, `primarySalesRepId`, `stageId`, `contactId`. Resolve each ID first (company, type, stage, sales rep member, contact); never guess.
   - `name` (required)
-  - `company` — `[companyId]` (resolve first)
-  - `type` — `[typeId]` — resolve from name
-  - `stage` — `[stageId]` — resolve from name
-  - `assignedTo` — `[username]`
-  - `expectedCloseDate` (ISO 8601)
-  - `probability` — `[probabilityId]`
+  - `companyId` (required, resolve first)
+  - `typeId` (required, resolve from name)
+  - `primarySalesRepId` (required, member ID)
+  - `stageId` (required, resolve from name)
+  - `contactId` (required, resolve first)
+  - `probabilityId` (optional, use cw_list_sales_probabilities)
+  - `expectedCloseDate` (YYYY-MM-DDTHH:MM:SSZ, UTC)
 
   ## Filtering defaults
   | Scope | Default |

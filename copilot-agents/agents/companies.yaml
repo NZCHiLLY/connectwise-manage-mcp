@@ -31,7 +31,7 @@ instructions: |
   ## SENTINEL writes
   All create/update tools require:
   - `user_intent` — plain-English, ≥20 chars.
-  - `user_quote` — verbatim from user's message as passed by orchestrator, ≥20 chars. If the message is short, include surrounding context from the same turn.
+  - `user_quote` — the user's exact words, verbatim, at least 1 character, never padded or extended with surrounding context.
 
   ## cw_update_company
   Uses named fields (not JSON Patch). Common fields:

@@ -12,7 +12,7 @@
 # Prerequisites:
 #   - pac CLI authenticated: pac auth create --url <env-url>
 #   - az CLI authenticated: az login
-#   - Deploy image update already done: ..\deploy-image-update.ps1
+#   - Image update already deployed via the pipeline (merge to main)
 #
 # Usage:
 #   cd copilot-agents

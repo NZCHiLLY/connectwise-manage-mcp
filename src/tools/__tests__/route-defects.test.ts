@@ -14,6 +14,10 @@ import { registerTicketTools } from "../tickets.js";
 import { registerServiceTools } from "../service.js";
 import { registerTimeEntryTools } from "../time-entries.js";
 import { registerSystemTools } from "../system.js";
+import { registerOpportunityTools } from "../opportunities.js";
+import { auditLog } from "../../audit/log.js";
+import { applyPatch } from "../shared.js";
+import { registerSalesTools, QUOTES_UNAVAILABLE_MESSAGE } from "../sales.js";
 
 vi.mock("../../audit/log.js", () => ({
   auditLog: vi.fn().mockResolvedValue(undefined),
@@ -23,6 +27,7 @@ const mockClient = {
   get: vi.fn().mockResolvedValue({}),
   post: vi.fn().mockResolvedValue({}),
   patch: vi.fn().mockResolvedValue({}),
+  put: vi.fn().mockResolvedValue({}),
   request: vi.fn().mockResolvedValue({}),
 } as unknown as CwManageClient;
 
@@ -62,6 +67,8 @@ beforeEach(() => {
   registerServiceTools(server, mockClient);
   registerTimeEntryTools(server, mockClient);
   registerSystemTools(server, mockClient);
+  registerOpportunityTools(server, mockClient);
+  registerSalesTools(server, mockClient);
 });
 
 describe("work roles live under /time, not /finance", () => {
@@ -335,5 +342,357 @@ describe("report tools return rows, not a count", () => {
       pageSize: 25,
       orderBy: undefined,
     });
+  });
+});
+
+type MockFn = { mockResolvedValueOnce(v: unknown): void; mock: { calls: unknown[][] } };
+const getMock = () => mockClient.get as unknown as MockFn;
+
+describe("opportunity products live under /procurement/products", () => {
+  it("cw_list_opportunity_products filters procurement products by opportunity", async () => {
+    await getTool(server, "cw_list_opportunity_products").handler({ opportunityId: 2081 }, {});
+    expect(mockClient.get).toHaveBeenCalledWith("/procurement/products", {
+      conditions: "opportunity/id = 2081",
+      page: 1,
+      pageSize: 25,
+    });
+  });
+
+  it("ANDs caller conditions onto the opportunity filter", async () => {
+    await getTool(server, "cw_list_opportunity_products").handler(
+      { opportunityId: 2081, conditions: "cancelledFlag = false" },
+      {},
+    );
+    expect(mockClient.get).toHaveBeenCalledWith(
+      "/procurement/products",
+      expect.objectContaining({
+        conditions: "opportunity/id = 2081 and (cancelledFlag = false)",
+      }),
+    );
+  });
+
+  it("cw_get_opportunity_product GETs /procurement/products/{productId}", async () => {
+    // The ownership check is the read: one GET, and its product is what the tool returns.
+    getMock().mockResolvedValueOnce({ id: 95790, opportunity: { id: 2081 } });
+    await getTool(server, "cw_get_opportunity_product").handler(
+      { opportunityId: 2081, productId: 95790 },
+      {},
+    );
+    expect(mockClient.get).toHaveBeenCalledTimes(1);
+    expect(mockClient.get).toHaveBeenCalledWith("/procurement/products/95790");
+  });
+
+  it("cw_get_opportunity_product refuses a product on another opportunity", async () => {
+    getMock().mockResolvedValueOnce({ id: 95790, opportunity: { id: 9999 } });
+    await expect(
+      getTool(server, "cw_get_opportunity_product").handler(
+        { opportunityId: 2081, productId: 95790 },
+        {},
+      ),
+    ).rejects.toThrow("Product 95790 is not on opportunity 2081");
+  });
+
+  it("cw_create_opportunity_product POSTs to /procurement/products with an opportunity reference", async () => {
+    await getTool(server, "cw_create_opportunity_product").handler(
+      { opportunityId: 2081, catalogItemId: 1516, quantity: 1, ...SENTINEL },
+      {},
+    );
+    expect(mockClient.post).toHaveBeenCalledWith(
+      "/procurement/products",
+      expect.objectContaining({
+        opportunity: { id: 2081 },
+        catalogItem: { id: 1516 },
+        quantity: 1,
+      }),
+    );
+  });
+
+  it("cw_update_opportunity_product verifies ownership then PATCHes /procurement/products/{id}", async () => {
+    getMock().mockResolvedValueOnce({ id: 95790, opportunity: { id: 2081 } });
+    const patch = [{ op: "replace", path: "/quantity", value: 2 }];
+    await getTool(server, "cw_update_opportunity_product").handler(
+      { opportunityId: 2081, productId: 95790, patch, ...SENTINEL },
+      {},
+    );
+    expect(mockClient.get).toHaveBeenCalledWith("/procurement/products/95790");
+    expect(mockClient.patch).toHaveBeenCalledWith("/procurement/products/95790", patch);
+  });
+
+  it("cw_update_opportunity_product does not write when the product is on another opportunity", async () => {
+    getMock().mockResolvedValueOnce({ id: 95790, opportunity: { id: 9999 } });
+    await expect(
+      getTool(server, "cw_update_opportunity_product").handler(
+        {
+          opportunityId: 2081,
+          productId: 95790,
+          patch: [{ op: "replace", path: "/quantity", value: 2 }],
+          ...SENTINEL,
+        },
+        {},
+      ),
+    ).rejects.toThrow("Product 95790 is not on opportunity 2081");
+    expect(mockClient.patch).not.toHaveBeenCalled();
+  });
+
+  it("cw_delete_opportunity_product verifies ownership then DELETEs /procurement/products/{id}", async () => {
+    getMock().mockResolvedValueOnce({ id: 95790, opportunity: { id: 2081 } });
+    await getTool(server, "cw_delete_opportunity_product").handler(
+      { opportunityId: 2081, productId: 95790, ...SENTINEL },
+      {},
+    );
+    expect(mockClient.request).toHaveBeenCalledWith("DELETE", "/procurement/products/95790");
+  });
+
+  it("cw_delete_opportunity_product does not write when the product is on another opportunity", async () => {
+    getMock().mockResolvedValueOnce({ id: 95790, opportunity: { id: 9999 } });
+    await expect(
+      getTool(server, "cw_delete_opportunity_product").handler(
+        { opportunityId: 2081, productId: 95790, ...SENTINEL },
+        {},
+      ),
+    ).rejects.toThrow("Product 95790 is not on opportunity 2081");
+    expect(mockClient.request).not.toHaveBeenCalled();
+  });
+});
+
+describe("opportunity note types live under /company/noteTypes", () => {
+  it("cw_list_opportunity_note_types GETs /company/noteTypes", async () => {
+    await getTool(server, "cw_list_opportunity_note_types").handler({}, {});
+    expect(mockClient.get).toHaveBeenCalledWith("/company/noteTypes", expect.anything());
+  });
+});
+
+describe("quote tools report that this instance has no quotes API", () => {
+  const quoteCalls: Array<[string, Record<string, unknown>]> = [
+    ["cw_search_quotes", {}],
+    ["cw_get_quote", { id: 1 }],
+    ["cw_count_quotes", {}],
+    ["cw_create_quote", { ...SENTINEL }],
+    ["cw_update_quote", { id: 1, patch: [], ...SENTINEL }],
+    ["cw_replace_quote", { id: 1, body: {}, ...SENTINEL }],
+    ["cw_delete_quote", { id: 1, ...SENTINEL }],
+  ];
+
+  it.each(quoteCalls)("%s rejects with the unavailable message and calls no client method", async (name, args) => {
+    await expect(getTool(server, name).handler(args, {})).rejects.toThrow(QUOTES_UNAVAILABLE_MESSAGE);
+    for (const method of ["get", "post", "patch", "request"] as const) {
+      expect(mockClient[method]).not.toHaveBeenCalled();
+    }
+  });
+
+  it.each(quoteCalls)("%s description starts with the unavailable marker", (name) => {
+    expect(getTool(server, name).description.startsWith("Unavailable on this instance:")).toBe(true);
+  });
+
+  it("the message is the exact agreed wording", () => {
+    expect(QUOTES_UNAVAILABLE_MESSAGE).toBe(
+      "This ConnectWise instance (v2025.1.10778) has no quotes API: /sales/quotes returned 404 on 12 Nov 2026. Quotes are held in ConnectWise Sell, which this server does not reach.",
+    );
+  });
+});
+
+describe("cw_list_audit_trail takes the type and id ConnectWise requires", () => {
+  it("requires type and id", async () => {
+    const { inputSchema } = getTool(server, "cw_list_audit_trail");
+    await expect(inputSchema.parseAsync({ conditions: "x" })).rejects.toThrow();
+  });
+
+  it("type accepts an unlisted value", async () => {
+    const { inputSchema } = getTool(server, "cw_list_audit_trail");
+    await expect(inputSchema.parseAsync({ type: "Agreement", id: 1 })).resolves.toBeDefined();
+  });
+
+  it("id coerces from a string", async () => {
+    const { inputSchema } = getTool(server, "cw_list_audit_trail");
+    const parsed = (await inputSchema.parseAsync({ type: "Ticket", id: "106507" })) as { id: number };
+    expect(parsed.id).toBe(106507);
+  });
+
+  it("sends type and id as query parameters", async () => {
+    await getTool(server, "cw_list_audit_trail").handler({ type: "Ticket", id: 106507 }, {});
+    expect(mockClient.get).toHaveBeenCalledWith(
+      "/system/audittrail",
+      expect.objectContaining({ type: "Ticket", id: 106507, page: 1, pageSize: 25 }),
+    );
+  });
+});
+
+describe("cw_update_ticket agreement and auto-CC fields", () => {
+  it("cw_update_ticket patches /agreement/id", async () => {
+    await getTool(server, "cw_update_ticket").handler({ id: 106507, agreementId: 1481, ...SENTINEL }, {});
+    expect(mockClient.patch).toHaveBeenCalledWith(
+      "/service/tickets/106507",
+      expect.arrayContaining([{ op: "replace", path: "/agreement/id", value: 1481 }]),
+    );
+  });
+
+  it("cw_update_ticket patches the auto-CC fields", async () => {
+    await getTool(server, "cw_update_ticket").handler(
+      {
+        id: 106507,
+        automaticEmailCcFlag: false,
+        automaticEmailCc: "",
+        automaticEmailContactFlag: false,
+        automaticEmailResourceFlag: true,
+        ...SENTINEL,
+      },
+      {},
+    );
+    const ops = (mockClient.patch as unknown as { mock: { calls: unknown[][] } }).mock.calls[0][1] as {
+      op: string;
+      path: string;
+      value: unknown;
+    }[];
+    expect(ops).toEqual(
+      expect.arrayContaining([
+        { op: "replace", path: "/automaticEmailCcFlag", value: false },
+        { op: "replace", path: "/automaticEmailCc", value: "" },
+        { op: "replace", path: "/automaticEmailContactFlag", value: false },
+        { op: "replace", path: "/automaticEmailResourceFlag", value: true },
+      ]),
+    );
+  });
+});
+
+describe("cw_update_time_entry reads, applies and PUTs", () => {
+  it("cw_update_time_entry preserves untouched fields", async () => {
+    (mockClient.get as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      id: 88658,
+      notes: "a",
+      agreement: { id: 1481 },
+      invoiceFlag: true,
+      _info: {},
+    });
+    await getTool(server, "cw_update_time_entry").handler(
+      { id: 88658, patch: [{ op: "replace", path: "/notes", value: "b" }], ...SENTINEL },
+      {},
+    );
+    expect(mockClient.get).toHaveBeenCalledWith("/time/entries/88658");
+    expect(mockClient.put).toHaveBeenCalledWith("/time/entries/88658", {
+      id: 88658,
+      notes: "b",
+      agreement: { id: 1481 },
+      invoiceFlag: true,
+    });
+    expect(mockClient.patch).not.toHaveBeenCalled();
+  });
+});
+
+describe("applyPatch", () => {
+  it("replaces a nested value without mutating the input", () => {
+    const doc = { a: { b: 1, c: 2 } };
+    const out = applyPatch(doc, [{ op: "replace", path: "/a/b", value: 9 }]);
+    expect(out).toEqual({ a: { b: 9, c: 2 } });
+    expect(doc).toEqual({ a: { b: 1, c: 2 } });
+  });
+
+  it("add creates an intermediate object", () => {
+    const out = applyPatch({}, [{ op: "add", path: "/agreement/id", value: 5 }]);
+    expect(out).toEqual({ agreement: { id: 5 } });
+  });
+
+  it("remove deletes the field", () => {
+    const out = applyPatch({ a: { b: 1, c: 2 }, d: 3 }, [
+      { op: "remove", path: "/a/b" },
+      { op: "remove", path: "/d" },
+    ]);
+    expect(out).toEqual({ a: { c: 2 } });
+  });
+});
+
+describe("applyPatch safety", () => {
+  it("applyPatch rejects a replace with no value", () => {
+    expect(() => applyPatch({ a: 1 }, [{ op: "replace", path: "/a" }])).toThrow(
+      "Patch op replace on /a needs a value",
+    );
+  });
+
+  it("applyPatch rejects __proto__", () => {
+    for (const path of ["/__proto__/x", "/a/constructor/x", "/prototype"]) {
+      expect(() => applyPatch({}, [{ op: "add", path, value: 1 }])).toThrow(
+        `Patch path ${path} is not allowed`,
+      );
+    }
+    expect(({} as Record<string, unknown>).x).toBeUndefined();
+  });
+
+  it("applyPatch walks into arrays by index", () => {
+    const doc = { c: [{ v: 1 }] };
+    expect(applyPatch(doc, [{ op: "replace", path: "/c/0/v", value: 2 }])).toEqual({ c: [{ v: 2 }] });
+    expect(doc).toEqual({ c: [{ v: 1 }] });
+  });
+
+  it("applyPatch rejects a primitive intermediate", () => {
+    expect(() =>
+      applyPatch({ timeStart: "2026-11-12T00:00:00Z" }, [{ op: "replace", path: "/timeStart/x", value: 1 }]),
+    ).toThrow("Patch path /timeStart/x walks into a non-object");
+  });
+});
+
+describe("cw_update_time_entry audit", () => {
+  it("cw_update_time_entry audits the pre-image", async () => {
+    (mockClient.get as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      id: 7,
+      notes: "a",
+      _info: { x: 1 },
+    });
+    const patch = [{ op: "replace", path: "/notes", value: "b" }];
+    await getTool(server, "cw_update_time_entry").handler({ id: 7, patch, ...SENTINEL }, {});
+    expect(auditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tool: "cw_update_time_entry",
+        operations: { patch, preImage: { id: 7, notes: "a" } },
+      }),
+    );
+  });
+});
+
+describe("cw_create_opportunity body shape", () => {
+  const base = {
+    name: "Test",
+    companyId: 1,
+    typeId: 2,
+    primarySalesRepId: 3,
+    stageId: 4,
+    contactId: 5,
+    ...SENTINEL,
+  };
+
+  it("cw_create_opportunity never sends businessUnit", async () => {
+    await getTool(server, "cw_create_opportunity").handler({ ...base, businessUnitId: 9 }, {});
+    const body = (mockClient.post as unknown as { mock: { calls: unknown[][] } }).mock.calls[0][1] as Record<string, unknown>;
+    expect(body).not.toHaveProperty("businessUnit");
+  });
+
+  it("cw_create_opportunity sends probability as {id}", async () => {
+    await getTool(server, "cw_create_opportunity").handler({ ...base, probabilityId: 5 }, {});
+    expect(mockClient.post).toHaveBeenCalledWith(
+      "/sales/opportunities",
+      expect.objectContaining({ probability: { id: 5 }, contact: { id: 5 } }),
+    );
+  });
+
+  it("cw_create_opportunity requires contactId", async () => {
+    const { contactId: _omit, ...without } = base;
+    void _omit;
+    const { inputSchema } = getTool(server, "cw_create_opportunity");
+    await expect(inputSchema.parseAsync(without)).rejects.toThrow();
+  });
+});
+
+describe("cw_update_time_entry keeps the entry's own id", () => {
+  it("PUTs a body whose id matches the URL even when the patch rewrites /id", async () => {
+    (mockClient.get as unknown as { mockResolvedValueOnce(v: unknown): void }).mockResolvedValueOnce({
+      id: 88658,
+      notes: "before",
+      _info: {},
+    });
+    await getTool(server, "cw_update_time_entry").handler(
+      { id: 88658, patch: [{ op: "replace", path: "/id", value: 999 }], ...SENTINEL },
+      {},
+    );
+    const call = (mockClient.put as unknown as { mock: { calls: unknown[][] } }).mock.calls[0];
+    expect(call[0]).toBe("/time/entries/88658");
+    expect((call[1] as Record<string, unknown>).id).toBe(88658);
   });
 });
