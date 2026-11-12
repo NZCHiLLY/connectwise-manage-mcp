@@ -238,9 +238,10 @@ function outsideQuotes(s: string, fn: (part: string) => string): string {
 }
 
 /**
- * Repairs known-bad query arguments: HTML-encoded operators, and field names that do not
- * exist on the target resource. Touches conditions, childConditions, customFieldConditions
- * and orderBy only, and never the contents of quoted strings.
+ * Repairs known-bad query arguments in conditions, childConditions, customFieldConditions
+ * and orderBy only. HTML entities are decoded across the whole string, quoted parts
+ * included. Field names that do not exist on the target resource are then aliased outside
+ * quoted strings only.
  */
 export function normaliseQueryArgs(
   toolName: string,
