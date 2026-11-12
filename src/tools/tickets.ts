@@ -2,6 +2,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
 import { auditLog } from "../audit/log.js";
+import { resolveCallerMemberId } from "../attribution.js";
 import { patchOp, normaliseIdArgs } from "./shared.js";
 
 export function registerTicketTools(server: McpServer, client: CwManageClient) {
@@ -515,7 +516,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_add_ticket_note",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Add a note to a service ticket. Use detailDescriptionFlag for a description note, internalAnalysisFlag for an internal-only note, or resolutionFlag for a resolution note. Defaults to a plain discussion note visible to the customer.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Add a note to a service ticket. Use detailDescriptionFlag for a description note, internalAnalysisFlag for an internal-only note, or resolutionFlag for a resolution note. Defaults to a plain discussion note visible to the customer. When neither memberId nor contactId is given, the author defaults to the signed-in person's own ConnectWise member when that can be resolved uniquely.",
     {
       ticketId: z.number().describe("Ticket ID"),
       text: z.string().describe("Note text content"),
@@ -524,7 +525,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       resolutionFlag: z.boolean().optional().describe("Mark as resolution note (default: false)"),
       customerUpdatedFlag: z.boolean().optional().describe("Flag that the customer was updated (default: false)"),
       processNotifications: z.boolean().optional().describe("Trigger workflow / email notifications"),
-      memberId: z.number().optional().describe("Member who authored the note"),
+      memberId: z.number().optional().describe("Member who authored the note. Defaults to the signed-in person's member when it resolves uniquely and no contactId is given"),
       contactId: z.number().optional().describe("Contact who authored the note (if not a member)"),
       user_intent: z.string().min(20).describe(
         "Plain-English description of what the user asked for. " +
@@ -546,6 +547,10 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       if (processNotifications !== undefined) body.processNotifications = processNotifications;
       if (memberId !== undefined) body.member = { id: memberId };
       if (contactId !== undefined) body.contact = { id: contactId };
+      if (memberId === undefined && contactId === undefined) {
+        const resolved = await resolveCallerMemberId(client);
+        if (resolved !== undefined) body.member = { id: resolved };
+      }
       const result = await client.post(`/service/tickets/${ticketId}/notes`, body);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },

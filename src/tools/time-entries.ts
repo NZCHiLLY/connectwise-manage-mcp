@@ -2,6 +2,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
 import { auditLog } from "../audit/log.js";
+import { resolveCallerMemberId } from "../attribution.js";
 import { applyPatch, patchOp } from "./shared.js";
 
 /**
@@ -119,7 +120,7 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
 
   server.tool(
     "cw_create_time_entry",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a time entry. chargeToId, chargeToType and memberId are required. " +
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Create a time entry. chargeToId and chargeToType are required. memberId defaults to the signed-in person's own ConnectWise member when that can be resolved uniquely; otherwise it is required. " +
       "chargeToType is one of: ServiceTicket | ProjectTicket | ChargeCode | Activity. " +
       "If workRoleId is omitted it is taken from the member's defaultWorkRole. " +
       "Times are UTC — convert local wall-clock first. " +
@@ -128,11 +129,11 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
     {
       chargeToId: z.number().describe("Ticket / project ticket / charge code / activity ID"),
       chargeToType: z.enum(["ServiceTicket", "ProjectTicket", "ChargeCode", "Activity"]),
-      memberId: z.number().describe(
-        "Member ID the time belongs to — required. Do not omit it: the entry would " +
-          "otherwise default to the authenticating API member, which has no access to " +
-          "the Time Entry module and fails with " +
-          "\"API-only members do not have access to this module\". " +
+      memberId: z.number().optional().describe(
+        "Member ID the time belongs to. Defaults to the signed-in person's own " +
+          "ConnectWise member when their sign-in resolves to exactly one active member. " +
+          "If it cannot be resolved the call fails rather than defaulting to the " +
+          "authenticating API member, which has no access to the Time Entry module. " +
           "Resolve a member with cw_search_members.",
       ),
       workTypeId: z.number().optional().describe("Work type ID"),
@@ -189,18 +190,35 @@ export function registerTimeEntryTools(server: McpServer, client: CwManageClient
       ),
     },
     async (args) => {
-      await auditLog({ tool: "cw_create_time_entry", entityType: "time_entry", entityId: 0, userIntent: args.user_intent, userQuote: args.user_quote });
+      // Resolve before any write, and before the audit entry so it can record both ids.
+      const resolvedMemberId = await resolveCallerMemberId(client);
+      const memberId = args.memberId ?? resolvedMemberId;
+      if (memberId === undefined) {
+        throw new Error(
+          "memberId is required: the caller's sign-in did not resolve to exactly one active ConnectWise member",
+        );
+      }
+      await auditLog({
+        tool: "cw_create_time_entry",
+        entityType: "time_entry",
+        entityId: 0,
+        userIntent: args.user_intent,
+        userQuote: args.user_quote,
+        ...(args.memberId !== undefined && resolvedMemberId !== undefined && args.memberId !== resolvedMemberId
+          ? { operations: { memberId: args.memberId, resolvedMemberId } }
+          : {}),
+      });
       const body: Record<string, unknown> = {
         chargeToId: args.chargeToId,
         chargeToType: args.chargeToType,
         timeStart: args.timeStart,
       };
-      body.member = { id: args.memberId };
+      body.member = { id: memberId };
       if (args.workTypeId !== undefined) body.workType = { id: args.workTypeId };
       // Prefer the member's own default work role over whatever ConnectWise would
       // infer from the location — that inference fails with "The default Work Role
       // is not valid for the selected location" often enough to be a trap.
-      const workRoleId = args.workRoleId ?? (await defaultWorkRoleFor(client, args.memberId));
+      const workRoleId = args.workRoleId ?? (await defaultWorkRoleFor(client, memberId));
       if (workRoleId !== undefined) body.workRole = { id: workRoleId };
       if (args.agreementId !== undefined) body.agreement = { id: args.agreementId };
       if (args.timeEnd) body.timeEnd = args.timeEnd;
