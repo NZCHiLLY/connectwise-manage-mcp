@@ -494,6 +494,17 @@ describe("cw_list_audit_trail takes the type and id ConnectWise requires", () =>
     await expect(inputSchema.parseAsync({ conditions: "x" })).rejects.toThrow();
   });
 
+  it("type accepts an unlisted value", async () => {
+    const { inputSchema } = getTool(server, "cw_list_audit_trail");
+    await expect(inputSchema.parseAsync({ type: "Agreement", id: 1 })).resolves.toBeDefined();
+  });
+
+  it("id coerces from a string", async () => {
+    const { inputSchema } = getTool(server, "cw_list_audit_trail");
+    const parsed = (await inputSchema.parseAsync({ type: "Ticket", id: "106507" })) as { id: number };
+    expect(parsed.id).toBe(106507);
+  });
+
   it("sends type and id as query parameters", async () => {
     await getTool(server, "cw_list_audit_trail").handler({ type: "Ticket", id: 106507 }, {});
     expect(mockClient.get).toHaveBeenCalledWith(

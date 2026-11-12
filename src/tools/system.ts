@@ -577,11 +577,15 @@ export function registerSystemTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_list_audit_trail",
-    "Who changed a record and when. ConnectWise requires the record type and its ID.",
+    "Who changed a record and when. ConnectWise requires the record type and its ID. " +
+      "Record types include Ticket, ProductCatalog, Configuration, PurchaseOrder and Expense.",
     {
       type: z
-        .enum(["Ticket", "ProductCatalog", "Configuration", "PurchaseOrder", "Expense"])
-        .describe("Record type whose audit trail to list"),
+        .string()
+        .min(1)
+        .describe(
+          "ConnectWise record type, for example Ticket, ProductCatalog, Configuration, PurchaseOrder or Expense.",
+        ),
       id: z.coerce.number().describe("ID of the record, within its type"),
       deviceIdentifier: z.string().optional().describe("Device identifier filter"),
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
