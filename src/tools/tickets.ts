@@ -556,7 +556,22 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
           "memberId or contactId is required: your sign-in did not resolve to exactly one active ConnectWise member",
         );
       }
-      await auditLog({ tool: "cw_add_ticket_note", entityType: "ticket_note", entityId: ticketId, userIntent: user_intent, userQuote: user_quote });
+      const sentMemberId = memberId ?? resolvedMemberId ?? null;
+      const memberSource = memberId !== undefined
+        ? "explicit"
+        : resolvedMemberId !== undefined
+          ? "resolved"
+          : contactId !== undefined
+            ? "contact"
+            : "none";
+      await auditLog({
+        tool: "cw_add_ticket_note",
+        entityType: "ticket_note",
+        entityId: ticketId,
+        userIntent: user_intent,
+        userQuote: user_quote,
+        operations: { memberId: sentMemberId, memberSource, resolvedMemberId: resolvedMemberId ?? null },
+      });
       const body: Record<string, unknown> = { text };
       if (detailDescriptionFlag !== undefined) body.detailDescriptionFlag = detailDescriptionFlag;
       if (internalAnalysisFlag !== undefined) body.internalAnalysisFlag = internalAnalysisFlag;
