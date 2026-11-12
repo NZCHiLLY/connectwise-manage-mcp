@@ -15,7 +15,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       childConditions: z.string().optional().describe("Filter on child collections"),
       customFieldConditions: z.string().optional().describe("Filter on custom fields"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
       orderBy: z.string().optional().describe("Field to order by"),
       fields: z.string().optional().describe("Comma-separated fields to return"),
     },
@@ -395,7 +395,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       orderBy: z.string().optional().describe("Field to order by"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async (args) => {
       const { conditions, orderBy, page, pageSize } = args;
@@ -532,7 +532,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       ticketId: z.number().describe("Ticket ID"),
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
       orderBy: z.string().optional().describe("Field to order by"),
     },
     async ({ ticketId, conditions, page, pageSize, orderBy }) => {
@@ -650,7 +650,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       ticketId: z.number().describe("Ticket ID"),
       conditions: z.string().optional().describe("Additional ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async ({ ticketId, conditions, page, pageSize }) => {
       const baseCond = `type/id=4 AND objectId=${ticketId}`;
@@ -758,7 +758,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       ticketId: z.number().describe("Ticket ID"),
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async ({ ticketId, conditions, page, pageSize }) => {
       const result = await client.get(`/service/tickets/${ticketId}/products`, {
@@ -779,7 +779,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       ticketId: z.number().describe("Ticket ID"),
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async ({ ticketId, conditions, page, pageSize }) => {
       const result = await client.get(`/service/tickets/${ticketId}/configurations`, {
@@ -847,7 +847,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     {
       ticketId: z.number().describe("Ticket ID"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async ({ ticketId, page, pageSize }) => {
       const result = await client.get(`/service/tickets/${ticketId}/documents`, {

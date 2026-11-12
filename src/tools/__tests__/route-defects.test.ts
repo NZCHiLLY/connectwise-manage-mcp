@@ -18,6 +18,17 @@ import { registerOpportunityTools } from "../opportunities.js";
 import { auditLog } from "../../audit/log.js";
 import { applyPatch } from "../shared.js";
 import { registerSalesTools, QUOTES_UNAVAILABLE_MESSAGE } from "../sales.js";
+import { registerActivityTools } from "../activities.js";
+import { registerCatalogTools } from "../catalog.js";
+import { registerCompanyTools } from "../companies.js";
+import { registerConfigurationTools } from "../configurations.js";
+import { registerContactTools } from "../contacts.js";
+import { registerExpenseTools } from "../expenses.js";
+import { registerHealthTools } from "../health.js";
+import { registerMarketingTools } from "../marketing.js";
+import { registerProcurementTools } from "../procurement.js";
+import { registerProjectTools } from "../projects.js";
+import { registerScheduleTools } from "../schedule.js";
 
 vi.mock("../../audit/log.js", () => ({
   auditLog: vi.fn().mockResolvedValue(undefined),
@@ -271,6 +282,51 @@ describe("date parameter descriptions", () => {
     const shape = shapeOf(getTool(server, "cw_create_time_entry"));
     expect((shape.timeStart as { description?: string }).description).toMatch(/UTC/);
     expect((shape.timeEnd as { description?: string }).description).toMatch(/UTC/);
+  });
+});
+
+describe("pagination descriptions", () => {
+  it("no tool advertises a 1000-row page", () => {
+    // The claude.ai connectors cap a page at 100, so a description advertising
+    // max: 1000 sends callers to a page size they cannot get.
+    const all = new McpServer({ name: "cw-page-size", version: "0.0.0" });
+    registerActivityTools(all, mockClient);
+    registerCatalogTools(all, mockClient);
+    registerCompanyTools(all, mockClient);
+    registerConfigurationTools(all, mockClient);
+    registerContactTools(all, mockClient);
+    registerExpenseTools(all, mockClient);
+    registerFinanceTools(all, mockClient);
+    registerHealthTools(all, mockClient);
+    registerMarketingTools(all, mockClient);
+    registerOpportunityTools(all, mockClient);
+    registerProcurementTools(all, mockClient);
+    registerProjectTools(all, mockClient);
+    registerSalesTools(all, mockClient);
+    registerScheduleTools(all, mockClient);
+    registerServiceTools(all, mockClient);
+    registerSystemTools(all, mockClient);
+    registerTicketTools(all, mockClient);
+    registerTimeEntryTools(all, mockClient);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tools = (all as any)._registeredTools as Record<string, unknown>;
+    const offenders: string[] = [];
+    for (const [name, entry] of Object.entries(tools)) {
+      const e = entry as {
+        inputSchema?: { shape?: Record<string, unknown>; _def?: { shape(): Record<string, unknown> } };
+      };
+      const shape =
+        typeof e.inputSchema?._def?.shape === "function"
+          ? e.inputSchema._def.shape()
+          : e.inputSchema?.shape;
+      for (const [field, def] of Object.entries(shape ?? {})) {
+        const desc = (def as { description?: string })?.description ?? "";
+        if (/max:\s*1000/.test(desc)) offenders.push(`${name}.${field}`);
+      }
+    }
+    expect(Object.keys(tools).length).toBeGreaterThan(0);
+    expect(offenders).toStrictEqual([]);
   });
 });
 

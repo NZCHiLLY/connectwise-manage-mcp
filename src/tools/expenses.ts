@@ -13,7 +13,7 @@ export function registerExpenseTools(server: McpServer, client: CwManageClient) 
     {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
       orderBy: z.string().optional().describe("Field to order by"),
     },
     async ({ conditions, page, pageSize, orderBy }) => {
@@ -134,7 +134,7 @@ export function registerExpenseTools(server: McpServer, client: CwManageClient) 
     {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
       orderBy: z.string().optional().describe("Field to order by"),
     },
     async ({ conditions, page, pageSize, orderBy }) => {
@@ -268,7 +268,7 @@ export function registerExpenseTools(server: McpServer, client: CwManageClient) 
       reportId: z.number().describe("Parent expense report ID"),
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
       orderBy: z.string().optional().describe("Field to order by"),
     },
     async ({ reportId, conditions, page, pageSize, orderBy }) => {
@@ -287,7 +287,7 @@ export function registerExpenseTools(server: McpServer, client: CwManageClient) 
     {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
       orderBy: z.string().optional().describe("Field to order by"),
     },
     async ({ conditions, page, pageSize, orderBy }) => {
@@ -318,7 +318,7 @@ export function registerExpenseTools(server: McpServer, client: CwManageClient) 
     {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
       orderBy: z.string().optional().describe("Field to order by"),
     },
     async ({ conditions, page, pageSize, orderBy }) => {

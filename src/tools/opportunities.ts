@@ -34,7 +34,7 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
       childConditions: z.string().optional().describe("Child object conditions query string"),
       customFieldConditions: z.string().optional().describe("Custom field conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
       orderBy: z.string().optional().describe("Field to order by"),
       fields: z.string().optional().describe("Comma-separated list of fields to return"),
     },
@@ -345,7 +345,7 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
       opportunityId: z.number().describe("Opportunity ID"),
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async ({ opportunityId, conditions, page, pageSize }) => {
       const result = await client.get("/procurement/products", {
@@ -455,7 +455,7 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
       opportunityId: z.number().describe("Opportunity ID"),
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async ({ opportunityId, conditions, page, pageSize }) => {
       const result = await client.get(`/sales/opportunities/${opportunityId}/contacts`, {
@@ -508,7 +508,7 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
       opportunityId: z.number().describe("Opportunity ID"),
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async ({ opportunityId, conditions, page, pageSize }) => {
       const result = await client.get(`/sales/opportunities/${opportunityId}/notes`, {
@@ -592,7 +592,7 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/sales/opportunities/ratings", {
@@ -622,7 +622,7 @@ export function registerOpportunityTools(server: McpServer, client: CwManageClie
     {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/company/noteTypes", {

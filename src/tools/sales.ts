@@ -16,7 +16,7 @@ export function registerSalesTools(server: McpServer, client: CwManageClient) {
     {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
       orderBy: z.string().optional().describe("Field to order by"),
     },
     async ({ conditions, page, pageSize, orderBy }) => {
@@ -52,7 +52,7 @@ export function registerSalesTools(server: McpServer, client: CwManageClient) {
       childConditions: z.string().optional().describe("Child object conditions query string"),
       customFieldConditions: z.string().optional().describe("Custom field conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
       orderBy: z.string().optional().describe("Field to order by"),
       fields: z.string().optional().describe("Comma-separated list of fields to return"),
     },
@@ -191,7 +191,7 @@ export function registerSalesTools(server: McpServer, client: CwManageClient) {
     {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/sales/probabilities", {
@@ -290,7 +290,7 @@ export function registerSalesTools(server: McpServer, client: CwManageClient) {
     {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/sales/opportunities/statuses", {
@@ -400,7 +400,7 @@ export function registerSalesTools(server: McpServer, client: CwManageClient) {
     {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/sales/opportunities/types", {
@@ -504,7 +504,7 @@ export function registerSalesTools(server: McpServer, client: CwManageClient) {
     {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/sales/opportunities/ratings", {
@@ -536,7 +536,7 @@ export function registerSalesTools(server: McpServer, client: CwManageClient) {
     {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/sales/stages", {
@@ -638,7 +638,7 @@ export function registerSalesTools(server: McpServer, client: CwManageClient) {
     {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/sales/salesTeritories", {
@@ -746,7 +746,7 @@ export function registerSalesTools(server: McpServer, client: CwManageClient) {
     {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/sales/salesTeams", {
@@ -778,7 +778,7 @@ export function registerSalesTools(server: McpServer, client: CwManageClient) {
     {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/sales/orders/statuses", {

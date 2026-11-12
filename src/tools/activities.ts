@@ -15,7 +15,7 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
       childConditions: z.string().optional().describe("Conditions applied to child collections"),
       customFieldConditions: z.string().optional().describe("Conditions applied to custom fields"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
       orderBy: z.string().optional().describe("Field to order by"),
       fields: z.string().optional().describe("Comma-separated list of fields to return"),
     },
@@ -199,7 +199,7 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
       activityId: z.number().describe("Activity ID"),
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async ({ activityId, conditions, page, pageSize }) => {
       const result = await client.get(`/sales/activities/${activityId}/notes`, {
@@ -246,7 +246,7 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
       activityId: z.number().describe("Activity ID"),
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async ({ activityId, conditions, page, pageSize }) => {
       const result = await client.get(`/sales/activities/${activityId}/stopwatches`, {
@@ -266,7 +266,7 @@ export function registerActivityTools(server: McpServer, client: CwManageClient)
     {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async ({ conditions, page, pageSize }) => {
       const result = await client.get("/sales/activities/types", {

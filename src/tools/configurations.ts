@@ -25,7 +25,7 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
     {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
       orderBy: z.string().optional().describe("Field to order by"),
     },
     async ({ conditions, page, pageSize, orderBy }) => {
@@ -210,7 +210,7 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
       configurationId: z.number().describe("Parent configuration ID"),
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
       orderBy: z.string().optional().describe("Field to order by"),
     },
     async ({ configurationId, conditions, page, pageSize, orderBy }) => {
@@ -262,7 +262,7 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
     {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
       orderBy: z.string().optional().describe("Field to order by"),
     },
     async ({ conditions, page, pageSize, orderBy }) => {
@@ -346,7 +346,7 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
       typeId: z.number().describe("Parent configuration type ID"),
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
       orderBy: z.string().optional().describe("Field to order by"),
     },
     async ({ typeId, conditions, page, pageSize, orderBy }) => {
@@ -442,7 +442,7 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
       questionId: z.number().describe("Parent question ID"),
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
       orderBy: z.string().optional().describe("Field to order by"),
     },
     async ({ typeId, questionId, conditions, page, pageSize, orderBy }) => {
@@ -519,7 +519,7 @@ export function registerConfigurationTools(server: McpServer, client: CwManageCl
     {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
       orderBy: z.string().optional().describe("Field to order by"),
     },
     async ({ conditions, page, pageSize, orderBy }) => {
