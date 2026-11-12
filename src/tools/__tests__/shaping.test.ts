@@ -85,7 +85,7 @@ describe("shapeToolText", () => {
     expect(parsed.omitted).toBe(500 - parsed.returned);
     expect(parsed.hasMore).toBe(true);
     expect(parsed.hint).toBe(
-      `${parsed.omitted} of 500 rows on this page were omitted to fit the size limit and are NOT on nextPage. Re-request this same page with pageSize=${parsed.returned} or fewer fields (for example fields=id,summary) to see them.`,
+      `${parsed.omitted} of 500 rows on this page were omitted to fit the size limit and are NOT on nextPage. Request the same page and pageSize again with fewer fields= to see them, or restart at page 1 with pageSize=${parsed.returned} and page forward.`,
     );
   });
 

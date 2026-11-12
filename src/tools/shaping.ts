@@ -155,7 +155,8 @@ function wrapArray(items: unknown[], opts: ShapeOptions, pageTotal?: number): st
   if (truncated) {
     wrapper.omitted = pageTotal - items.length;
     wrapper.pageTotal = pageTotal;
-    wrapper.hint = `${pageTotal - items.length} of ${pageTotal} rows on this page were omitted to fit the size limit and are NOT on nextPage. Re-request this same page with pageSize=${items.length} or fewer fields (for example fields=id,summary) to see them.`;
+    // Paging is by offset, so a smaller pageSize on the same page number returns other rows.
+    wrapper.hint = `${pageTotal - items.length} of ${pageTotal} rows on this page were omitted to fit the size limit and are NOT on nextPage. Request the same page and pageSize again with fewer fields= to see them, or restart at page 1 with pageSize=${items.length} and page forward.`;
   }
   return JSON.stringify(wrapper);
 }
