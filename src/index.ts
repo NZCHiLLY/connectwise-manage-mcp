@@ -352,6 +352,8 @@ async function startHttpTransport(): Promise<void> {
             } else {
               identity = await validateToken(token, entraConfig, jwksClient!);
             }
+            const store = requestContext.getStore();
+            if (store) store.identity = { upn: identity.upn, oid: identity.oid };
             console.error(
               `[audit] ${identity.oid} | ${new Date().toISOString()} | POST ${url.pathname} | cid:${requestContext.getStore()?.correlationId ?? "-"}`,
             );

@@ -23,7 +23,8 @@ async function importFresh() {
   vi.doMock("node:fs", () => ({ promises: fsMock }));
 
   const mod = await import("./log.js");
-  return { auditLog: mod.auditLog };
+  const ctx = await import("../context.js");
+  return { auditLog: mod.auditLog, requestContext: ctx.requestContext };
 }
 
 const baseEntry = {
@@ -103,5 +104,44 @@ describe("auditLog", () => {
     expect(fsMock.appendFile).not.toHaveBeenCalled();
 
     stderrSpy.mockRestore();
+  });
+
+  it("audit records the caller", async () => {
+    const { auditLog, requestContext } = await importFresh();
+
+    await requestContext.run(
+      { correlationId: "c", identity: { upn: "jayson.chilman@tomizone.com", oid: "o1" } },
+      () => auditLog(baseEntry),
+    );
+
+    const data = (fsMock.appendFile.mock.calls[0] as [unknown, string])[1];
+    const parsed = JSON.parse(data.trimEnd());
+    expect(parsed.upn).toBe("jayson.chilman@tomizone.com");
+    expect(parsed.oid).toBe("o1");
+  });
+
+  it("static caller is recorded as static", async () => {
+    const { auditLog, requestContext } = await importFresh();
+
+    await requestContext.run(
+      { correlationId: "c", identity: { upn: "cli-user", oid: "static" } },
+      () => auditLog(baseEntry),
+    );
+
+    const data = (fsMock.appendFile.mock.calls[0] as [unknown, string])[1];
+    const parsed = JSON.parse(data.trimEnd());
+    expect(parsed.upn).toBe("cli-user");
+    expect(parsed.oid).toBe("static");
+  });
+
+  it("records no upn or oid when there is no identity", async () => {
+    const { auditLog } = await importFresh();
+
+    await auditLog(baseEntry);
+
+    const data = (fsMock.appendFile.mock.calls[0] as [unknown, string])[1];
+    const parsed = JSON.parse(data.trimEnd());
+    expect(parsed).not.toHaveProperty("upn");
+    expect(parsed).not.toHaveProperty("oid");
   });
 });
