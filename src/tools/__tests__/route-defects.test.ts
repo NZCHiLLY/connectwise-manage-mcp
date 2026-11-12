@@ -15,6 +15,7 @@ import { registerServiceTools } from "../service.js";
 import { registerTimeEntryTools } from "../time-entries.js";
 import { registerSystemTools } from "../system.js";
 import { registerOpportunityTools } from "../opportunities.js";
+import { applyPatch } from "../shared.js";
 import { registerSalesTools, QUOTES_UNAVAILABLE_MESSAGE } from "../sales.js";
 
 vi.mock("../../audit/log.js", () => ({
@@ -25,6 +26,7 @@ const mockClient = {
   get: vi.fn().mockResolvedValue({}),
   post: vi.fn().mockResolvedValue({}),
   patch: vi.fn().mockResolvedValue({}),
+  put: vi.fn().mockResolvedValue({}),
   request: vi.fn().mockResolvedValue({}),
 } as unknown as CwManageClient;
 
@@ -511,5 +513,121 @@ describe("cw_list_audit_trail takes the type and id ConnectWise requires", () =>
       "/system/audittrail",
       expect.objectContaining({ type: "Ticket", id: 106507, page: 1, pageSize: 25 }),
     );
+  });
+});
+
+describe("cw_update_ticket agreement and auto-CC fields", () => {
+  it("cw_update_ticket patches /agreement/id", async () => {
+    await getTool(server, "cw_update_ticket").handler({ id: 106507, agreementId: 1481, ...SENTINEL }, {});
+    expect(mockClient.patch).toHaveBeenCalledWith(
+      "/service/tickets/106507",
+      expect.arrayContaining([{ op: "replace", path: "/agreement/id", value: 1481 }]),
+    );
+  });
+
+  it("cw_update_ticket patches the auto-CC fields", async () => {
+    await getTool(server, "cw_update_ticket").handler(
+      {
+        id: 106507,
+        automaticEmailCcFlag: false,
+        automaticEmailCc: "",
+        automaticEmailContactFlag: false,
+        automaticEmailResourceFlag: true,
+        ...SENTINEL,
+      },
+      {},
+    );
+    const ops = (mockClient.patch as unknown as { mock: { calls: unknown[][] } }).mock.calls[0][1] as {
+      op: string;
+      path: string;
+      value: unknown;
+    }[];
+    expect(ops).toEqual(
+      expect.arrayContaining([
+        { op: "replace", path: "/automaticEmailCcFlag", value: false },
+        { op: "replace", path: "/automaticEmailCc", value: "" },
+        { op: "replace", path: "/automaticEmailContactFlag", value: false },
+        { op: "replace", path: "/automaticEmailResourceFlag", value: true },
+      ]),
+    );
+  });
+});
+
+describe("cw_update_time_entry reads, applies and PUTs", () => {
+  it("cw_update_time_entry preserves untouched fields", async () => {
+    (mockClient.get as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      id: 88658,
+      notes: "a",
+      agreement: { id: 1481 },
+      invoiceFlag: true,
+      _info: {},
+    });
+    await getTool(server, "cw_update_time_entry").handler(
+      { id: 88658, patch: [{ op: "replace", path: "/notes", value: "b" }], ...SENTINEL },
+      {},
+    );
+    expect(mockClient.get).toHaveBeenCalledWith("/time/entries/88658");
+    expect(mockClient.put).toHaveBeenCalledWith("/time/entries/88658", {
+      id: 88658,
+      notes: "b",
+      agreement: { id: 1481 },
+      invoiceFlag: true,
+    });
+    expect(mockClient.patch).not.toHaveBeenCalled();
+  });
+});
+
+describe("applyPatch", () => {
+  it("replaces a nested value without mutating the input", () => {
+    const doc = { a: { b: 1, c: 2 } };
+    const out = applyPatch(doc, [{ op: "replace", path: "/a/b", value: 9 }]);
+    expect(out).toEqual({ a: { b: 9, c: 2 } });
+    expect(doc).toEqual({ a: { b: 1, c: 2 } });
+  });
+
+  it("add creates an intermediate object", () => {
+    const out = applyPatch({}, [{ op: "add", path: "/agreement/id", value: 5 }]);
+    expect(out).toEqual({ agreement: { id: 5 } });
+  });
+
+  it("remove deletes the field", () => {
+    const out = applyPatch({ a: { b: 1, c: 2 }, d: 3 }, [
+      { op: "remove", path: "/a/b" },
+      { op: "remove", path: "/d" },
+    ]);
+    expect(out).toEqual({ a: { c: 2 } });
+  });
+});
+
+describe("cw_create_opportunity body shape", () => {
+  const base = {
+    name: "Test",
+    companyId: 1,
+    typeId: 2,
+    primarySalesRepId: 3,
+    stageId: 4,
+    contactId: 5,
+    ...SENTINEL,
+  };
+
+  it("cw_create_opportunity never sends businessUnit", async () => {
+    await getTool(server, "cw_create_opportunity").handler({ ...base, businessUnitId: 9 }, {});
+    const body = (mockClient.post as unknown as { mock: { calls: unknown[][] } }).mock.calls[0][1] as Record<string, unknown>;
+    expect(body).not.toHaveProperty("businessUnit");
+  });
+
+  it("cw_create_opportunity sends probability as {id}", async () => {
+    await getTool(server, "cw_create_opportunity").handler({ ...base, probabilityId: 5 }, {});
+    expect(mockClient.post).toHaveBeenCalledWith(
+      "/sales/opportunities",
+      expect.objectContaining({ probability: { id: 5 }, contact: { id: 5 } }),
+    );
+  });
+
+  it("cw_create_opportunity requires contactId", async () => {
+    const { contactId: _omit, ...without } = base;
+    void _omit;
+    const { inputSchema } = getTool(server, "cw_create_opportunity");
+    await expect(inputSchema.parseAsync(without)).rejects.toThrow();
   });
 });
