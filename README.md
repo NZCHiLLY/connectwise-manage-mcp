@@ -89,8 +89,9 @@ URL path takes precedence over JWT role / env var:
 | Path | Profile | Tools |
 |------|---------|-------|
 | `/mcp/l1` | L1 helpdesk | 73 tools |
-| `/mcp/l2` | L2 management | 71 tools |
-| `/mcp/l3` | L3 finance/accounting | 72 tools |
+| `/mcp/l2` | L2 management | 73 tools |
+| `/mcp/l3` | L3 finance/accounting | 75 tools |
+| `/mcp/pricing` | Pricing, read-only (claude.ai) | 21 tools |
 | `/mcp/{domain}` | Domain | 9–39 tools (Copilot Studio) |
 | `/mcp` | full or JWT role | all |
 
@@ -100,7 +101,7 @@ Domain endpoints: `tickets`, `time-entries`, `companies`, `contacts`, `configura
 
 Large ConnectWise results overflow the claude.ai client, which refuses a tool result near 50,000 characters. Shaped profiles keep every result under a 40,000-character budget. The logic is in `src/tools/shaping.ts`, wired up in `src/tools/profiles.ts`.
 
-**Which endpoints are shaped.** `l1`, `l2`, `l3`, `opportunities`, `sales` and `pricing` (`SHAPED_PROFILES_DEFAULT`). `pricing` is reserved for the planned read-only pricing tier. Until that tier exists, the path serves the full tool set, shaped. `MCP_SHAPED_PROFILES` is a comma list that replaces this default when set, even to an empty string. The `full` profile, an unset profile and every other domain profile stay raw and byte-identical to before, unless the caller passes `fields`. The cockpit reads the untiered `/mcp` endpoint and depends on that. One cockpit call changes: it passes `fields` to `cw_search_members`, which never declared it, so the SDK used to drop it and return whole member records. That call now gets the projected records. The Copilot agents bound to the `opportunities` and `sales` domain profiles now get shaped output.
+**Which endpoints are shaped.** `l1`, `l2`, `l3`, `opportunities`, `sales` and `pricing` (`SHAPED_PROFILES_DEFAULT`). `pricing` is the read-only pricing tier: 20 catalogue, product, agreement, company, configuration and opportunity read tools, 21 with the universal work role read, and no write tool at all. `MCP_SHAPED_PROFILES` is a comma list that replaces this default when set, even to an empty string. The `full` profile, an unset profile and every other domain profile stay raw and byte-identical to before, unless the caller passes `fields`. The cockpit reads the untiered `/mcp` endpoint and depends on that. One cockpit call changes: it passes `fields` to `cw_search_members`, which never declared it, so the SDK used to drop it and return whole member records. That call now gets the projected records. The Copilot agents bound to the `opportunities` and `sales` domain profiles now get shaped output.
 
 **What shaping does.**
 - Drops nulls, empty strings, empty arrays and empty objects. `0`, `false` and `"0"` are kept.
