@@ -779,7 +779,7 @@ function injectShape(
       .describe("Comma-separated fields to keep, for example id,name,company/name.");
     injected.add("fields");
   }
-  if (NOTE_TOOL_RE.test(toolName) && !("maxTextChars" in shape)) {
+  if (READ_TOOL_RE.test(toolName) && NOTE_TOOL_RE.test(toolName) && !("maxTextChars" in shape)) {
     shape.maxTextChars = z.number().int().positive().optional().describe(
       `Maximum characters kept from each note's text (default ${DEFAULT_MAX_TEXT_CHARS}). Applies where output is shaped.`,
     );
@@ -810,6 +810,7 @@ function projectText(text: string, fields: string[]): string {
 }
 
 function shapeResult(
+  toolName: string,
   result: unknown,
   shaped: boolean,
   fields: string[] | undefined,
@@ -820,10 +821,12 @@ function shapeResult(
     return result;
   }
   const paging = requestContext.getStore()?.paging;
+  // A write's response can become the body of the next write, so its text is never cut.
+  const textCap = READ_TOOL_RE.test(toolName) ? maxTextChars : undefined;
   const content = result.content.map((item: unknown) => {
     if (!isPlainRecord(item) || item.type !== "text" || typeof item.text !== "string") return item;
     const text = shaped
-      ? shapeToolText(item.text, { fields, maxTextChars, budget: SHAPED_BUDGET, paging })
+      ? shapeToolText(item.text, { fields, maxTextChars: textCap, budget: SHAPED_BUDGET, paging })
       : projectText(item.text, fields ?? []);
     return { ...item, text };
   });
@@ -874,7 +877,7 @@ function wrapHandler(
       const store = requestContext.getStore();
       if (store) store.paging = undefined;
       const result = await handler(...callArgs);
-      return shapeResult(result, shaped, fields, maxTextChars);
+      return shapeResult(toolName, result, shaped, fields, maxTextChars);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[tool:${toolName}] error: ${msg}`);

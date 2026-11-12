@@ -83,6 +83,9 @@ function shapeOf(server: McpServer, name: string): Record<string, { description?
   return tool.inputSchema._zod.def.shape;
 }
 
+const DISCLAIMER =
+  "This message and its attachments contain confidential information. If you are not the intended recipient, you are strictly prohibited to disclose, copy, distribute or take any action in reliance on the contents of this information. Any views expressed are those of the sender. No liability is accepted for any viruses transmitted by this email.";
+
 const CONFIG = {
   id: 25,
   name: "Doc",
@@ -183,6 +186,8 @@ describe("shaping wired into applyToolProfile", () => {
     expect(shapeOf(server, "cw_update_ticket").fields).toBeUndefined();
     expect(shapeOf(server, "cw_get_ticket_notes").maxTextChars).toBeDefined();
     expect(shapeOf(server, "cw_search_configurations").maxTextChars).toBeUndefined();
+    expect(shapeOf(server, "cw_add_ticket_note").maxTextChars).toBeUndefined();
+    expect(shapeOf(server, "cw_update_ticket_note").maxTextChars).toBeUndefined();
   });
 
   it("error results are not shaped", async () => {
@@ -195,7 +200,22 @@ describe("shaping wired into applyToolProfile", () => {
   it("caps note text at maxTextChars on shaped profiles", async () => {
     mockClient.get.mockResolvedValue([{ id: 1, text: "a".repeat(50) }]);
     const res = await call(build("l1"), "cw_get_ticket_notes", { ticketId: 9, maxTextChars: 10 });
-    expect(JSON.parse(res.content[0].text).items[0].text).toBe(`${"a".repeat(10)}[... 40 more characters]`);
+    expect(JSON.parse(res.content[0].text).items[0].text).toBe(`${"a".repeat(10)}[display cut: 40 more characters stored]`);
+  });
+
+  it("leaves a write tool's text untouched on shaped profiles", async () => {
+    const posted = { id: 77, ticketId: 9, text: `${"b".repeat(5000)}
+
+${DISCLAIMER}` };
+    mockClient.post.mockResolvedValue(posted);
+    const res = await call(build("l1"), "cw_add_ticket_note", {
+      ticketId: 9,
+      text: posted.text,
+      user_intent: "User asked to add the update note to ticket 9.",
+      user_quote: "add the note",
+    });
+    expect(res.isError).toBeUndefined();
+    expect(JSON.parse(res.content[0].text)).toStrictEqual(posted);
   });
 
   it("normalises query args on every profile", async () => {
@@ -263,7 +283,7 @@ describe("recorded worst case", () => {
       expect(out.omitted).toBeUndefined();
     }
 
-    const marker = /\[\.\.\. \d+ more characters\]$/;
+    const marker = /\[display cut: \d+ more characters stored\]$/;
     out.items.forEach((item, i) => {
       expect(item.id).toBe(FIXTURE[i].id);
       expect(item._info.dateEntered).toBe(FIXTURE[i]._info.dateEntered);
