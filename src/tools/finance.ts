@@ -2,7 +2,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
 import { auditLog } from "../audit/log.js";
-import { sentinelParams } from "./shared.js";
+import { sentinelParams, normaliseIdArgs } from "./shared.js";
 
 /**
  * Finance tools — full coverage of /finance subtree.
@@ -37,9 +37,11 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
     "cw_get_agreement",
     "Get a single agreement by ID.",
     {
-      id: z.number().describe("Agreement ID"),
+      id: z.coerce.number().optional().describe("Agreement ID (alias: agreementId)"),
+      agreementId: z.coerce.number().optional().describe("Agreement ID (alias: id)"),
     },
-    async ({ id }) => {
+    async (args) => {
+      const id = normaliseIdArgs(args, "id", "agreementId", "cw_get_agreement");
       const result = await client.get(`/finance/agreements/${id}`);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -210,13 +212,16 @@ export function registerFinanceTools(server: McpServer, client: CwManageClient) 
     "cw_get_agreement_additions",
     "Get additions (line items) for a specific agreement.",
     {
-      agreementId: z.number().describe("Agreement ID"),
+      agreementId: z.coerce.number().optional().describe("Agreement ID (alias: id)"),
+      id: z.coerce.number().optional().describe("Agreement ID (alias: agreementId)"),
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
       pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
       orderBy: z.string().optional().describe("Field to order by"),
     },
-    async ({ agreementId, conditions, page, pageSize, orderBy }) => {
+    async (args) => {
+      const { conditions, page, pageSize, orderBy } = args;
+      const agreementId = normaliseIdArgs(args, "agreementId", "id", "cw_get_agreement_additions");
       const result = await client.get(`/finance/agreements/${agreementId}/additions`, {
         conditions, page: page ?? 1, pageSize: pageSize ?? 25, orderBy,
       });
