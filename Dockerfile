@@ -3,8 +3,6 @@ FROM node:22-alpine AS builder
 
 # Build arguments
 ARG VERSION="unknown"
-ARG COMMIT_SHA="unknown"
-ARG BUILD_DATE="unknown"
 
 # Set working directory
 WORKDIR /app
@@ -23,10 +21,6 @@ RUN npm run build
 
 # Production stage
 FROM node:22-alpine AS production
-
-# Re-declared: ARGs before a FROM do not carry into later stages
-ARG COMMIT_SHA="unknown"
-ARG BUILD_DATE="unknown"
 
 # Create a non-root user for security
 RUN addgroup -g 1001 -S cwmanage && \
@@ -68,7 +62,10 @@ ENV MCP_HTTP_PORT=8080
 ENV MCP_HTTP_HOST=0.0.0.0
 ENV AUTH_MODE=env
 
-# Build identity, reported by /health and cw_test_connection
+# Build identity, reported by /health and cw_test_connection.
+# Declared here, late, so a per-build SHA does not bust earlier layer caches.
+ARG COMMIT_SHA="unknown"
+ARG BUILD_DATE="unknown"
 ENV BUILD_SHA=${COMMIT_SHA}
 ENV BUILD_DATE=${BUILD_DATE}
 
