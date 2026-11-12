@@ -446,7 +446,7 @@ async function startHttpTransport(): Promise<void> {
     res.end(
       JSON.stringify({
         error: "Not found",
-        endpoints: ["/mcp", "/mcp/l1", "/mcp/l2", "/mcp/l3", "/mcp/full", "/health"],
+        endpoints: ["/mcp", "/mcp/l1", "/mcp/l2", "/mcp/l3", "/mcp/pricing", "/mcp/full", "/health"],
       }),
     );
     }); // end requestContext.run
