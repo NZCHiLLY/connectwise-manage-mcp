@@ -68,9 +68,30 @@ function envModeTimeoutMs(): number | undefined {
 }
 
 /**
+ * Read the rel="next" entry of a ConnectWise Link header. Never throws: an
+ * absent, empty or malformed header means no further page is known.
+ */
+export function parseLinkHeader(header: string | null): Paging {
+  if (!header) return { hasMore: false };
+  for (const entry of header.split(",")) {
+    const match = /<([^>]*)>\s*;(.*)/.exec(entry);
+    if (!match || !/\brel\s*=\s*"?next"?/i.test(match[2])) continue;
+    try {
+      const page = new URL(match[1]).searchParams.get("page");
+      if (page !== null && /^\d+$/.test(page)) {
+        return { hasMore: true, nextPage: Number(page) };
+      }
+    } catch {
+      // Malformed URL: treat as no next page.
+    }
+  }
+  return { hasMore: false };
+}
+
+/**
  * Low-level API client for ConnectWise Manage REST API.
  */
-import { getCorrelationId } from "./context.js";
+import { getCorrelationId, requestContext, type Paging } from "./context.js";
 import { assertSafeGatewayUrl } from "./url-guard.js";
 
 export class CwManageClient {
@@ -197,6 +218,16 @@ export class CwManageClient {
     }
 
     console.error(`[cw-api] cid:${cid} | ${method} ${path} → ${response.status} (${elapsed}ms)`);
+
+    // Best-effort: with no request store (stdio mode) there is nowhere to record it.
+    // headers is optional-chained because a test double may omit it.
+    const store = requestContext.getStore();
+    if (store) {
+      store.paging =
+        response.status === 204
+          ? { hasMore: false }
+          : parseLinkHeader(response.headers?.get("link") ?? null);
+    }
 
     // Some endpoints return 204 No Content
     if (response.status === 204) {
