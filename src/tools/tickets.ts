@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
 import { auditLog } from "../audit/log.js";
 import { resolveCallerMemberId } from "../attribution.js";
+import { getCallerIdentity } from "../context.js";
 import { patchOp, normaliseIdArgs } from "./shared.js";
 
 export function registerTicketTools(server: McpServer, client: CwManageClient) {
@@ -541,6 +542,20 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       ),
     },
     async ({ ticketId, text, detailDescriptionFlag, internalAnalysisFlag, resolutionFlag, customerUpdatedFlag, processNotifications, memberId, contactId, user_intent, user_quote }) => {
+      // Resolve before the audit entry and before any write. A signed-in caller who
+      // cannot be resolved is refused; the static bearer keeps sending no member.
+      const resolvedMemberId = memberId === undefined && contactId === undefined
+        ? await resolveCallerMemberId(client)
+        : undefined;
+      const caller = getCallerIdentity();
+      if (
+        memberId === undefined && contactId === undefined && resolvedMemberId === undefined &&
+        caller !== undefined && caller.oid !== "static"
+      ) {
+        throw new Error(
+          "memberId or contactId is required: your sign-in did not resolve to exactly one active ConnectWise member",
+        );
+      }
       await auditLog({ tool: "cw_add_ticket_note", entityType: "ticket_note", entityId: ticketId, userIntent: user_intent, userQuote: user_quote });
       const body: Record<string, unknown> = { text };
       if (detailDescriptionFlag !== undefined) body.detailDescriptionFlag = detailDescriptionFlag;
@@ -550,10 +565,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       if (processNotifications !== undefined) body.processNotifications = processNotifications;
       if (memberId !== undefined) body.member = { id: memberId };
       if (contactId !== undefined) body.contact = { id: contactId };
-      if (memberId === undefined && contactId === undefined) {
-        const resolved = await resolveCallerMemberId(client);
-        if (resolved !== undefined) body.member = { id: resolved };
-      }
+      if (resolvedMemberId !== undefined) body.member = { id: resolvedMemberId };
       const result = await client.post(`/service/tickets/${ticketId}/notes`, body);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
