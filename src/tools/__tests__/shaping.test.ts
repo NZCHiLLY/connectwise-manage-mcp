@@ -21,6 +21,12 @@ describe("compactValue", () => {
     expect(compactValue(input)).toEqual({ id: 25, status: { id: 2, name: "Active" } });
   });
 
+  it("keeps _info scalar dates and drops its links", () => {
+    expect(
+      compactValue({ _info: { dateEntered: "2026-11-01T00:00:00Z", company_href: "x" } }),
+    ).toEqual({ _info: { dateEntered: "2026-11-01T00:00:00Z" } });
+  });
+
   it("keeps 0, false and \"0\"", () => {
     expect(compactValue({ count: 0, flag: false, s: "0" })).toEqual({
       count: 0,
@@ -75,8 +81,30 @@ describe("shapeToolText", () => {
     expect(parsed.returned).toBeLessThan(500);
     expect(parsed.items).toHaveLength(parsed.returned);
     expect(out.length).toBeLessThan(40000);
-    expect(parsed.hint).toContain("fields=");
-    expect(parsed.hint).toContain("page=");
+    expect(parsed.pageTotal).toBe(500);
+    expect(parsed.omitted).toBe(500 - parsed.returned);
+    expect(parsed.hasMore).toBe(true);
+    expect(parsed.hint).toBe(
+      `${parsed.omitted} of 500 rows on this page were omitted to fit the size limit and are NOT on nextPage. Re-request this same page with pageSize=${parsed.returned} or fewer fields= to see them.`,
+    );
+  });
+
+  it("keeps one oversize row rather than returning none", () => {
+    const out = shapeToolText(JSON.stringify([{ id: 1, name: "z".repeat(5000) }]), {
+      maxTextChars: 2000,
+      budget: 1000,
+    });
+    const parsed = JSON.parse(out);
+    expect(parsed.returned).toBe(1);
+    expect(parsed.items).toHaveLength(1);
+  });
+
+  it("keeps real content between a closeless disclaimer and a full one", () => {
+    const open =
+      "This message and its attachments contain confidential information. If you are not the intended recipient";
+    const out = stripBoilerplate(`Reply A\n${open}\nREAL CONTENT\n${DISCLAIMER}`);
+    expect(out).toContain("REAL CONTENT");
+    expect(out).toContain("Reply A");
   });
 
   it("trims an oversize single record", () => {
@@ -136,6 +164,15 @@ describe("normaliseQueryArgs", () => {
     expect(
       normaliseQueryArgs("cw_search_opportunities", { conditions: "closedFlag=true" }),
     ).toEqual({ conditions: "closedDate != null" });
+  });
+
+  it("does not rewrite already-qualified paths", () => {
+    expect(
+      normaliseQueryArgs("cw_search_opportunities", { conditions: "status/closedFlag = false" }),
+    ).toEqual({ conditions: "status/closedFlag = false" });
+    expect(
+      normaliseQueryArgs("cw_get_ticket_notes", { orderBy: "_info/dateCreated desc" }),
+    ).toEqual({ orderBy: "_info/dateCreated desc" });
   });
 
   it("leaves other tools alone", () => {
