@@ -193,6 +193,31 @@ describe("cw_merge_tickets guard", () => {
     expect(auditLog).not.toHaveBeenCalled();
   });
 
+  it("every refusal tells the caller the override needs the user's explicit confirmation", async () => {
+    const { handler } = getTool(server, "cw_merge_tickets");
+    queuePreflight({
+      target: ticket(200, { closedFlag: true }),
+      sources: [ticket(201, { agreement: { id: 1340 } })],
+      counts: [2],
+    });
+    const err = await handler({ targetTicketId: 200, mergeTicketIds: [201], ...SENTINEL }, {}).catch((e) => e as Error);
+    const msg = (err as Error).message;
+    for (const flag of ["allowTimeEntries", "allowClosedTarget", "allowAgreementMismatch"]) {
+      expect(msg).toContain(
+        `Only set ${flag} after the user has seen this refusal and explicitly confirmed the merge.`,
+      );
+    }
+  });
+
+  it("each allow flag description says it is for after the user has confirmed", async () => {
+    const shape = (getTool(server, "cw_merge_tickets") as unknown as {
+      inputSchema: { shape: Record<string, { description?: string }> };
+    }).inputSchema.shape;
+    for (const flag of ["allowTimeEntries", "allowClosedTarget", "allowAgreementMismatch"]) {
+      expect(shape[flag].description).toContain("after the user has seen the refusal and explicitly confirmed");
+    }
+  });
+
   it("override is audited", async () => {
     const { handler } = getTool(server, "cw_merge_tickets");
     queuePreflight({ target: ticket(105900), sources: [ticket(105952)], counts: [3] });

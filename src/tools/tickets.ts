@@ -331,19 +331,19 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_merge_tickets",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Merge one or more source tickets into a target ticket. Source tickets are closed and their notes/time/products move to the target. Refuses when a source ticket has time entries (they must be moved to the target first, per Michael Morrison, 2 Sep 2026), when the target is closed, or when agreements differ, unless the matching allow flag is set.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Merge one or more source tickets into a target ticket. Source tickets are closed and their notes/time/products move to the target. Refuses when a source ticket has time entries (they must be moved to the target first, per Michael Morrison, 2 Sep 2026), when the target is closed, or when agreements differ. An allow flag is only for use after the user has seen the refusal and explicitly confirmed the merge.",
     {
       targetTicketId: z.number().describe("Surviving ticket ID"),
       mergeTicketIds: z.array(z.number()).describe("IDs of tickets to merge into the target"),
       statusId: z.number().optional().describe("Status to apply to closed source tickets"),
       allowTimeEntries: z.boolean().optional().default(false).describe(
-        "Override: merge even though a source ticket has time entries. Default false.",
+        "Override: merge even though a source ticket has time entries. Only set this after the user has seen the refusal and explicitly confirmed the merge. Default false.",
       ),
       allowClosedTarget: z.boolean().optional().default(false).describe(
-        "Override: merge into a target ticket that is closed. Default false.",
+        "Override: merge into a target ticket that is closed. Only set this after the user has seen the refusal and explicitly confirmed the merge. Default false.",
       ),
       allowAgreementMismatch: z.boolean().optional().default(false).describe(
-        "Override: merge tickets that sit on different agreements. Default false.",
+        "Override: merge tickets that sit on different agreements. Only set this after the user has seen the refusal and explicitly confirmed the merge. Default false.",
       ),
       user_intent: z.string().min(20).describe(
         "Plain-English description of what the user asked for. " +
@@ -393,14 +393,14 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
         for (const id of mergeTicketIds) {
           if (timeEntries[id] > 0) {
             refusals.push(
-              `Source ticket ${id} has ${timeEntries[id]} time entries. Merging it leaves broken records that cannot be modified afterwards; shift them to the target ticket first, or set allowTimeEntries to override.`,
+              `Source ticket ${id} has ${timeEntries[id]} time entries. Merging it leaves broken records that cannot be modified afterwards; shift them to the target ticket first. Only set allowTimeEntries after the user has seen this refusal and explicitly confirmed the merge.`,
             );
           }
         }
       }
       if (!allowClosedTarget && target.closedFlag) {
         refusals.push(
-          `Target ticket ${targetTicketId} is closed. Reopen it or choose an open target, or set allowClosedTarget to override.`,
+          `Target ticket ${targetTicketId} is closed. Reopen it or choose an open target. Only set allowClosedTarget after the user has seen this refusal and explicitly confirmed the merge.`,
         );
       }
       if (!allowAgreementMismatch) {
@@ -409,7 +409,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
           const sourceAgreement = sources.get(id)?.agreement?.id ?? null;
           if (sourceAgreement !== targetAgreement) {
             refusals.push(
-              `Source ticket ${id} is on agreement ${sourceAgreement ?? "none"} but target ticket ${targetTicketId} is on agreement ${targetAgreement ?? "none"}. Merging leaves orphaned links to the old agreement; set allowAgreementMismatch to override.`,
+              `Source ticket ${id} is on agreement ${sourceAgreement ?? "none"} but target ticket ${targetTicketId} is on agreement ${targetAgreement ?? "none"}. Merging leaves orphaned links to the old agreement. Only set allowAgreementMismatch after the user has seen this refusal and explicitly confirmed the merge.`,
             );
           }
         }
