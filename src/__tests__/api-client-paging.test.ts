@@ -56,6 +56,21 @@ describe("paging from the Link header", () => {
     });
   });
 
+  it("leaves paging undefined after a failed call that follows a successful one", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(fakeResponse([], 200, NEXT_LINK))
+      .mockResolvedValueOnce(fakeResponse("boom", 500));
+    vi.stubGlobal("fetch", fetchMock);
+    await requestContext.run({ correlationId: "t" }, async () => {
+      const client = new CwManageClient(envConfig);
+      await client.get("/service/tickets");
+      expect(requestContext.getStore()?.paging).toStrictEqual({ hasMore: true, nextPage: 3 });
+      await expect(client.get("/service/tickets")).rejects.toThrow(/500/);
+      expect(requestContext.getStore()?.paging).toBeUndefined();
+    });
+  });
+
   it("does not throw outside a request context", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(fakeResponse([], 200, NEXT_LINK)));
     await expect(new CwManageClient(envConfig).get("/service/tickets")).resolves.toEqual([]);
@@ -80,5 +95,21 @@ describe("parseLinkHeader", () => {
     expect(
       parseLinkHeader('<https://x/y?page=9>; rel="last", <https://x/y?page=4>; rel="next"'),
     ).toStrictEqual({ hasMore: true, nextPage: 4 });
+  });
+  it("keeps a URL containing a comma intact", () => {
+    expect(
+      parseLinkHeader('<https://x/y?fields=id,summary&page=3>; rel="next", <https://x/y?page=9>; rel="last"'),
+    ).toStrictEqual({ hasMore: true, nextPage: 3 });
+  });
+
+  it("reads the page from a relative URL", () => {
+    expect(parseLinkHeader('</service/tickets?page=2>; rel="next"')).toStrictEqual({
+      hasMore: true,
+      nextPage: 2,
+    });
+  });
+
+  it("does not treat rel=next-foo as next", () => {
+    expect(parseLinkHeader('<https://x/y?page=3>; rel="next-foo"')).toStrictEqual({ hasMore: false });
   });
 });
