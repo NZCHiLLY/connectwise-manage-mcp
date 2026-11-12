@@ -96,6 +96,8 @@ Large ConnectWise results overflow the claude.ai client, which refuses a tool re
 - `maxTextChars` is injected on read tools whose name contains `note`. It applies only where output is shaped.
 - `conditions` and `orderBy` carry help text describing the operator, string and date syntax.
 
+**Write guard.** On every profile, a tool that is not a read (`cw_search_*`, `cw_list_*`, `cw_get_*`, `cw_count_*`) is refused without calling ConnectWise when any string in its arguments, however deeply nested, contains `[display cut:`. That marker only comes from a shaped read, so the write would store cut text. The `cw_replace_*` descriptions also say that the body must come from a full, unshaped read.
+
 **Query argument repair.** On every profile, `conditions`, `childConditions`, `customFieldConditions` and `orderBy` are repaired. HTML entities for angle brackets, quotes, apostrophes and ampersands are decoded across the whole string, quoted parts included. The field aliasing below skips quoted strings. On ticket note tools, `dateCreated`, `createdDate` and `dateEntered` become `_info/dateEntered`. On opportunity tools, `closedFlag = false` becomes `closedDate = null` and `closedFlag = true` becomes `closedDate != null`.
 
 ## Docker

@@ -20,6 +20,7 @@ vi.mock("../../audit/log.js", () => ({
   auditOutcome: vi.fn().mockResolvedValue(undefined),
 }));
 
+import { auditLog } from "../../audit/log.js";
 import { applyToolProfile, isShapedProfile, SHAPED_PROFILES_DEFAULT } from "../profiles.js";
 import { CONDITIONS_HELP, ORDERBY_HELP } from "../shaping.js";
 import { registerActivityTools } from "../activities.js";
@@ -49,7 +50,11 @@ const mockClient = {
   put: vi.fn(),
   delete: vi.fn(),
   request: vi.fn(),
-} as unknown as CwManageClient & { get: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn> };
+} as unknown as CwManageClient & {
+  get: ReturnType<typeof vi.fn>;
+  post: ReturnType<typeof vi.fn>;
+  put: ReturnType<typeof vi.fn>;
+};
 
 interface ToolResult {
   content: { type: string; text: string }[];
@@ -250,6 +255,79 @@ ${DISCLAIMER}` };
       await call(server, "cw_get_ticket_note", { id: 1, fields: "id", maxTextChars: 5 });
       expect(seen).toStrictEqual({ id: 1 });
     }
+  });
+});
+
+describe("write guard", () => {
+  function buildWithTime(profile: string | undefined): McpServer {
+    const server = new McpServer({ name: "test", version: "0.0.0" });
+    const proxy = applyToolProfile(server, profile);
+    registerTicketTools(proxy, mockClient);
+    registerTimeEntryTools(proxy, mockClient);
+    return server;
+  }
+
+  const SENTINEL = {
+    user_intent: "User asked to correct the notes on time entry 5.",
+    user_quote: "fix the notes on that entry",
+  };
+
+  it("refuses a write whose arguments carry the display-cut marker, on every profile", async () => {
+    for (const profile of ["l1", undefined]) {
+      vi.resetAllMocks();
+      const res = await call(buildWithTime(profile), "cw_replace_time_entry", {
+        id: 5,
+        body: { chargeToId: 9, notes: "Rebooted the server[display cut: 1200 more characters stored]" },
+        ...SENTINEL,
+      });
+      expect(res).toStrictEqual({
+        isError: true,
+        content: [{
+          type: "text",
+          text: "cw_replace_time_entry refused: an argument contains '[display cut:', text copied from a shaped read. Fetch the full record with fields= or a raw read before writing.",
+        }],
+      });
+      expect(mockClient.put).not.toHaveBeenCalled();
+      expect(auditLog).not.toHaveBeenCalled();
+    }
+  });
+
+  it("finds the marker deep inside nested arrays", async () => {
+    const res = await call(buildWithTime("l1"), "cw_replace_time_entry", {
+      id: 5,
+      body: { lines: [{ parts: ["ok", { text: "x[display cut: 3 more characters stored]" }] }] },
+      ...SENTINEL,
+    });
+    expect(res.isError).toBe(true);
+    expect(mockClient.put).not.toHaveBeenCalled();
+  });
+
+  it("passes a normal write", async () => {
+    mockClient.put.mockResolvedValue({ id: 5, notes: "Rebooted the server" });
+    const res = await call(buildWithTime("l1"), "cw_replace_time_entry", {
+      id: 5,
+      body: { chargeToId: 9, notes: "Rebooted the server" },
+      ...SENTINEL,
+    });
+    expect(res.isError).toBeUndefined();
+    expect(mockClient.put).toHaveBeenCalledWith("/time/entries/5", { chargeToId: 9, notes: "Rebooted the server" });
+  });
+
+  it("does not guard read tools", async () => {
+    mockClient.get.mockResolvedValue([]);
+    const res = await call(buildWithTime("l1"), "cw_search_tickets", { conditions: 'summary contains "[display cut:"' });
+    expect(res.isError).toBeUndefined();
+    expect(mockClient.get).toHaveBeenCalled();
+  });
+
+  it("tells the replace tools that shaped results are not PUT bodies", () => {
+    const tools = (buildWithTime(undefined) as unknown as {
+      _registeredTools: Record<string, { description?: string }>;
+    })._registeredTools;
+    const note = " Build the body from a full, unshaped read. Shaped results are not PUT bodies.";
+    expect(tools.cw_replace_time_entry.description?.endsWith(note)).toBe(true);
+    expect(tools.cw_replace_ticket.description?.endsWith(note)).toBe(true);
+    expect(tools.cw_update_ticket.description).not.toContain(note);
   });
 });
 

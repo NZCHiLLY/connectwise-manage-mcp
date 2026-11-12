@@ -4,6 +4,7 @@ import { auditOutcome } from "../audit/log.js";
 import { requestContext } from "../context.js";
 import {
   CONDITIONS_HELP,
+  DISPLAY_CUT,
   ORDERBY_HELP,
   normaliseQueryArgs,
   projectFields,
@@ -833,6 +834,17 @@ function shapeResult(
   return { ...result, content };
 }
 
+/** True when any string anywhere in `v` carries the display-cut marker. */
+function containsDisplayCut(v: unknown): boolean {
+  if (typeof v === "string") return v.includes(DISPLAY_CUT);
+  if (Array.isArray(v)) return v.some(containsDisplayCut);
+  if (isPlainRecord(v)) return Object.values(v).some(containsDisplayCut);
+  return false;
+}
+
+const REPLACE_TOOL_RE = /^cw_replace_/;
+const REPLACE_NOTE = " Build the body from a full, unshaped read. Shaped results are not PUT bodies.";
+
 interface WrapOptions {
   profile: string | undefined;
   /** True when the tool was registered with a raw shape, so its first argument is the args. */
@@ -850,6 +862,9 @@ interface WrapOptions {
  * shaped profiles. Afterwards it shapes text output: fully on shaped profiles, and by
  * projection alone on raw profiles when the caller passed `fields`. Error results are
  * never shaped.
+ *
+ * On every profile, a tool that is not a read is refused, without calling its handler,
+ * when any argument string carries the display-cut marker that shaped reads append.
  */
 function wrapHandler(
   toolName: string,
@@ -862,6 +877,12 @@ function wrapHandler(
       let fields: string[] | undefined;
       let maxTextChars = DEFAULT_MAX_TEXT_CHARS;
       let callArgs = args;
+      if (opts.hasArgs && !READ_TOOL_RE.test(toolName) && containsDisplayCut(args[0])) {
+        const msg = `${toolName} refused: an argument contains '${DISPLAY_CUT}', text copied from a shaped read. Fetch the full record with fields= or a raw read before writing.`;
+        console.warn(`[tool:${toolName}] ${msg}`);
+        void auditOutcome(toolName, "failure", msg);
+        return { isError: true, content: [{ type: "text", text: msg }] };
+      }
       if (opts.hasArgs && isPlainRecord(args[0])) {
         const toolArgs = normaliseQueryArgs(toolName, args[0]);
         fields = parseFields(toolArgs.fields);
@@ -958,6 +979,11 @@ export function applyToolProfile(
         const wrappedRest = [...rest];
         const handlerIdx = wrappedRest.length - 1;
         const schemaIdx = wrappedRest.length - 2;
+
+        // Said here rather than in each tool module, so every replace tool carries it.
+        if (REPLACE_TOOL_RE.test(name) && wrappedRest.length >= 3 && typeof wrappedRest[0] === "string") {
+          wrappedRest[0] = `${wrappedRest[0]}${REPLACE_NOTE}`;
+        }
 
         // Inject the shaping arguments into a raw shape (second-to-last arg) on every
         // profile, so `fields` works wherever a caller asks for it.
