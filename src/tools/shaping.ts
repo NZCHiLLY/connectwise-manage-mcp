@@ -7,6 +7,13 @@ export interface ShapeOptions {
   paging?: Paging;
 }
 
+/** Description given to every tool's `conditions` field by applyToolProfile. */
+export const CONDITIONS_HELP =
+  "ConnectWise conditions. Operators: = != < <= > >= contains like in (...). Strings in double quotes: company/name = \"Acme\". Dates in square brackets: _info/dateEntered > [2026-11-01T00:00:00Z]. Combine with and, or and brackets. Nested fields use /: status/name = \"Open\". Ticket notes date on _info/dateEntered. On opportunities, filter open ones with closedDate = null.";
+
+/** Description given to every tool's `orderBy` field by applyToolProfile. */
+export const ORDERBY_HELP = "Field then asc or desc, for example id desc or _info/dateEntered desc.";
+
 const TEXT_KEYS = new Set(["text", "notes"]);
 
 const DISCLAIMER_RE =
@@ -144,7 +151,7 @@ function wrapArray(items: unknown[], opts: ShapeOptions, pageTotal?: number): st
   if (truncated) {
     wrapper.omitted = pageTotal - items.length;
     wrapper.pageTotal = pageTotal;
-    wrapper.hint = `${pageTotal - items.length} of ${pageTotal} rows on this page were omitted to fit the size limit and are NOT on nextPage. Re-request this same page with pageSize=${items.length} or fewer fields= to see them.`;
+    wrapper.hint = `${pageTotal - items.length} of ${pageTotal} rows on this page were omitted to fit the size limit and are NOT on nextPage. Re-request this same page with pageSize=${items.length} or fewer fields (for example fields=id,summary) to see them.`;
   }
   return JSON.stringify(wrapper);
 }
