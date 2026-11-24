@@ -61,6 +61,7 @@ import {
   handleToken,
 } from "./auth/routes.js";
 import { AuthError } from "./auth/types.js";
+import { bearerChallenge, matchMcpPath, metadataPathFor, safeLogValue } from "./auth/discovery.js";
 import { createRequire } from "node:module";
 const _require = createRequire(import.meta.url);
 const _pkg = _require("../package.json") as { version: string };
@@ -230,11 +231,9 @@ async function startHttpTransport(): Promise<void> {
     // OAuth discovery + proxy endpoints (always available when OAuth on)
     // ------------------------------------------------------------------
     if (oauthEnabled && entraConfig) {
-      if (
-        url.pathname === "/.well-known/oauth-protected-resource" &&
-        req.method === "GET"
-      ) {
-        handleProtectedResource(res, entraConfig);
+      const metadataPath = req.method === "GET" ? metadataPathFor(url.pathname) : null;
+      if (metadataPath) {
+        handleProtectedResource(res, entraConfig, metadataPath);
         return;
       }
 
@@ -294,14 +293,14 @@ async function startHttpTransport(): Promise<void> {
     //      https://domain     →  Copilot Studio hits /mcp      →  full/role fallback
     // Direct (non-Copilot-Studio) patterns also supported: /mcp/l1, /mcp/l2, /mcp/full
     // Path segment overrides JWT role; JWT role overrides MCP_TOOL_PROFILE env var.
-    const mcpDirect   = /^\/mcp(?:\/([a-z0-9-]+))?\/?$/.exec(url.pathname);        // /mcp /mcp/l1 /mcp/tickets
-    const mcpPrefixed = /^\/([a-z0-9-]+)\/mcp\/?$/.exec(url.pathname);            // /l1/mcp /tickets/mcp
-    const mcpNested   = /^\/mcp\/([a-z0-9-]+)\/mcp\/?$/.exec(url.pathname);       // /mcp/l1/mcp /mcp/tickets/mcp
-    const mcpPathMatch = mcpDirect ?? mcpPrefixed ?? mcpNested;
+    const mcpPathMatch = matchMcpPath(url.pathname);
     if (mcpPathMatch) {
-      const urlProfile = mcpPathMatch[1] as string | undefined; // "l1" | "l2" | "full" | undefined
+      const urlProfile = mcpPathMatch.profile; // "l1" | "l2" | "full" | undefined
+      const mcpPath = mcpPathMatch.path;
+      const userAgent = safeLogValue(req.headers["user-agent"]);
 
       if (req.method !== "POST") {
+        console.error(`[http] 405 ${safeLogValue(req.method)} ${mcpPath} ua=${userAgent}`);
         res.writeHead(405, { "Content-Type": "application/json" });
         res.end(
           JSON.stringify({
@@ -323,9 +322,10 @@ async function startHttpTransport(): Promise<void> {
           const authHeader = req.headers.authorization;
 
           if (!authHeader?.startsWith("Bearer ")) {
+            console.error(`[auth] 401 ${mcpPath} no bearer ua=${userAgent}`);
             res.writeHead(401, {
               "Content-Type": "application/json",
-              "WWW-Authenticate": `Bearer resource_metadata="${entraConfig.serverUrl}/.well-known/oauth-protected-resource"`,
+              "WWW-Authenticate": bearerChallenge(entraConfig, mcpPath),
             });
             res.end(
               JSON.stringify({
@@ -362,7 +362,15 @@ async function startHttpTransport(): Promise<void> {
             );
           } catch (err) {
             if (err instanceof AuthError) {
-              res.writeHead(err.statusCode, { "Content-Type": "application/json" });
+              console.error(`[auth] ${err.statusCode} ${mcpPath} ${safeLogValue(err.message)} ua=${userAgent}`);
+              // MCP authorization 2025-06-18: a 401 MUST carry WWW-Authenticate.
+              // Without it a client cannot tell an expired token from a dead
+              // server, and asks the user to reconnect instead of refreshing.
+              const headers: Record<string, string> = { "Content-Type": "application/json" };
+              if (err.statusCode === 401) {
+                headers["WWW-Authenticate"] = bearerChallenge(entraConfig, mcpPath, "invalid_token", err.message);
+              }
+              res.writeHead(err.statusCode, headers);
               res.end(JSON.stringify({ error: "auth_failed", message: err.message }));
             } else {
               console.error("[auth] Unexpected validation error:", err);
@@ -447,6 +455,9 @@ async function startHttpTransport(): Promise<void> {
     }
 
     // 404 for everything else
+    console.error(
+      `[http] 404 ${safeLogValue(req.method)} ${safeLogValue(url.pathname)} ua=${safeLogValue(req.headers["user-agent"])}`,
+    );
     res.writeHead(404, { "Content-Type": "application/json" });
     res.end(
       JSON.stringify({
