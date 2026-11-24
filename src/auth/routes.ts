@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { EntraConfig } from "./types.js";
 import { parseRequestTarget } from "../request-target.js";
+import { summariseTokenExchange } from "./discovery.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -44,9 +45,12 @@ function readBody(req: IncomingMessage): Promise<string> {
 export function handleProtectedResource(
   res: ServerResponse,
   config: EntraConfig,
+  mcpPath = "/mcp",
 ): void {
+  // RFC 9728 3.3: resource must equal the URL the client used, or the client
+  // must discard the document. mcpPath is a matched MCP route, never Host.
   sendJson(res, 200, {
-    resource: `${config.serverUrl}/mcp`,
+    resource: `${config.serverUrl}${mcpPath}`,
     authorization_servers: [config.serverUrl],
     bearer_methods_supported: ["header"],
     scopes_supported: [`api://${config.clientId}/access_as_user`],
@@ -214,6 +218,9 @@ export async function handleToken(
   }
 
   const azureTokenUrl = `https://login.microsoftonline.com/${config.tenantId}/oauth2/v2.0/token`;
+  const grantType = params.get("grant_type") ?? undefined;
+  const userAgent = req.headers["user-agent"];
+  const started = Date.now();
 
   try {
     const azureRes = await fetch(azureTokenUrl, {
@@ -223,6 +230,7 @@ export async function handleToken(
     });
 
     const azureBody = await azureRes.text();
+    console.error(summariseTokenExchange(grantType, azureRes.status, azureBody, Date.now() - started, userAgent));
     if (azureRes.status !== 200) {
       console.error(`[token] Azure rejected token exchange — status: ${azureRes.status}, body: ${azureBody}`);
       let sanitized: { error: string; error_description?: string };
@@ -243,6 +251,7 @@ export async function handleToken(
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(azureBody);
   } catch (err) {
+    console.error(summariseTokenExchange(grantType, 502, "", Date.now() - started, userAgent));
     console.error("[auth] Token proxy error:", err);
     res.writeHead(502, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ error: "token_proxy_error", error_description: "Failed to reach Azure AD" }));
