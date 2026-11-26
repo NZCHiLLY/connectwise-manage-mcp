@@ -68,9 +68,31 @@ function envModeTimeoutMs(): number | undefined {
 }
 
 /**
+ * Read the rel="next" entry of a ConnectWise Link header. Never throws: an
+ * absent, empty or malformed header means no further page is known.
+ */
+export function parseLinkHeader(header: string | null): Paging {
+  if (!header) return { hasMore: false };
+  // matchAll on <url>; params, not a split on commas: a URL may contain commas (fields=id,summary).
+  for (const match of header.matchAll(/<([^>]*)>\s*;([^<]*)/g)) {
+    if (!/\brel\s*=\s*"?next"?(?=[\s";,]|$)/i.test(match[2])) continue;
+    try {
+      // Base only makes a relative URL parseable; the page parameter is all we read.
+      const page = new URL(match[1], "http://placeholder").searchParams.get("page");
+      if (page !== null && /^\d+$/.test(page)) {
+        return { hasMore: true, nextPage: Number(page) };
+      }
+    } catch {
+      // Malformed URL: treat as no next page.
+    }
+  }
+  return { hasMore: false };
+}
+
+/**
  * Low-level API client for ConnectWise Manage REST API.
  */
-import { getCorrelationId } from "./context.js";
+import { getCorrelationId, requestContext, type Paging } from "./context.js";
 import { assertSafeGatewayUrl } from "./url-guard.js";
 
 export class CwManageClient {
@@ -126,6 +148,9 @@ export class CwManageClient {
       params?: Record<string, string | number | undefined>;
     },
   ): Promise<T> {
+    // Cleared first so a failed call never leaves a previous call's paging behind.
+    const store = requestContext.getStore();
+    if (store) store.paging = undefined;
     // Re-checked per request so a hostname re-pointed after the last call is caught.
     // Known gap (documented, not closed): DNS can change between this lookup and
     // the connection. Closing it needs a lookup that pins the resolved address on
@@ -197,6 +222,15 @@ export class CwManageClient {
     }
 
     console.error(`[cw-api] cid:${cid} | ${method} ${path} → ${response.status} (${elapsed}ms)`);
+
+    // Best-effort: with no request store (stdio mode) there is nowhere to record it.
+    // headers is optional-chained because a test double may omit it.
+    if (store) {
+      store.paging =
+        response.status === 204
+          ? { hasMore: false }
+          : parseLinkHeader(response.headers?.get("link") ?? null);
+    }
 
     // Some endpoints return 204 No Content
     if (response.status === 204) {
