@@ -31,6 +31,7 @@ src/
     types.ts
   audit/
     log.ts          # Structured audit trail → /home/cwmanage/.cw-mcp-sentinel
+    ticket-note.ts  # Internal "what and why" note written on the ticket after every ticket write
 ```
 
 ## Auth Modes
@@ -58,7 +59,7 @@ URL path takes precedence over JWT role / env var:
 
 | Path      | Profile        | Tools |
 |-----------|----------------|-------|
-| `/mcp/l1` | L1 helpdesk    | 73 tools |
+| `/mcp/l1` | L1 helpdesk    | 72 tools |
 | `/mcp/l2` | L2 management  | 73 tools |
 | `/mcp/l3` | L3 finance/accounting | 75 tools |
 | `/mcp/pricing` | Pricing, read-only (claude.ai) | 21 tools |

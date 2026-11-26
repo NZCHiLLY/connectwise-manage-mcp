@@ -172,6 +172,14 @@ describe("domain profiles", () => {
   });
 });
 
+describe("ticket delete", () => {
+  it("cw_delete_ticket is registered in no profile, full included", () => {
+    expect(full).not.toHaveProperty("cw_delete_ticket");
+    const exposing = [...exposed].filter(([, tools]) => tools.has("cw_delete_ticket")).map(([p]) => p);
+    expect(exposing).toStrictEqual([]);
+  });
+});
+
 describe("role tier additions", () => {
   it("l2 can read products", () => {
     const tools = exposed.get("l2")!;

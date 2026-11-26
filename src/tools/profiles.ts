@@ -29,7 +29,6 @@ const L1_TOOLS = new Set([
   "cw_count_tickets",
   "cw_create_ticket",
   "cw_update_ticket",
-  "cw_delete_ticket",
   "cw_copy_ticket",
   "cw_replace_ticket",
   "cw_merge_tickets",
@@ -733,7 +732,7 @@ const UNIVERSAL_READ_TOOLS: readonly string[] = ["cw_list_work_roles"];
 
 /**
  * Maps an Azure AD app role to a tool profile name.
- * CWM.L1  → "l1"  (helpdesk engineer, 73 ticket- and time-focused tools)
+ * CWM.L1  → "l1"  (helpdesk engineer, 72 ticket- and time-focused tools)
  * CWM.L2  → "l2"  (management, 73 operational-oversight tools)
  * CWM.L3  → "l3"  (finance/accounting, 75 billing-focused tools)
  * Unrecognised roles fall through to the MCP_TOOL_PROFILE env var.

@@ -4,6 +4,21 @@ import { CwManageClient } from "../api-client.js";
 import { auditLog } from "../audit/log.js";
 import { resolveCallerMemberId } from "../attribution.js";
 import { getCallerIdentity } from "../context.js";
+import {
+  SCHEDULE_ENTRY_FIELD_LABELS,
+  TASK_FIELD_LABELS,
+  TICKET_FIELD_LABELS,
+  describeDeletedNote,
+  describeRecordChanges,
+  excerpt,
+  idOf,
+  nameOf,
+  requestedFromPatch,
+  textResult,
+  topLevelKeys,
+  tryRead,
+  withAuditNotes,
+} from "../audit/ticket-note.js";
 import { patchOp, normaliseIdArgs } from "./shared.js";
 
 export function registerTicketTools(server: McpServer, client: CwManageClient) {
@@ -154,7 +169,9 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       if (args.automaticEmailCc) body.automaticEmailCc = args.automaticEmailCc;
       if (args.customFields) body.customFields = args.customFields;
       const result = await client.post("/service/tickets", body);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      return withAuditNotes(client, "cw_create_ticket", args.user_intent, textResult(result), () => [
+        { ticketId: idOf(result), what: "Created this ticket." },
+      ]);
     },
   );
 
@@ -226,8 +243,15 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
         return { content: [{ type: "text", text: "cw_update_ticket: no fields to update were provided. Specify at least one of: summary, statusId, priorityId, boardId, typeId, subTypeId, itemId, ownerId, teamId, contactId, companyId, siteId, serviceLocationId, requiredDate, agreementId, automaticEmailCcFlag, automaticEmailCc, automaticEmailContactFlag, automaticEmailResourceFlag." }], isError: true };
       }
       await auditLog({ tool: "cw_update_ticket", entityType: "ticket", entityId: id, userIntent: user_intent, userQuote: user_quote, operations: ops });
+      const keys = topLevelKeys(ops.map((o) => o.path));
+      const before = await tryRead(client, `/service/tickets/${id}`, { fields: keys.join(",") });
       const result = await client.patch(`/service/tickets/${id}`, ops);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      return withAuditNotes(client, "cw_update_ticket", user_intent, textResult(result), () => [
+        {
+          ticketId: id,
+          what: describeRecordChanges(keys, before, result, requestedFromPatch(ops), TICKET_FIELD_LABELS),
+        },
+      ]);
     },
   );
 
@@ -249,32 +273,17 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     },
     async ({ id, body, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_replace_ticket", entityType: "ticket", entityId: id, userIntent: user_intent, userQuote: user_quote });
+      const keys = topLevelKeys(Object.keys(body));
+      const before = await tryRead(client, `/service/tickets/${id}`, { fields: keys.join(",") });
       const result = await client.put(`/service/tickets/${id}`, body);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      return withAuditNotes(client, "cw_replace_ticket", user_intent, textResult(result), () => [
+        { ticketId: id, what: describeRecordChanges(keys, before, result, body, TICKET_FIELD_LABELS) },
+      ]);
     },
   );
 
-  server.tool(
-    "cw_delete_ticket",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a service ticket. Destructive — ticket history may be retained but the ticket record is removed.",
-    {
-      id: z.number().describe("Ticket ID"),
-      user_intent: z.string().min(20).describe(
-        "Plain-English description of what the user asked for. " +
-          "Must be at least 20 characters. Example: " +
-          "'User asked to close ticket 12345 because they have billed it.'",
-      ),
-      user_quote: z.string().min(1).describe(
-        "Verbatim quote of the user's actual words that motivated this action. " +
-          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
-      ),
-    },
-    async ({ id, user_intent, user_quote }) => {
-      await auditLog({ tool: "cw_delete_ticket", entityType: "ticket", entityId: id, userIntent: user_intent, userQuote: user_quote });
-      const result = await client.request("DELETE", `/service/tickets/${id}`);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    },
-  );
+  // There is deliberately no ticket delete tool. Closing a ticket keeps its
+  // history; deleting it removes the record and every note explaining it.
 
   server.tool(
     "cw_count_tickets",
@@ -325,7 +334,16 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       if (args.includeProductsFlag !== undefined) body.includeProductsFlag = args.includeProductsFlag;
       if (args.includeAllNotesFlag !== undefined) body.includeAllNotesFlag = args.includeAllNotesFlag;
       const result = await client.post(`/service/tickets/${args.id}/copy`, body);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      const newId = idOf(result);
+      return withAuditNotes(client, "cw_copy_ticket", args.user_intent, textResult(result), () => [
+        { ticketId: newId, what: `Copied from ticket #${args.id}.` },
+        {
+          ticketId: args.id,
+          what: newId !== undefined
+            ? `Copied to ticket #${newId}.`
+            : "Copied to a new ticket (ConnectWise did not return its id).",
+        },
+      ]);
     },
   );
 
@@ -433,7 +451,15 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       const body: Record<string, unknown> = { mergeTicketIds };
       if (statusId !== undefined) body.status = { id: statusId };
       const result = await client.post(`/service/tickets/${targetTicketId}/merge`, body);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      const overrides = Object.entries({ allowTimeEntries, allowClosedTarget, allowAgreementMismatch })
+        .filter(([, set]) => set === true)
+        .map(([flag]) => flag);
+      const merged = mergeTicketIds.map((n) => `#${n}`).join(", ");
+      const what = `Merged ticket(s) ${merged} into this ticket.` +
+        (overrides.length > 0 ? ` Overrides used: ${overrides.join(", ")}.` : "");
+      return withAuditNotes(client, "cw_merge_tickets", user_intent, textResult(result), () => [
+        { ticketId: targetTicketId, what },
+      ]);
     },
   );
 
@@ -460,7 +486,9 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       if (boardId !== undefined) body.board = { id: boardId };
       if (statusId !== undefined) body.status = { id: statusId };
       const result = await client.post(`/service/tickets/${id}/convertFromSurvey`, body);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      return withAuditNotes(client, "cw_convert_ticket_from_survey", user_intent, textResult(result), () => [
+        { ticketId: idOf(result), what: `Created this ticket from the survey response on ticket #${id}.` },
+      ]);
     },
   );
 
@@ -606,7 +634,10 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     async ({ ticketId, noteId, patch, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_update_ticket_note", entityType: "ticket_note", entityId: noteId, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/service/tickets/${ticketId}/notes/${noteId}`, patch);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      const fields = topLevelKeys(patch.map((o) => o.path));
+      return withAuditNotes(client, "cw_update_ticket_note", user_intent, textResult(result), () => [
+        { ticketId, what: `Edited note #${noteId} (${fields.length > 0 ? fields.join(", ") : "no fields named"}).` },
+      ]);
     },
   );
 
@@ -628,8 +659,14 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     },
     async ({ ticketId, noteId, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_delete_ticket_note", entityType: "ticket_note", entityId: noteId, userIntent: user_intent, userQuote: user_quote });
+      // The text field is never requested, so the deleted text cannot leak into the audit note.
+      const note = await tryRead(client, `/service/tickets/${ticketId}/notes/${noteId}`, {
+        fields: "id,detailDescriptionFlag,internalAnalysisFlag,resolutionFlag,member,contact,createdBy,dateCreated",
+      });
       const result = await client.request("DELETE", `/service/tickets/${ticketId}/notes/${noteId}`);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      return withAuditNotes(client, "cw_delete_ticket_note", user_intent, textResult(result), () => [
+        { ticketId, what: describeDeletedNote(noteId, note) },
+      ]);
     },
   );
 
@@ -697,7 +734,10 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       if (args.scheduleId !== undefined) body.schedule = { id: args.scheduleId };
       if (args.resolution) body.resolution = args.resolution;
       const result = await client.post(`/service/tickets/${args.ticketId}/tasks`, body);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      const taskId = idOf(result);
+      return withAuditNotes(client, "cw_create_ticket_task", args.user_intent, textResult(result), () => [
+        { ticketId: args.ticketId, what: `Added task ${taskId !== undefined ? `#${taskId}` : "(id not returned)"}: ${excerpt(args.notes)}` },
+      ]);
     },
   );
 
@@ -720,8 +760,15 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     },
     async ({ ticketId, taskId, patch, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_update_ticket_task", entityType: "ticket_task", entityId: taskId, userIntent: user_intent, userQuote: user_quote, operations: patch });
+      const keys = topLevelKeys(patch.map((o) => o.path));
+      const before = await tryRead(client, `/service/tickets/${ticketId}/tasks/${taskId}`, { fields: keys.join(",") });
       const result = await client.patch(`/service/tickets/${ticketId}/tasks/${taskId}`, patch);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      return withAuditNotes(client, "cw_update_ticket_task", user_intent, textResult(result), () => [
+        {
+          ticketId,
+          what: `Updated task #${taskId}: ${describeRecordChanges(keys, before, result, requestedFromPatch(patch), TASK_FIELD_LABELS)}`,
+        },
+      ]);
     },
   );
 
@@ -743,8 +790,11 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     },
     async ({ ticketId, taskId, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_delete_ticket_task", entityType: "ticket_task", entityId: taskId, userIntent: user_intent, userQuote: user_quote });
+      const task = await tryRead<{ notes?: unknown }>(client, `/service/tickets/${ticketId}/tasks/${taskId}`, { fields: "id,notes" });
       const result = await client.request("DELETE", `/service/tickets/${ticketId}/tasks/${taskId}`);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      return withAuditNotes(client, "cw_delete_ticket_task", user_intent, textResult(result), () => [
+        { ticketId, what: task ? `Removed task #${taskId}: ${excerpt(task.notes)}` : `Removed task #${taskId}.` },
+      ]);
     },
   );
 
@@ -808,7 +858,9 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       await auditLog({ tool: "cw_add_ticket_team_member", entityType: "ticket_team_member", entityId: ticketId, userIntent: user_intent, userQuote: user_quote });
       const body = { type: { id: 4 }, objectId: ticketId, member: { id: memberId } };
       const result = await client.post(`/schedule/entries`, body);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      return withAuditNotes(client, "cw_add_ticket_team_member", user_intent, textResult(result), () => [
+        { ticketId, what: describeResourceAdded(result, `member #${memberId}`) },
+      ]);
     },
   );
 
@@ -831,8 +883,19 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     },
     async ({ ticketId, teamMemberId, patch, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_update_ticket_team_member", entityType: "ticket_team_member", entityId: teamMemberId, userIntent: user_intent, userQuote: user_quote, operations: patch });
+      const keys = topLevelKeys(patch.map((o) => o.path));
+      const before = await tryRead<{ member?: unknown }>(client, `/schedule/entries/${teamMemberId}`, {
+        fields: ["member", ...keys.filter((k) => k !== "member")].join(","),
+      });
       const result = await client.patch(`/schedule/entries/${teamMemberId}`, patch);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      return withAuditNotes(client, "cw_update_ticket_team_member", user_intent, textResult(result), () => {
+        const who = nameOf(before?.member) ?? nameOf((result as { member?: unknown } | undefined)?.member);
+        const changes = describeRecordChanges(keys, before, result, requestedFromPatch(patch), SCHEDULE_ENTRY_FIELD_LABELS);
+        return [{
+          ticketId,
+          what: `Updated the resource assignment${who ? ` for ${who}` : ""} (schedule entry #${teamMemberId}): ${changes}`,
+        }];
+      });
     },
   );
 
@@ -854,8 +917,17 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     },
     async ({ ticketId, teamMemberId, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_remove_ticket_team_member", entityType: "ticket_team_member", entityId: teamMemberId, userIntent: user_intent, userQuote: user_quote });
+      const entry = await tryRead<{ member?: unknown }>(client, `/schedule/entries/${teamMemberId}`, { fields: "id,member" });
       const result = await client.request("DELETE", `/schedule/entries/${teamMemberId}`);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      const who = nameOf(entry?.member);
+      return withAuditNotes(client, "cw_remove_ticket_team_member", user_intent, textResult(result), () => [
+        {
+          ticketId,
+          what: who
+            ? `Removed ${who} as a resource from this ticket (schedule entry #${teamMemberId}).`
+            : `Removed the resource on schedule entry #${teamMemberId} from this ticket.`,
+        },
+      ]);
     },
   );
 
@@ -922,7 +994,9 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       const result = await client.post(`/service/tickets/${ticketId}/configurations`, {
         id: configurationId,
       });
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      return withAuditNotes(client, "cw_attach_configuration_to_ticket", user_intent, textResult(result), async () => [
+        { ticketId, what: `Attached ${await describeConfiguration(configurationId)} to this ticket.` },
+      ]);
     },
   );
 
@@ -945,7 +1019,9 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     async ({ ticketId, configurationId, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_detach_configuration_from_ticket", entityType: "ticket_configuration", entityId: configurationId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/service/tickets/${ticketId}/configurations/${configurationId}`);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      return withAuditNotes(client, "cw_detach_configuration_from_ticket", user_intent, textResult(result), async () => [
+        { ticketId, what: `Detached ${await describeConfiguration(configurationId)} from this ticket.` },
+      ]);
     },
   );
 
@@ -1057,7 +1133,22 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
         objectId: id,
         member: { identifier: memberIdentifier },
       });
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      return withAuditNotes(client, "cw_add_ticket_member", user_intent, textResult(result), () => [
+        { ticketId: id, what: describeResourceAdded(result, memberIdentifier) },
+      ]);
     },
   );
+
+  function describeResourceAdded(entry: unknown, fallbackName: string): string {
+    const who = nameOf((entry as { member?: unknown } | undefined)?.member) ?? fallbackName;
+    const entryId = idOf(entry);
+    return `Added ${who} as a resource on this ticket` +
+      (entryId !== undefined ? ` (schedule entry #${entryId}).` : ".");
+  }
+
+  async function describeConfiguration(configurationId: number): Promise<string> {
+    const config = await tryRead<{ name?: unknown }>(client, `/company/configurations/${configurationId}`, { fields: "id,name" });
+    const name = nameOf(config);
+    return name ? `configuration "${name}" (#${configurationId})` : `configuration #${configurationId}`;
+  }
 }

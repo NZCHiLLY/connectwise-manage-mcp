@@ -88,7 +88,7 @@ URL path takes precedence over JWT role / env var:
 
 | Path | Profile | Tools |
 |------|---------|-------|
-| `/mcp/l1` | L1 helpdesk | 73 tools |
+| `/mcp/l1` | L1 helpdesk | 72 tools |
 | `/mcp/l2` | L2 management | 73 tools |
 | `/mcp/l3` | L3 finance/accounting | 75 tools |
 | `/mcp/pricing` | Pricing, read-only (claude.ai) | 21 tools |
@@ -232,6 +232,18 @@ All mutating tools (create, update, delete) require two additional parameters:
 | `user_quote` | The verbatim words the user said — do not paraphrase |
 
 Before any write, the server logs the intent, quote, and target payload to a structured audit trail. This provides a human-readable paper trail for every mutation, independent of CW's built-in audit log.
+
+### Ticket audit notes
+
+Every tool that changes a service ticket (create, update, replace, merge, copy, convert from survey, note edits and deletes, tasks, resources, configuration attach and detach) also leaves an **internal** note on the ticket once the change succeeds, so reviewers inside ConnectWise can see what changed and why without access to the server log:
+
+```
+Changed by Claude for Alex Example (ConnectWise MCP).
+What: Status New -> Completed. Owner Alex Example -> Sam Example.
+Why: <user_intent, verbatim>
+```
+
+The note is authored as the signed-in caller's ConnectWise member when one resolves; otherwise it reads "via the ConnectWise MCP (shared service account)". `user_quote` stays in the server log only. A deleted note is described by type, author, and date, never its text. If the change succeeds but the note cannot be written, the tool still returns success with a `WARNING:` item asking for the note to be added by hand. `cw_add_ticket_note` writes no second note, and there is no ticket delete tool: close the ticket instead.
 
 ## Usage
 
