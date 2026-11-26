@@ -2,6 +2,18 @@
 
 TypeScript MCP server for ConnectWise Manage (PSA). Supports stdio and HTTP transports with optional Entra ID OAuth.
 
+## Public repository
+
+This repository is public, including its commit messages, PR titles and bodies, and Actions logs. Never write any of these into code, comments, tests, fixtures, docs, commit messages or PR text:
+
+- the name, domain or email addresses of the organisation running a deployment
+- the names of its staff, clients or contacts, or a rule attributed to a named person
+- real ConnectWise record IDs (tickets, members, companies, agreements, opportunities, time entries)
+- deployment identifiers: hostnames, tenant and app registration IDs, workspace IDs, connector and environment IDs
+- links to private chat or agent sessions
+
+Use example values instead (`example.com`, member `7`, ticket `1001`, `YOUR-ACA-APP`). Commit with a GitHub noreply address. The `leak-guard` workflow checks every push and PR against a private denylist held in the `LEAK_DENYLIST` secret.
+
 ## Commands
 
 ```bash
