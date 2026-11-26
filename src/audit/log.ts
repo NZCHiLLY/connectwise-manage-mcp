@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { getCorrelationId } from "../context.js";
+import { getCallerIdentity, getCorrelationId } from "../context.js";
 
 export interface AuditEntry {
   tool: string;
@@ -24,7 +24,13 @@ async function ensureDir() {
 
 async function append(record: Record<string, unknown>): Promise<void> {
   await ensureDir();
-  const line = JSON.stringify({ ...record, correlationId: getCorrelationId(), timestamp: new Date().toISOString() }) + "\n";
+  const caller = getCallerIdentity();
+  const line = JSON.stringify({
+    ...record,
+    ...(caller && { upn: caller.upn, oid: caller.oid }),
+    correlationId: getCorrelationId(),
+    timestamp: new Date().toISOString(),
+  }) + "\n";
   await fs.appendFile(AUDIT_PATH, line, { encoding: "utf-8" });
 }
 

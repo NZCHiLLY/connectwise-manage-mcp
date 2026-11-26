@@ -39,7 +39,10 @@ import { auditLog } from "../../audit/log.js";
 // Shared mock client
 // ---------------------------------------------------------------------------
 
+// get and post serve the ticket tool's before-read and its internal audit note.
 const mockClient = {
+  get: vi.fn(),
+  post: vi.fn(),
   patch: vi.fn(),
 } as unknown as CwManageClient;
 
@@ -88,6 +91,8 @@ describe("cw_update_ticket", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     vi.mocked(mockClient.patch).mockResolvedValue({ id: 1, summary: "Test" });
+    vi.mocked(mockClient.get).mockResolvedValue({ summary: "Old" });
+    vi.mocked(mockClient.post).mockResolvedValue({ id: 5001 });
     server = new McpServer({ name: "test", version: "0.0.0" });
     registerTicketTools(server, mockClient);
   });

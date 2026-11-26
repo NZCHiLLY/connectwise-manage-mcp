@@ -88,13 +88,38 @@ URL path takes precedence over JWT role / env var:
 
 | Path | Profile | Tools |
 |------|---------|-------|
-| `/mcp/l1` | L1 helpdesk | 73 tools |
-| `/mcp/l2` | L2 management | 71 tools |
-| `/mcp/l3` | L3 finance/accounting | 72 tools |
+| `/mcp/l1` | L1 helpdesk | 72 tools |
+| `/mcp/l2` | L2 management | 73 tools |
+| `/mcp/l3` | L3 finance/accounting | 75 tools |
+| `/mcp/pricing` | Pricing, read-only (claude.ai) | 21 tools |
 | `/mcp/{domain}` | Domain | 9–39 tools (Copilot Studio) |
 | `/mcp` | full or JWT role | all |
 
 Domain endpoints: `tickets`, `time-entries`, `companies`, `contacts`, `configurations`, `service-boards`, `service-config`, `sales`, `opportunities`, `finance-agreements`, `finance-invoices`, `catalog`, `procurement-orders`, `procurement-inventory`, `system-members`, `system-admin`, `schedule-expenses`, `knowledge-base`.
+
+## Output shaping
+
+Large ConnectWise results overflow the claude.ai client, which refuses a tool result near 50,000 characters. Shaped profiles keep every result under a 40,000-character budget. The logic is in `src/tools/shaping.ts`, wired up in `src/tools/profiles.ts`.
+
+**Which endpoints are shaped.** `l1`, `l2`, `l3`, `opportunities`, `sales` and `pricing` (`SHAPED_PROFILES_DEFAULT`). `pricing` is the read-only pricing tier: 20 catalogue, product, agreement, company, configuration and opportunity read tools, 21 with the universal work role read, and no write tool at all. `MCP_SHAPED_PROFILES` is a comma list that replaces this default when set, even to an empty string. The `full` profile, an unset profile and every other domain profile stay raw and byte-identical to before, unless the caller passes `fields`. The untiered client reads the untiered `/mcp` endpoint and depends on that. One untiered call changes: it passes `fields` to `cw_search_members`, which never declared it, so the SDK used to drop it and return whole member records. That call now gets the projected records. The Copilot agents bound to the `opportunities` and `sales` domain profiles now get shaped output.
+
+**What shaping does.**
+- Drops nulls, empty strings, empty arrays and empty objects. `0`, `false` and `"0"` are kept.
+- Drops `_info` hrefs and nested objects. `_info` keeps its scalar date and user fields (`dateEntered`, `enteredBy`, `lastUpdated`, `updatedBy`), because notes are filtered on `_info/dateEntered` and ticket age is read from it.
+- On read tools only, strips a company email disclaimer, the external sender banner and inline signature images from `text` and `notes` fields.
+- On read tools only, caps each `text` and `notes` value at `maxTextChars` (default 2000), then appends `[display cut: N more characters stored]`. A write tool's response is never cut, because it can become the body of the next write.
+- Clamps `pageSize` to 100. The cap applies on shaped profiles only.
+
+**Envelope.** An array result becomes `{ items, returned, hasMore, nextPage, truncated }`. `truncated` is always present and is false when nothing was cut. `nextPage` comes from the ConnectWise `Link` header (`parseLinkHeader` in `src/api-client.ts`) and is absent when there is no next page. When the budget forces rows to be dropped, `truncated` is true and `omitted`, `pageTotal` and a `hint` are added. Rows are dropped from the end, the first row is always kept, and `hasMore` is forced true. Omitted rows are not on `nextPage`. ConnectWise pages by offset: page p at pageSize s holds rows (p-1)s+1 to ps, so the same page number at a smaller `pageSize` returns different rows. The hint therefore offers two routes: request the same page and `pageSize` again with fewer `fields`, or restart at page 1 with `pageSize` set to the returned count and page forward. A single object over budget after text capping is returned as is.
+
+**Tool arguments.**
+- `fields` is injected on every read tool that returns records (`cw_search_*`, `cw_list_*`, `cw_get_*`). `cw_count_*` returns only a count, so it gets none. It is comma-separated, with `/` for nesting, for example `id,summary,company/name`. It also works on raw profiles, where it projects and does nothing else.
+- `maxTextChars` is injected on read tools whose name contains `note`. It applies only where output is shaped.
+- `conditions` and `orderBy` carry help text describing the operator, string and date syntax.
+
+**Write guard.** On every profile, a tool that is not a read (`cw_search_*`, `cw_list_*`, `cw_get_*`, `cw_count_*`) is refused without calling ConnectWise when any string in its arguments, however deeply nested, contains `[display cut:`. That marker only comes from a shaped read, so the write would store cut text. The `cw_replace_*` descriptions also say that the body must come from a full, unshaped read.
+
+**Query argument repair.** On every profile, `conditions`, `childConditions`, `customFieldConditions` and `orderBy` are repaired. HTML entities for angle brackets, quotes, apostrophes and ampersands are decoded across the whole string, quoted parts included. The field aliasing below skips quoted strings. On ticket note tools, `dateCreated`, `createdDate` and `dateEntered` become `_info/dateEntered`. On `cw_search_opportunities` and `cw_count_opportunities`, `closedFlag = false` becomes `closedDate = null` and `closedFlag = true` becomes `closedDate != null`. Opportunity statuses keep `closedFlag`, because it is a real field there.
 
 ## Available Tools
 
@@ -207,6 +232,18 @@ All mutating tools (create, update, delete) require two additional parameters:
 | `user_quote` | The verbatim words the user said — do not paraphrase |
 
 Before any write, the server logs the intent, quote, and target payload to a structured audit trail. This provides a human-readable paper trail for every mutation, independent of CW's built-in audit log.
+
+### Ticket audit notes
+
+Every tool that changes a service ticket (create, update, replace, merge, copy, convert from survey, note edits and deletes, tasks, resources, configuration attach and detach) also leaves an **internal** note on the ticket once the change succeeds, so reviewers inside ConnectWise can see what changed and why without access to the server log:
+
+```
+Changed by Claude for Alex Example (ConnectWise MCP).
+What: Status New -> Completed. Owner Alex Example -> Sam Example.
+Why: <user_intent, verbatim>
+```
+
+The note is authored as the signed-in caller's ConnectWise member when one resolves; otherwise it reads "via the ConnectWise MCP (shared service account)". `user_quote` stays in the server log only. A deleted note is described by type, author, and date, never its text. If the change succeeds but the note cannot be written, the tool still returns success with a `WARNING:` item asking for the note to be added by hand. `cw_add_ticket_note` writes no second note, and there is no ticket delete tool: close the ticket instead.
 
 ## Usage
 

@@ -2,6 +2,23 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
 import { auditLog } from "../audit/log.js";
+import { resolveCallerMemberId } from "../attribution.js";
+import { getCallerIdentity } from "../context.js";
+import {
+  SCHEDULE_ENTRY_FIELD_LABELS,
+  TASK_FIELD_LABELS,
+  TICKET_FIELD_LABELS,
+  describeDeletedNote,
+  describeRecordChanges,
+  excerpt,
+  idOf,
+  nameOf,
+  requestedFromPatch,
+  textResult,
+  topLevelKeys,
+  tryRead,
+  withAuditNotes,
+} from "../audit/ticket-note.js";
 import { patchOp, normaliseIdArgs } from "./shared.js";
 
 export function registerTicketTools(server: McpServer, client: CwManageClient) {
@@ -15,7 +32,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       childConditions: z.string().optional().describe("Filter on child collections"),
       customFieldConditions: z.string().optional().describe("Filter on custom fields"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
       orderBy: z.string().optional().describe("Field to order by"),
       fields: z.string().optional().describe("Comma-separated fields to return"),
     },
@@ -152,7 +169,9 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       if (args.automaticEmailCc) body.automaticEmailCc = args.automaticEmailCc;
       if (args.customFields) body.customFields = args.customFields;
       const result = await client.post("/service/tickets", body);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      return withAuditNotes(client, "cw_create_ticket", args.user_intent, textResult(result), () => [
+        { ticketId: idOf(result), what: "Created this ticket." },
+      ]);
     },
   );
 
@@ -224,8 +243,15 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
         return { content: [{ type: "text", text: "cw_update_ticket: no fields to update were provided. Specify at least one of: summary, statusId, priorityId, boardId, typeId, subTypeId, itemId, ownerId, teamId, contactId, companyId, siteId, serviceLocationId, requiredDate, agreementId, automaticEmailCcFlag, automaticEmailCc, automaticEmailContactFlag, automaticEmailResourceFlag." }], isError: true };
       }
       await auditLog({ tool: "cw_update_ticket", entityType: "ticket", entityId: id, userIntent: user_intent, userQuote: user_quote, operations: ops });
+      const keys = topLevelKeys(ops.map((o) => o.path));
+      const before = await tryRead(client, `/service/tickets/${id}`, { fields: keys.join(",") });
       const result = await client.patch(`/service/tickets/${id}`, ops);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      return withAuditNotes(client, "cw_update_ticket", user_intent, textResult(result), () => [
+        {
+          ticketId: id,
+          what: describeRecordChanges(keys, before, result, requestedFromPatch(ops), TICKET_FIELD_LABELS),
+        },
+      ]);
     },
   );
 
@@ -247,32 +273,17 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     },
     async ({ id, body, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_replace_ticket", entityType: "ticket", entityId: id, userIntent: user_intent, userQuote: user_quote });
+      const keys = topLevelKeys(Object.keys(body));
+      const before = await tryRead(client, `/service/tickets/${id}`, { fields: keys.join(",") });
       const result = await client.put(`/service/tickets/${id}`, body);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      return withAuditNotes(client, "cw_replace_ticket", user_intent, textResult(result), () => [
+        { ticketId: id, what: describeRecordChanges(keys, before, result, body, TICKET_FIELD_LABELS) },
+      ]);
     },
   );
 
-  server.tool(
-    "cw_delete_ticket",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Delete a service ticket. Destructive — ticket history may be retained but the ticket record is removed.",
-    {
-      id: z.number().describe("Ticket ID"),
-      user_intent: z.string().min(20).describe(
-        "Plain-English description of what the user asked for. " +
-          "Must be at least 20 characters. Example: " +
-          "'User asked to close ticket 12345 because they have billed it.'",
-      ),
-      user_quote: z.string().min(1).describe(
-        "Verbatim quote of the user's actual words that motivated this action. " +
-          "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
-      ),
-    },
-    async ({ id, user_intent, user_quote }) => {
-      await auditLog({ tool: "cw_delete_ticket", entityType: "ticket", entityId: id, userIntent: user_intent, userQuote: user_quote });
-      const result = await client.request("DELETE", `/service/tickets/${id}`);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    },
-  );
+  // There is deliberately no ticket delete tool. Closing a ticket keeps its
+  // history; deleting it removes the record and every note explaining it.
 
   server.tool(
     "cw_count_tickets",
@@ -323,17 +334,35 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       if (args.includeProductsFlag !== undefined) body.includeProductsFlag = args.includeProductsFlag;
       if (args.includeAllNotesFlag !== undefined) body.includeAllNotesFlag = args.includeAllNotesFlag;
       const result = await client.post(`/service/tickets/${args.id}/copy`, body);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      const newId = idOf(result);
+      return withAuditNotes(client, "cw_copy_ticket", args.user_intent, textResult(result), () => [
+        { ticketId: newId, what: `Copied from ticket #${args.id}.` },
+        {
+          ticketId: args.id,
+          what: newId !== undefined
+            ? `Copied to ticket #${newId}.`
+            : "Copied to a new ticket (ConnectWise did not return its id).",
+        },
+      ]);
     },
   );
 
   server.tool(
     "cw_merge_tickets",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Merge one or more source tickets into a target ticket. Source tickets are closed and their notes/time/products move to the target.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Merge one or more source tickets into a target ticket. Source tickets are closed and their notes/time/products move to the target. Refuses when a source ticket has time entries (they must be moved to the target first), when the target is closed, or when agreements differ. An allow flag is only for use after the user has seen the refusal and explicitly confirmed the merge.",
     {
       targetTicketId: z.number().describe("Surviving ticket ID"),
       mergeTicketIds: z.array(z.number()).describe("IDs of tickets to merge into the target"),
       statusId: z.number().optional().describe("Status to apply to closed source tickets"),
+      allowTimeEntries: z.boolean().optional().default(false).describe(
+        "Override: merge even though a source ticket has time entries. Only set this after the user has seen the refusal and explicitly confirmed the merge. Default false.",
+      ),
+      allowClosedTarget: z.boolean().optional().default(false).describe(
+        "Override: merge into a target ticket that is closed. Only set this after the user has seen the refusal and explicitly confirmed the merge. Default false.",
+      ),
+      allowAgreementMismatch: z.boolean().optional().default(false).describe(
+        "Override: merge tickets that sit on different agreements. Only set this after the user has seen the refusal and explicitly confirmed the merge. Default false.",
+      ),
       user_intent: z.string().min(20).describe(
         "Plain-English description of what the user asked for. " +
           "Must be at least 20 characters. Example: " +
@@ -344,8 +373,77 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
           "Do not paraphrase. If multiple turns, quote the most recent relevant message.",
       ),
     },
-    async ({ targetTicketId, mergeTicketIds, statusId, user_intent, user_quote }) => {
-      await auditLog({ tool: "cw_merge_tickets", entityType: "ticket", entityId: targetTicketId, userIntent: user_intent, userQuote: user_quote });
+    async ({ targetTicketId, mergeTicketIds, statusId, allowTimeEntries, allowClosedTarget, allowAgreementMismatch, user_intent, user_quote }) => {
+      // Pre-flight reads run before auditLog so a refused merge is not audited
+      // as an intended one. Any unreadable ticket refuses the merge: a guard
+      // that fails open on a 403 is no guard.
+      type MergeTicket = { closedFlag?: boolean; agreement?: { id: number } | null };
+      const ticketFields = "id,closedFlag,company/id,agreement/id";
+      const readOrRefuse = async <T>(label: string, read: () => Promise<T>): Promise<T> => {
+        try {
+          return await read();
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          throw new Error(`Merge refused: could not read ${label}. ${msg}`);
+        }
+      };
+      const target = await readOrRefuse(`target ticket ${targetTicketId}`, () =>
+        client.get<MergeTicket>(`/service/tickets/${targetTicketId}`, { fields: ticketFields }));
+      const sources = new Map<number, MergeTicket>();
+      for (const id of mergeTicketIds) {
+        sources.set(id, await readOrRefuse(`source ticket ${id}`, () =>
+          client.get<MergeTicket>(`/service/tickets/${id}`, { fields: ticketFields })));
+      }
+      const timeEntries: Record<number, number> = {};
+      for (const id of mergeTicketIds) {
+        const res = await readOrRefuse(`time entry count for source ticket ${id}`, () =>
+          client.get<{ count?: number }>("/time/entries/count", {
+            conditions: `chargeToType = "ServiceTicket" and chargeToId = ${id}`,
+          }));
+        if (typeof res?.count !== "number") {
+          throw new Error(`Merge refused: time entry count for source ticket ${id} was unreadable`);
+        }
+        timeEntries[id] = res.count;
+      }
+
+      const refusals: string[] = [];
+      if (!allowTimeEntries) {
+        for (const id of mergeTicketIds) {
+          if (timeEntries[id] > 0) {
+            refusals.push(
+              `Source ticket ${id} has ${timeEntries[id]} time entries. Merging it leaves broken records that cannot be modified afterwards; shift them to the target ticket first. Only set allowTimeEntries after the user has seen this refusal and explicitly confirmed the merge.`,
+            );
+          }
+        }
+      }
+      if (!allowClosedTarget && target.closedFlag) {
+        refusals.push(
+          `Target ticket ${targetTicketId} is closed. Reopen it or choose an open target. Only set allowClosedTarget after the user has seen this refusal and explicitly confirmed the merge.`,
+        );
+      }
+      if (!allowAgreementMismatch) {
+        const targetAgreement = target.agreement?.id ?? null;
+        for (const id of mergeTicketIds) {
+          const sourceAgreement = sources.get(id)?.agreement?.id ?? null;
+          if (sourceAgreement !== targetAgreement) {
+            refusals.push(
+              `Source ticket ${id} is on agreement ${sourceAgreement ?? "none"} but target ticket ${targetTicketId} is on agreement ${targetAgreement ?? "none"}. Merging leaves orphaned links to the old agreement. Only set allowAgreementMismatch after the user has seen this refusal and explicitly confirmed the merge.`,
+            );
+          }
+        }
+      }
+      if (refusals.length > 0) {
+        throw new Error(`Merge refused. ${refusals.join(" ")}`);
+      }
+
+      await auditLog({
+        tool: "cw_merge_tickets",
+        entityType: "ticket",
+        entityId: targetTicketId,
+        userIntent: user_intent,
+        userQuote: user_quote,
+        operations: { allowTimeEntries, allowClosedTarget, allowAgreementMismatch, timeEntries },
+      });
       // mergeTicketIds is a list of bare integers, not id-references. Sending
       // [{ id: 123 }] makes CW's deserialiser hit '{' where it wants a number
       // and 500 with "Unexpected character encountered while parsing value: {".
@@ -353,7 +451,15 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       const body: Record<string, unknown> = { mergeTicketIds };
       if (statusId !== undefined) body.status = { id: statusId };
       const result = await client.post(`/service/tickets/${targetTicketId}/merge`, body);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      const overrides = Object.entries({ allowTimeEntries, allowClosedTarget, allowAgreementMismatch })
+        .filter(([, set]) => set === true)
+        .map(([flag]) => flag);
+      const merged = mergeTicketIds.map((n) => `#${n}`).join(", ");
+      const what = `Merged ticket(s) ${merged} into this ticket.` +
+        (overrides.length > 0 ? ` Overrides used: ${overrides.join(", ")}.` : "");
+      return withAuditNotes(client, "cw_merge_tickets", user_intent, textResult(result), () => [
+        { ticketId: targetTicketId, what },
+      ]);
     },
   );
 
@@ -380,7 +486,9 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       if (boardId !== undefined) body.board = { id: boardId };
       if (statusId !== undefined) body.status = { id: statusId };
       const result = await client.post(`/service/tickets/${id}/convertFromSurvey`, body);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      return withAuditNotes(client, "cw_convert_ticket_from_survey", user_intent, textResult(result), () => [
+        { ticketId: idOf(result), what: `Created this ticket from the survey response on ticket #${id}.` },
+      ]);
     },
   );
 
@@ -395,7 +503,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       orderBy: z.string().optional().describe("Field to order by"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async (args) => {
       const { conditions, orderBy, page, pageSize } = args;
@@ -440,7 +548,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_add_ticket_note",
-    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Add a note to a service ticket. Use detailDescriptionFlag for a description note, internalAnalysisFlag for an internal-only note, or resolutionFlag for a resolution note. Defaults to a plain discussion note visible to the customer.",
+    "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Add a note to a service ticket. Use detailDescriptionFlag for a description note, internalAnalysisFlag for an internal-only note, or resolutionFlag for a resolution note. Defaults to a plain discussion note visible to the customer. When neither memberId nor contactId is given, the author defaults to the signed-in person's own ConnectWise member when that can be resolved uniquely.",
     {
       ticketId: z.number().describe("Ticket ID"),
       text: z.string().describe("Note text content"),
@@ -449,7 +557,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       resolutionFlag: z.boolean().optional().describe("Mark as resolution note (default: false)"),
       customerUpdatedFlag: z.boolean().optional().describe("Flag that the customer was updated (default: false)"),
       processNotifications: z.boolean().optional().describe("Trigger workflow / email notifications"),
-      memberId: z.number().optional().describe("Member who authored the note"),
+      memberId: z.number().optional().describe("Member who authored the note. Defaults to the signed-in person's member when it resolves uniquely and no contactId is given"),
       contactId: z.number().optional().describe("Contact who authored the note (if not a member)"),
       user_intent: z.string().min(20).describe(
         "Plain-English description of what the user asked for. " +
@@ -462,7 +570,36 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       ),
     },
     async ({ ticketId, text, detailDescriptionFlag, internalAnalysisFlag, resolutionFlag, customerUpdatedFlag, processNotifications, memberId, contactId, user_intent, user_quote }) => {
-      await auditLog({ tool: "cw_add_ticket_note", entityType: "ticket_note", entityId: ticketId, userIntent: user_intent, userQuote: user_quote });
+      // Resolve before the audit entry and before any write. A signed-in caller who
+      // cannot be resolved is refused; the static bearer keeps sending no member.
+      const resolvedMemberId = memberId === undefined && contactId === undefined
+        ? await resolveCallerMemberId(client)
+        : undefined;
+      const caller = getCallerIdentity();
+      if (
+        memberId === undefined && contactId === undefined && resolvedMemberId === undefined &&
+        caller !== undefined && caller.oid !== "static"
+      ) {
+        throw new Error(
+          "memberId or contactId is required: your sign-in did not resolve to exactly one active ConnectWise member",
+        );
+      }
+      const sentMemberId = memberId ?? resolvedMemberId ?? null;
+      const memberSource = memberId !== undefined
+        ? "explicit"
+        : resolvedMemberId !== undefined
+          ? "resolved"
+          : contactId !== undefined
+            ? "contact"
+            : "none";
+      await auditLog({
+        tool: "cw_add_ticket_note",
+        entityType: "ticket_note",
+        entityId: ticketId,
+        userIntent: user_intent,
+        userQuote: user_quote,
+        operations: { memberId: sentMemberId, memberSource, resolvedMemberId: resolvedMemberId ?? null },
+      });
       const body: Record<string, unknown> = { text };
       if (detailDescriptionFlag !== undefined) body.detailDescriptionFlag = detailDescriptionFlag;
       if (internalAnalysisFlag !== undefined) body.internalAnalysisFlag = internalAnalysisFlag;
@@ -471,6 +608,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       if (processNotifications !== undefined) body.processNotifications = processNotifications;
       if (memberId !== undefined) body.member = { id: memberId };
       if (contactId !== undefined) body.contact = { id: contactId };
+      if (resolvedMemberId !== undefined) body.member = { id: resolvedMemberId };
       const result = await client.post(`/service/tickets/${ticketId}/notes`, body);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
@@ -496,7 +634,10 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     async ({ ticketId, noteId, patch, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_update_ticket_note", entityType: "ticket_note", entityId: noteId, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const result = await client.patch(`/service/tickets/${ticketId}/notes/${noteId}`, patch);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      const fields = topLevelKeys(patch.map((o) => o.path));
+      return withAuditNotes(client, "cw_update_ticket_note", user_intent, textResult(result), () => [
+        { ticketId, what: `Edited note #${noteId} (${fields.length > 0 ? fields.join(", ") : "no fields named"}).` },
+      ]);
     },
   );
 
@@ -518,8 +659,14 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     },
     async ({ ticketId, noteId, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_delete_ticket_note", entityType: "ticket_note", entityId: noteId, userIntent: user_intent, userQuote: user_quote });
+      // The text field is never requested, so the deleted text cannot leak into the audit note.
+      const note = await tryRead(client, `/service/tickets/${ticketId}/notes/${noteId}`, {
+        fields: "id,detailDescriptionFlag,internalAnalysisFlag,resolutionFlag,member,contact,createdBy,dateCreated",
+      });
       const result = await client.request("DELETE", `/service/tickets/${ticketId}/notes/${noteId}`);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      return withAuditNotes(client, "cw_delete_ticket_note", user_intent, textResult(result), () => [
+        { ticketId, what: describeDeletedNote(noteId, note) },
+      ]);
     },
   );
 
@@ -532,7 +679,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       ticketId: z.number().describe("Ticket ID"),
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
       orderBy: z.string().optional().describe("Field to order by"),
     },
     async ({ ticketId, conditions, page, pageSize, orderBy }) => {
@@ -587,7 +734,10 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       if (args.scheduleId !== undefined) body.schedule = { id: args.scheduleId };
       if (args.resolution) body.resolution = args.resolution;
       const result = await client.post(`/service/tickets/${args.ticketId}/tasks`, body);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      const taskId = idOf(result);
+      return withAuditNotes(client, "cw_create_ticket_task", args.user_intent, textResult(result), () => [
+        { ticketId: args.ticketId, what: `Added task ${taskId !== undefined ? `#${taskId}` : "(id not returned)"}: ${excerpt(args.notes)}` },
+      ]);
     },
   );
 
@@ -610,8 +760,15 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     },
     async ({ ticketId, taskId, patch, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_update_ticket_task", entityType: "ticket_task", entityId: taskId, userIntent: user_intent, userQuote: user_quote, operations: patch });
+      const keys = topLevelKeys(patch.map((o) => o.path));
+      const before = await tryRead(client, `/service/tickets/${ticketId}/tasks/${taskId}`, { fields: keys.join(",") });
       const result = await client.patch(`/service/tickets/${ticketId}/tasks/${taskId}`, patch);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      return withAuditNotes(client, "cw_update_ticket_task", user_intent, textResult(result), () => [
+        {
+          ticketId,
+          what: `Updated task #${taskId}: ${describeRecordChanges(keys, before, result, requestedFromPatch(patch), TASK_FIELD_LABELS)}`,
+        },
+      ]);
     },
   );
 
@@ -633,8 +790,11 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     },
     async ({ ticketId, taskId, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_delete_ticket_task", entityType: "ticket_task", entityId: taskId, userIntent: user_intent, userQuote: user_quote });
+      const task = await tryRead<{ notes?: unknown }>(client, `/service/tickets/${ticketId}/tasks/${taskId}`, { fields: "id,notes" });
       const result = await client.request("DELETE", `/service/tickets/${ticketId}/tasks/${taskId}`);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      return withAuditNotes(client, "cw_delete_ticket_task", user_intent, textResult(result), () => [
+        { ticketId, what: task ? `Removed task #${taskId}: ${excerpt(task.notes)}` : `Removed task #${taskId}.` },
+      ]);
     },
   );
 
@@ -650,7 +810,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       ticketId: z.number().describe("Ticket ID"),
       conditions: z.string().optional().describe("Additional ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async ({ ticketId, conditions, page, pageSize }) => {
       const baseCond = `type/id=4 AND objectId=${ticketId}`;
@@ -698,7 +858,9 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       await auditLog({ tool: "cw_add_ticket_team_member", entityType: "ticket_team_member", entityId: ticketId, userIntent: user_intent, userQuote: user_quote });
       const body = { type: { id: 4 }, objectId: ticketId, member: { id: memberId } };
       const result = await client.post(`/schedule/entries`, body);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      return withAuditNotes(client, "cw_add_ticket_team_member", user_intent, textResult(result), () => [
+        { ticketId, what: describeResourceAdded(result, `member #${memberId}`) },
+      ]);
     },
   );
 
@@ -706,7 +868,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     "cw_update_ticket_team_member",
     "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a resource assignment on a ticket (e.g. set doneFlag=true) via JSON Patch on the schedule entry. Use to edit, amend, correct, revise or patch an existing record.",
     {
-      ticketId: z.number().describe("Ticket ID (used for audit only)"),
+      ticketId: z.number().describe("Ticket ID. The internal audit note goes on the ticket the schedule entry belongs to when that can be read, otherwise on this one."),
       teamMemberId: z.number().describe("Schedule entry ID (from cw_list_ticket_team)"),
       patch: z.array(patchOp).describe("Array of JSON Patch operations, e.g. [{op:'replace',path:'/doneFlag',value:true}]"),
       user_intent: z.string().min(20).describe(
@@ -721,8 +883,20 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     },
     async ({ ticketId, teamMemberId, patch, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_update_ticket_team_member", entityType: "ticket_team_member", entityId: teamMemberId, userIntent: user_intent, userQuote: user_quote, operations: patch });
+      const keys = topLevelKeys(patch.map((o) => o.path));
+      const entryFields = ["member", "objectId", "type"];
+      const before = await tryRead<{ member?: unknown }>(client, `/schedule/entries/${teamMemberId}`, {
+        fields: [...entryFields, ...keys.filter((k) => !entryFields.includes(k))].join(","),
+      });
       const result = await client.patch(`/schedule/entries/${teamMemberId}`, patch);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      return withAuditNotes(client, "cw_update_ticket_team_member", user_intent, textResult(result), () => {
+        const who = nameOf(before?.member) ?? nameOf((result as { member?: unknown } | undefined)?.member);
+        const changes = describeRecordChanges(keys, before, result, requestedFromPatch(patch), SCHEDULE_ENTRY_FIELD_LABELS);
+        return [{
+          ticketId: entryTicketId(before, ticketId, teamMemberId),
+          what: `Updated the resource assignment${who ? ` for ${who}` : ""} (schedule entry #${teamMemberId}): ${changes}`,
+        }];
+      });
     },
   );
 
@@ -730,7 +904,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     "cw_remove_ticket_team_member",
     "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Remove a member from a ticket's sub-team.",
     {
-      ticketId: z.number().describe("Ticket ID (used for audit only)"),
+      ticketId: z.number().describe("Ticket ID. The internal audit note goes on the ticket the schedule entry belongs to when that can be read, otherwise on this one."),
       teamMemberId: z.number().describe("Schedule entry ID (from cw_list_ticket_team)"),
       user_intent: z.string().min(20).describe(
         "Plain-English description of what the user asked for. " +
@@ -744,8 +918,17 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     },
     async ({ ticketId, teamMemberId, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_remove_ticket_team_member", entityType: "ticket_team_member", entityId: teamMemberId, userIntent: user_intent, userQuote: user_quote });
+      const entry = await tryRead<{ member?: unknown }>(client, `/schedule/entries/${teamMemberId}`, { fields: "id,member,objectId,type" });
       const result = await client.request("DELETE", `/schedule/entries/${teamMemberId}`);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      const who = nameOf(entry?.member);
+      return withAuditNotes(client, "cw_remove_ticket_team_member", user_intent, textResult(result), () => [
+        {
+          ticketId: entryTicketId(entry, ticketId, teamMemberId),
+          what: who
+            ? `Removed ${who} as a resource from this ticket (schedule entry #${teamMemberId}).`
+            : `Removed the resource on schedule entry #${teamMemberId} from this ticket.`,
+        },
+      ]);
     },
   );
 
@@ -758,7 +941,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       ticketId: z.number().describe("Ticket ID"),
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async ({ ticketId, conditions, page, pageSize }) => {
       const result = await client.get(`/service/tickets/${ticketId}/products`, {
@@ -779,7 +962,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       ticketId: z.number().describe("Ticket ID"),
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async ({ ticketId, conditions, page, pageSize }) => {
       const result = await client.get(`/service/tickets/${ticketId}/configurations`, {
@@ -812,7 +995,9 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       const result = await client.post(`/service/tickets/${ticketId}/configurations`, {
         id: configurationId,
       });
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      return withAuditNotes(client, "cw_attach_configuration_to_ticket", user_intent, textResult(result), async () => [
+        { ticketId, what: `Attached ${await describeConfiguration(configurationId)} to this ticket.` },
+      ]);
     },
   );
 
@@ -835,7 +1020,9 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     async ({ ticketId, configurationId, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_detach_configuration_from_ticket", entityType: "ticket_configuration", entityId: configurationId, userIntent: user_intent, userQuote: user_quote });
       const result = await client.request("DELETE", `/service/tickets/${ticketId}/configurations/${configurationId}`);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      return withAuditNotes(client, "cw_detach_configuration_from_ticket", user_intent, textResult(result), async () => [
+        { ticketId, what: `Detached ${await describeConfiguration(configurationId)} from this ticket.` },
+      ]);
     },
   );
 
@@ -847,7 +1034,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     {
       ticketId: z.number().describe("Ticket ID"),
       page: z.number().optional().describe("Page number (default: 1)"),
-      pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
+      pageSize: z.number().optional().describe("Results per page (default: 25). The claude.ai connectors cap pages at 100. Use fields= and page= for more."),
     },
     async ({ ticketId, page, pageSize }) => {
       const result = await client.get(`/service/tickets/${ticketId}/documents`, {
@@ -947,7 +1134,35 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
         objectId: id,
         member: { identifier: memberIdentifier },
       });
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      return withAuditNotes(client, "cw_add_ticket_member", user_intent, textResult(result), () => [
+        { ticketId: id, what: describeResourceAdded(result, memberIdentifier) },
+      ]);
     },
   );
+
+  // Schedule entries are not scoped to a ticket, so a mistyped ticketId would put
+  // one client's request text on another client's ticket. The entry itself says
+  // which ticket it belongs to (type 4 is a service ticket, as in cw_list_ticket_team).
+  function entryTicketId(entry: unknown, argTicketId: number, teamMemberId: number): number {
+    const e = entry as { objectId?: unknown; type?: { id?: unknown } } | undefined;
+    const owner = e?.objectId;
+    if (e?.type?.id !== 4 || typeof owner !== "number" || !Number.isInteger(owner) || owner <= 0) return argTicketId;
+    if (owner !== argTicketId) {
+      console.error(`[audit-note] schedule entry ${teamMemberId} belongs to ticket ${owner}, not ${argTicketId}; noting ticket ${owner}`);
+    }
+    return owner;
+  }
+
+  function describeResourceAdded(entry: unknown, fallbackName: string): string {
+    const who = nameOf((entry as { member?: unknown } | undefined)?.member) ?? fallbackName;
+    const entryId = idOf(entry);
+    return `Added ${who} as a resource on this ticket` +
+      (entryId !== undefined ? ` (schedule entry #${entryId}).` : ".");
+  }
+
+  async function describeConfiguration(configurationId: number): Promise<string> {
+    const config = await tryRead<{ name?: unknown }>(client, `/company/configurations/${configurationId}`, { fields: "id,name" });
+    const name = nameOf(config);
+    return name ? `configuration "${name}" (#${configurationId})` : `configuration #${configurationId}`;
+  }
 }

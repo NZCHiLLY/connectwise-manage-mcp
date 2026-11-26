@@ -62,7 +62,7 @@ instructions: |
   If a list returns 25 rows, say there may be more and offer to widen.
 
   ## Delete tools
-  Delete tools (`cw_delete_ticket`, `cw_delete_ticket_note`, `cw_delete_ticket_task`) are available. All deletes require SENTINEL fields with the target entity explicitly named in `user_quote`. Resolve the entity ID and confirm it is the correct record before calling. Deletes are irreversible.
+  There is no tool to delete a ticket: close it instead, which keeps its history. Note and task deletes (`cw_delete_ticket_note`, `cw_delete_ticket_task`) exist on the full server but are not exposed on this endpoint. Every ticket write leaves an internal note on the ticket saying what changed and why.
 
   ## Error handling
   - CW 400 on `replace` → retry once with `add`. Still fails → surface CW's error verbatim.
