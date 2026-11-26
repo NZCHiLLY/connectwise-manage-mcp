@@ -868,7 +868,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     "cw_update_ticket_team_member",
     "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Update a resource assignment on a ticket (e.g. set doneFlag=true) via JSON Patch on the schedule entry. Use to edit, amend, correct, revise or patch an existing record.",
     {
-      ticketId: z.number().describe("Ticket ID (used for audit only)"),
+      ticketId: z.number().describe("Ticket ID. The internal audit note goes on the ticket the schedule entry belongs to when that can be read, otherwise on this one."),
       teamMemberId: z.number().describe("Schedule entry ID (from cw_list_ticket_team)"),
       patch: z.array(patchOp).describe("Array of JSON Patch operations, e.g. [{op:'replace',path:'/doneFlag',value:true}]"),
       user_intent: z.string().min(20).describe(
@@ -884,15 +884,16 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     async ({ ticketId, teamMemberId, patch, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_update_ticket_team_member", entityType: "ticket_team_member", entityId: teamMemberId, userIntent: user_intent, userQuote: user_quote, operations: patch });
       const keys = topLevelKeys(patch.map((o) => o.path));
+      const entryFields = ["member", "objectId", "type"];
       const before = await tryRead<{ member?: unknown }>(client, `/schedule/entries/${teamMemberId}`, {
-        fields: ["member", ...keys.filter((k) => k !== "member")].join(","),
+        fields: [...entryFields, ...keys.filter((k) => !entryFields.includes(k))].join(","),
       });
       const result = await client.patch(`/schedule/entries/${teamMemberId}`, patch);
       return withAuditNotes(client, "cw_update_ticket_team_member", user_intent, textResult(result), () => {
         const who = nameOf(before?.member) ?? nameOf((result as { member?: unknown } | undefined)?.member);
         const changes = describeRecordChanges(keys, before, result, requestedFromPatch(patch), SCHEDULE_ENTRY_FIELD_LABELS);
         return [{
-          ticketId,
+          ticketId: entryTicketId(before, ticketId, teamMemberId),
           what: `Updated the resource assignment${who ? ` for ${who}` : ""} (schedule entry #${teamMemberId}): ${changes}`,
         }];
       });
@@ -903,7 +904,7 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     "cw_remove_ticket_team_member",
     "SENTINEL: requires user_intent + user_quote — only call if you have explicit user instruction. Remove a member from a ticket's sub-team.",
     {
-      ticketId: z.number().describe("Ticket ID (used for audit only)"),
+      ticketId: z.number().describe("Ticket ID. The internal audit note goes on the ticket the schedule entry belongs to when that can be read, otherwise on this one."),
       teamMemberId: z.number().describe("Schedule entry ID (from cw_list_ticket_team)"),
       user_intent: z.string().min(20).describe(
         "Plain-English description of what the user asked for. " +
@@ -917,12 +918,12 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     },
     async ({ ticketId, teamMemberId, user_intent, user_quote }) => {
       await auditLog({ tool: "cw_remove_ticket_team_member", entityType: "ticket_team_member", entityId: teamMemberId, userIntent: user_intent, userQuote: user_quote });
-      const entry = await tryRead<{ member?: unknown }>(client, `/schedule/entries/${teamMemberId}`, { fields: "id,member" });
+      const entry = await tryRead<{ member?: unknown }>(client, `/schedule/entries/${teamMemberId}`, { fields: "id,member,objectId,type" });
       const result = await client.request("DELETE", `/schedule/entries/${teamMemberId}`);
       const who = nameOf(entry?.member);
       return withAuditNotes(client, "cw_remove_ticket_team_member", user_intent, textResult(result), () => [
         {
-          ticketId,
+          ticketId: entryTicketId(entry, ticketId, teamMemberId),
           what: who
             ? `Removed ${who} as a resource from this ticket (schedule entry #${teamMemberId}).`
             : `Removed the resource on schedule entry #${teamMemberId} from this ticket.`,
@@ -1138,6 +1139,19 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       ]);
     },
   );
+
+  // Schedule entries are not scoped to a ticket, so a mistyped ticketId would put
+  // one client's request text on another client's ticket. The entry itself says
+  // which ticket it belongs to (type 4 is a service ticket, as in cw_list_ticket_team).
+  function entryTicketId(entry: unknown, argTicketId: number, teamMemberId: number): number {
+    const e = entry as { objectId?: unknown; type?: { id?: unknown } } | undefined;
+    const owner = e?.objectId;
+    if (e?.type?.id !== 4 || typeof owner !== "number" || !Number.isInteger(owner) || owner <= 0) return argTicketId;
+    if (owner !== argTicketId) {
+      console.error(`[audit-note] schedule entry ${teamMemberId} belongs to ticket ${owner}, not ${argTicketId}; noting ticket ${owner}`);
+    }
+    return owner;
+  }
 
   function describeResourceAdded(entry: unknown, fallbackName: string): string {
     const who = nameOf((entry as { member?: unknown } | undefined)?.member) ?? fallbackName;

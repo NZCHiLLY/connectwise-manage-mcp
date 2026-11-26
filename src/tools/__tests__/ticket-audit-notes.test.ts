@@ -46,10 +46,37 @@ function call(name: string, args: Record<string, unknown>) {
   return tool.handler({ ...args, ...SENTINEL }, {}) as Promise<{ content: { type: string; text: string }[] }>;
 }
 
+let expectedHeader = HEADER;
+
+function lastChangeOrder(): number {
+  const changePosts = post.mock.calls.flatMap((c, i) =>
+    NOTE_PATH.test(String(c[0])) ? [] : [post.mock.invocationCallOrder[i]]);
+  return Math.max(
+    0,
+    ...patch.mock.invocationCallOrder,
+    ...put.mock.invocationCallOrder,
+    ...request.mock.invocationCallOrder,
+    ...changePosts,
+  );
+}
+
+/** Every audit note POSTed, each checked for its flags, header, Why line and timing. */
 function notePosts(): { path: string; body: Record<string, unknown> }[] {
-  return post.mock.calls
-    .filter((c) => NOTE_PATH.test(String(c[0])))
-    .map((c) => ({ path: String(c[0]), body: c[1] as Record<string, unknown> }));
+  const lastChange = lastChangeOrder();
+  return post.mock.calls.flatMap((c, i) => {
+    if (!NOTE_PATH.test(String(c[0]))) return [];
+    const body = c[1] as Record<string, unknown>;
+    expect(body).toMatchObject({
+      internalAnalysisFlag: true,
+      detailDescriptionFlag: false,
+      resolutionFlag: false,
+      processNotifications: false,
+    });
+    expect(String(body.text).split("\n")[0]).toBe(expectedHeader);
+    expect(String(body.text).endsWith(`\nWhy: ${SENTINEL.user_intent}`)).toBe(true);
+    expect(post.mock.invocationCallOrder[i]).toBeGreaterThan(lastChange);
+    return [{ path: String(c[0]), body }];
+  });
 }
 
 function onlyNote(ticketId: number): Record<string, unknown> {
@@ -69,6 +96,7 @@ let errorSpy: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
   vi.clearAllMocks();
   __resetAuditNoteCache();
+  expectedHeader = HEADER;
   errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
   resolve.mockResolvedValue(7);
   getRoutes = { "/system/members/7": { firstName: "Alex", lastName: "Example" } };
@@ -120,10 +148,10 @@ describe("note body", () => {
 
   it("names the shared service account and sends no member when the caller does not resolve", async () => {
     resolve.mockResolvedValue(undefined);
+    expectedHeader = "Changed by Claude via the ConnectWise MCP (shared service account).";
     postRoutes["/service/tickets"] = { id: 1001 };
     await call("cw_create_ticket", { summary: "Printer down" });
     const body = onlyNote(1001);
-    expect(String(body.text).split("\n")[0]).toBe("Changed by Claude via the ConnectWise MCP (shared service account).");
     expect(body).not.toHaveProperty("member");
   });
 });
@@ -284,6 +312,22 @@ describe("ticket resources", () => {
     expect(whatOf(onlyNote(1001))).toBe(
       "Updated the resource assignment for Alex Example (schedule entry #8001): Done no -> yes.",
     );
+  });
+
+  it("update notes the ticket the schedule entry belongs to, not a mistyped ticketId", async () => {
+    getRoutes["/schedule/entries/8001"] = { member: { id: 7, name: "Alex Example" }, objectId: 1009, type: { id: 4 }, doneFlag: false };
+    patch.mockResolvedValue({ id: 8001, doneFlag: true });
+    await call("cw_update_ticket_team_member", {
+      ticketId: 1001, teamMemberId: 8001, patch: [{ op: "replace", path: "/doneFlag", value: true }],
+    });
+    expect(get).toHaveBeenCalledWith("/schedule/entries/8001", { fields: "member,objectId,type,doneFlag" });
+    onlyNote(1009);
+  });
+
+  it("remove notes the ticket the schedule entry belongs to", async () => {
+    getRoutes["/schedule/entries/8001"] = { id: 8001, member: { id: 7, name: "Alex Example" }, objectId: 1009, type: { id: 4 } };
+    await call("cw_remove_ticket_team_member", { ticketId: 1001, teamMemberId: 8001 });
+    onlyNote(1009);
   });
 
   it("remove reads the entry first and names the member", async () => {
