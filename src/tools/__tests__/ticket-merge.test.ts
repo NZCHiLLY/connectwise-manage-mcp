@@ -78,9 +78,15 @@ function queueClean(ids: number[] = [201, 202]) {
   queuePreflight({ sources: ids.map((id) => ticket(id)) });
 }
 
+/** POST calls to the merge endpoint; the audit note is a separate POST to /notes. */
+function mergeCalls(): unknown[][] {
+  const calls = (mockClient.post as unknown as { mock: { calls: unknown[][] } }).mock.calls;
+  return calls.filter((c) => String(c[0]).endsWith("/merge"));
+}
+
 /** The body handed to client.post for the most recent merge call. */
 function lastMergeBody(): Record<string, unknown> {
-  const calls = (mockClient.post as unknown as { mock: { calls: unknown[][] } }).mock.calls;
+  const calls = mergeCalls();
   expect(calls.length).toBeGreaterThan(0);
   return calls[calls.length - 1][1] as Record<string, unknown>;
 }
@@ -225,7 +231,7 @@ describe("cw_merge_tickets guard", () => {
       { targetTicketId: 1003, mergeTicketIds: [1004], allowTimeEntries: true, ...SENTINEL },
       {},
     );
-    expect(mockClient.post).toHaveBeenCalledTimes(1);
+    expect(mergeCalls()).toHaveLength(1);
     expect(auditLog).toHaveBeenCalledWith(
       expect.objectContaining({
         operations: expect.objectContaining({ allowTimeEntries: true, timeEntries: { 1004: 3 } }),
@@ -249,7 +255,7 @@ describe("cw_merge_tickets guard", () => {
       { targetTicketId: 200, mergeTicketIds: [201], allowClosedTarget: true, ...SENTINEL },
       {},
     );
-    expect(mockClient.post).toHaveBeenCalledTimes(1);
+    expect(mergeCalls()).toHaveLength(1);
   });
 
   it("refuses an agreement mismatch", async () => {
@@ -271,7 +277,7 @@ describe("cw_merge_tickets guard", () => {
       sources: [ticket(201, { agreement: null })],
     });
     await handler({ targetTicketId: 200, mergeTicketIds: [201], ...SENTINEL }, {});
-    expect(mockClient.post).toHaveBeenCalledTimes(1);
+    expect(mergeCalls()).toHaveLength(1);
   });
 
   it("treats null agreement on one side only as a mismatch", async () => {
@@ -290,7 +296,7 @@ describe("cw_merge_tickets guard", () => {
       { targetTicketId: 200, mergeTicketIds: [201], allowAgreementMismatch: true, ...SENTINEL },
       {},
     );
-    expect(mockClient.post).toHaveBeenCalledTimes(1);
+    expect(mergeCalls()).toHaveLength(1);
     expect(auditLog).toHaveBeenCalledWith(
       expect.objectContaining({
         operations: expect.objectContaining({ allowAgreementMismatch: true }),
