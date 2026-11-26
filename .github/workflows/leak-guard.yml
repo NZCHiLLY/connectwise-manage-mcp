@@ -1,0 +1,83 @@
+name: leak-guard
+
+# This repository is public. The guard fails a push or PR whose tree, commit
+# messages, commit identities, or PR title and body match the denylist held in
+# the LEAK_DENYLIST secret. The list itself is never committed, and the log
+# names files and commit SHAs only, never the matched text, because Actions
+# logs on a public repository are public too.
+
+on:
+  push:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
+        with:
+          fetch-depth: 0
+
+      - name: Load denylist
+        env:
+          LEAK_DENYLIST: ${{ secrets.LEAK_DENYLIST }}
+        run: |
+          if [ -z "$LEAK_DENYLIST" ]; then
+            echo "LEAK_DENYLIST secret is not available, skipping (fork PRs get no secrets)."
+            echo "SKIP=1" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          printf '%s\n' "$LEAK_DENYLIST" | sed '/^[[:space:]]*$/d' > "$RUNNER_TEMP/deny.txt"
+
+      - name: Scan tree
+        if: env.SKIP != '1'
+        run: |
+          files=$(git grep -lIE -f "$RUNNER_TEMP/deny.txt" HEAD -- . ':!package-lock.json' || true)
+          if [ -n "$files" ]; then
+            echo "::error::Denylisted text in these files:"
+            echo "$files" | sed 's/^HEAD://'
+            exit 1
+          fi
+
+      - name: Scan commits
+        if: env.SKIP != '1'
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$EVENT" = pull_request ]; then
+            range="$PR_BASE..$PR_HEAD"
+          elif [ -z "$BEFORE" ] || [ "$BEFORE" = 0000000000000000000000000000000000000000 ] || ! git cat-file -e "$BEFORE" 2>/dev/null; then
+            range="$AFTER --not --remotes=origin/main"
+            git rev-parse -q --verify origin/main >/dev/null || range="$AFTER -50"
+          else
+            range="$BEFORE..$AFTER"
+          fi
+          bad=0
+          for c in $(git rev-list $range); do
+            if git log -1 --format=%B "$c" | grep -qE -f "$RUNNER_TEMP/deny.txt"; then
+              echo "::error::Commit $c message matches the denylist"; bad=1
+            fi
+            if git log -1 --format='%an %ae %cn %ce' "$c" | grep -qiE -f "$RUNNER_TEMP/deny.txt"; then
+              echo "::error::Commit $c author or committer matches the denylist"; bad=1
+            fi
+          done
+          exit $bad
+
+      - name: Scan PR title and body
+        if: env.SKIP != '1' && github.event_name == 'pull_request'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if printf '%s\n%s\n' "$PR_TITLE" "$PR_BODY" | grep -qE -f "$RUNNER_TEMP/deny.txt"; then
+            echo "::error::PR title or body matches the denylist"
+            exit 1
+          fi
