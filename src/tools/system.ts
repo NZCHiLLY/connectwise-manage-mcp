@@ -577,16 +577,25 @@ export function registerSystemTools(server: McpServer, client: CwManageClient) {
 
   server.tool(
     "cw_list_audit_trail",
-    "List system audit trail entries.",
+    "Who changed a record and when. ConnectWise requires the record type and its ID. " +
+      "Record types include Ticket, ProductCatalog, Configuration, PurchaseOrder and Expense.",
     {
+      type: z
+        .string()
+        .min(1)
+        .describe(
+          "ConnectWise record type, for example Ticket, ProductCatalog, Configuration, PurchaseOrder or Expense.",
+        ),
+      id: z.coerce.number().describe("ID of the record, within its type"),
+      deviceIdentifier: z.string().optional().describe("Device identifier filter"),
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       page: z.number().optional().describe("Page number (default: 1)"),
       pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
       orderBy: z.string().optional().describe("Field to order by"),
     },
-    async ({ conditions, page, pageSize, orderBy }) => {
+    async ({ type, id, deviceIdentifier, conditions, page, pageSize, orderBy }) => {
       const result = await client.get("/system/audittrail", {
-        conditions, page: page ?? 1, pageSize: pageSize ?? 25, orderBy,
+        type, id, deviceIdentifier, conditions, page: page ?? 1, pageSize: pageSize ?? 25, orderBy,
       });
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },

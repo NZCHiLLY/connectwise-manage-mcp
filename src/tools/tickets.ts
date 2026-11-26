@@ -2,7 +2,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CwManageClient } from "../api-client.js";
 import { auditLog } from "../audit/log.js";
-import { patchOp } from "./shared.js";
+import { patchOp, normaliseIdArgs } from "./shared.js";
 
 export function registerTicketTools(server: McpServer, client: CwManageClient) {
   // ── Core Ticket CRUD ─────────────────────────────────────────────────────
@@ -37,11 +37,13 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     "cw_get_ticket",
     "Get a single service ticket by ID.",
     {
-      id: z.number().describe("Ticket ID"),
+      id: z.coerce.number().optional().describe("Ticket ID (alias: ticketId)"),
+      ticketId: z.coerce.number().optional().describe("Ticket ID (alias: id)"),
       fields: z.string().optional().describe("Comma-separated fields to return"),
     },
-    async ({ id, fields }) => {
-      const result = await client.get(`/service/tickets/${id}`, { fields });
+    async (args) => {
+      const id = normaliseIdArgs(args, "id", "ticketId", "cw_get_ticket");
+      const result = await client.get(`/service/tickets/${id}`, { fields: args.fields });
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
@@ -187,6 +189,15 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
           "Use cw_list_service_locations to resolve the name to an ID.",
       ),
       requiredDate: z.string().optional().describe("Due date in ISO 8601 format, e.g. '2025-06-30T00:00:00Z'"),
+      agreementId: z.number().optional().describe(
+        "Agreement ID to bill the ticket against. Changing company does not move the agreement, so set it explicitly.",
+      ),
+      automaticEmailCcFlag: z.boolean().optional().describe(
+        "Whether the ticket auto-CCs the addresses in automaticEmailCc. Changing company can pull in the new client's auto-CC, so check this afterwards.",
+      ),
+      automaticEmailCc: z.string().optional().describe("Auto-CC email addresses (semicolon separated)"),
+      automaticEmailContactFlag: z.boolean().optional().describe("Whether the ticket notifies the contact automatically"),
+      automaticEmailResourceFlag: z.boolean().optional().describe("Whether the ticket notifies the resources automatically"),
     },
     async ({ id, user_intent, user_quote, ...fields }) => {
       const ops: { op: string; path: string; value: unknown }[] = [];
@@ -204,8 +215,13 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
       if (fields.siteId !== undefined)      ops.push({ op: "replace", path: "/site/id",      value: fields.siteId });
       if (fields.serviceLocationId !== undefined) ops.push({ op: "replace", path: "/serviceLocation/id", value: fields.serviceLocationId });
       if (fields.requiredDate !== undefined) ops.push({ op: "replace", path: "/requiredDate", value: fields.requiredDate });
+      if (fields.agreementId !== undefined) ops.push({ op: "replace", path: "/agreement/id", value: fields.agreementId });
+      if (fields.automaticEmailCcFlag !== undefined) ops.push({ op: "replace", path: "/automaticEmailCcFlag", value: fields.automaticEmailCcFlag });
+      if (fields.automaticEmailCc !== undefined) ops.push({ op: "replace", path: "/automaticEmailCc", value: fields.automaticEmailCc });
+      if (fields.automaticEmailContactFlag !== undefined) ops.push({ op: "replace", path: "/automaticEmailContactFlag", value: fields.automaticEmailContactFlag });
+      if (fields.automaticEmailResourceFlag !== undefined) ops.push({ op: "replace", path: "/automaticEmailResourceFlag", value: fields.automaticEmailResourceFlag });
       if (ops.length === 0) {
-        return { content: [{ type: "text", text: "cw_update_ticket: no fields to update were provided. Specify at least one of: summary, statusId, priorityId, boardId, typeId, subTypeId, itemId, ownerId, teamId, contactId, companyId, siteId, requiredDate." }], isError: true };
+        return { content: [{ type: "text", text: "cw_update_ticket: no fields to update were provided. Specify at least one of: summary, statusId, priorityId, boardId, typeId, subTypeId, itemId, ownerId, teamId, contactId, companyId, siteId, serviceLocationId, requiredDate, agreementId, automaticEmailCcFlag, automaticEmailCc, automaticEmailContactFlag, automaticEmailResourceFlag." }], isError: true };
       }
       await auditLog({ tool: "cw_update_ticket", entityType: "ticket", entityId: id, userIntent: user_intent, userQuote: user_quote, operations: ops });
       const result = await client.patch(`/service/tickets/${id}`, ops);
@@ -374,13 +390,16 @@ export function registerTicketTools(server: McpServer, client: CwManageClient) {
     "cw_get_ticket_notes",
     "Get notes on a service ticket. Tries /allNotes first (includes child-ticket notes); falls back to /notes on older CWM versions. Supports conditions and orderBy for filtering.",
     {
-      ticketId: z.number().describe("Ticket ID"),
+      ticketId: z.coerce.number().optional().describe("Ticket ID (alias: id)"),
+      id: z.coerce.number().optional().describe("Ticket ID (alias: ticketId)"),
       conditions: z.string().optional().describe("ConnectWise conditions query string"),
       orderBy: z.string().optional().describe("Field to order by"),
       page: z.number().optional().describe("Page number (default: 1)"),
       pageSize: z.number().optional().describe("Results per page (default: 25, max: 1000)"),
     },
-    async ({ ticketId, conditions, orderBy, page, pageSize }) => {
+    async (args) => {
+      const { conditions, orderBy, page, pageSize } = args;
+      const ticketId = normaliseIdArgs(args, "ticketId", "id", "cw_get_ticket_notes");
       try {
         const result = await client.get(`/service/tickets/${ticketId}/allNotes`, {
           conditions,

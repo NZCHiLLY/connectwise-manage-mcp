@@ -94,15 +94,14 @@ docker compose -f docker-compose.caddy.yml up -d     # with TLS termination
 ## Deployment
 
 ACA FQDN: `YOUR-ACA-APP.YOUR-ENV-ID.australiaeast.azurecontainerapps.io`
-Deploy: `.\deploy-image-update.ps1` (requires local Docker). Without Docker, build in ACR:
+Deploys go through the pipeline: a merge to main. Break-glass only, when GitHub Actions is unavailable and no release.yml run is queued or running:
 
 ```powershell
-az acr build --registry acrcwmmcp --image connectwise-manage-mcp:latest .
-az containerapp update --name connectwise-manage-mcp --resource-group rg-cwm-mcp `
-  --image acrcwmmcp.azurecr.io/connectwise-manage-mcp:latest --revision-suffix <unique>
+az acr build -r acrcwmmcp -t connectwise-manage-mcp:manual-<sha7>-<yyyymmddHHMM> --build-arg COMMIT_SHA=<full sha> .
+az containerapp update -n connectwise-manage-mcp -g rg-cwm-mcp --image acrcwmmcp.azurecr.io/connectwise-manage-mcp:<that tag> --set-env-vars IMAGE_VERSION=<that tag>
 ```
 
-CI also builds to ACR on push to main.
+Then confirm `/health` shows that `build.sha` and `build.image`. Never deploy `:latest`. The next merge to main supersedes a break-glass deploy.
 
 ## Gotchas
 

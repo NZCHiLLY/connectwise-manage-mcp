@@ -30,7 +30,7 @@ instructions: |
   ## SENTINEL writes
   All create/update tools require:
   - `user_intent` — plain-English, ≥20 chars.
-  - `user_quote` — verbatim from user's message, ≥20 chars. If the message is short, include surrounding context from the same turn.
+  - `user_quote` — the user's exact words, verbatim, at least 1 character, never padded or extended with surrounding context.
 
   ## Delete tools
   `cw_delete_catalog_item` and related delete tools (components, bundles, pricing, manufacturer parts) are available. Deleting a catalog item removes it from the product catalogue — confirm the item name before calling. All deletes require SENTINEL fields with the target entity explicitly named in `user_quote`.
